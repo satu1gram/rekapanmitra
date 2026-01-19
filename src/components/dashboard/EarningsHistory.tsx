@@ -4,10 +4,11 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { formatCurrency, formatShortCurrency } from '@/lib/formatters';
-import { TrendingUp, DollarSign, Calendar, ChevronLeft } from 'lucide-react';
+import { TrendingUp, DollarSign, Calendar, ChevronLeft, Wallet } from 'lucide-react';
 import { format, startOfDay, startOfWeek, startOfMonth, endOfDay, endOfWeek, endOfMonth, eachDayOfInterval, eachWeekOfInterval, eachMonthOfInterval, subDays, subWeeks, subMonths, isSameDay, isSameWeek, isSameMonth } from 'date-fns';
 import { id } from 'date-fns/locale';
 import type { Tables } from '@/integrations/supabase/types';
+import type { GeneralExpense } from '@/hooks/useGeneralExpenses';
 
 type Order = Tables<'orders'>;
 
@@ -15,6 +16,7 @@ type FilterType = 'daily' | 'weekly' | 'monthly';
 
 interface EarningsHistoryProps {
   orders: Order[];
+  expenses: GeneralExpense[];
   onBack: () => void;
 }
 
@@ -24,10 +26,12 @@ interface EarningsSummary {
   orderCount: number;
   totalBottles: number;
   revenue: number;
-  profit: number;
+  grossProfit: number;
+  expenses: number;
+  netProfit: number;
 }
 
-export function EarningsHistory({ orders, onBack }: EarningsHistoryProps) {
+export function EarningsHistory({ orders, expenses, onBack }: EarningsHistoryProps) {
   const [filter, setFilter] = useState<FilterType>('daily');
 
   const earningsData = useMemo(() => {
@@ -44,6 +48,12 @@ export function EarningsHistory({ orders, onBack }: EarningsHistoryProps) {
         const dayOrders = orders.filter(order => 
           isSameDay(new Date(order.created_at), day)
         );
+        const dayExpenses = expenses.filter(expense =>
+          expense.expenseDate === format(day, 'yyyy-MM-dd')
+        );
+        
+        const grossProfit = dayOrders.reduce((sum, o) => sum + Number(o.margin), 0);
+        const expensesTotal = dayExpenses.reduce((sum, e) => sum + e.amount, 0);
         
         return {
           date: day,
@@ -51,7 +61,9 @@ export function EarningsHistory({ orders, onBack }: EarningsHistoryProps) {
           orderCount: dayOrders.length,
           totalBottles: dayOrders.reduce((sum, o) => sum + o.quantity, 0),
           revenue: dayOrders.reduce((sum, o) => sum + Number(o.total_price), 0),
-          profit: dayOrders.reduce((sum, o) => sum + Number(o.margin), 0),
+          grossProfit,
+          expenses: expensesTotal,
+          netProfit: grossProfit - expensesTotal,
         };
       });
     } else if (filter === 'weekly') {
@@ -65,6 +77,13 @@ export function EarningsHistory({ orders, onBack }: EarningsHistoryProps) {
           const orderDate = new Date(order.created_at);
           return orderDate >= weekStart && orderDate <= weekEnd;
         });
+        const weekExpenses = expenses.filter(expense => {
+          const expenseDate = new Date(expense.expenseDate);
+          return expenseDate >= weekStart && expenseDate <= weekEnd;
+        });
+        
+        const grossProfit = weekOrders.reduce((sum, o) => sum + Number(o.margin), 0);
+        const expensesTotal = weekExpenses.reduce((sum, e) => sum + e.amount, 0);
         
         return {
           date: weekStart,
@@ -72,7 +91,9 @@ export function EarningsHistory({ orders, onBack }: EarningsHistoryProps) {
           orderCount: weekOrders.length,
           totalBottles: weekOrders.reduce((sum, o) => sum + o.quantity, 0),
           revenue: weekOrders.reduce((sum, o) => sum + Number(o.total_price), 0),
-          profit: weekOrders.reduce((sum, o) => sum + Number(o.margin), 0),
+          grossProfit,
+          expenses: expensesTotal,
+          netProfit: grossProfit - expensesTotal,
         };
       });
     } else {
@@ -86,6 +107,13 @@ export function EarningsHistory({ orders, onBack }: EarningsHistoryProps) {
           const orderDate = new Date(order.created_at);
           return orderDate >= monthStart && orderDate <= monthEnd;
         });
+        const monthExpenses = expenses.filter(expense => {
+          const expenseDate = new Date(expense.expenseDate);
+          return expenseDate >= monthStart && expenseDate <= monthEnd;
+        });
+        
+        const grossProfit = monthOrders.reduce((sum, o) => sum + Number(o.margin), 0);
+        const expensesTotal = monthExpenses.reduce((sum, e) => sum + e.amount, 0);
         
         return {
           date: monthStart,
@@ -93,14 +121,16 @@ export function EarningsHistory({ orders, onBack }: EarningsHistoryProps) {
           orderCount: monthOrders.length,
           totalBottles: monthOrders.reduce((sum, o) => sum + o.quantity, 0),
           revenue: monthOrders.reduce((sum, o) => sum + Number(o.total_price), 0),
-          profit: monthOrders.reduce((sum, o) => sum + Number(o.margin), 0),
+          grossProfit,
+          expenses: expensesTotal,
+          netProfit: grossProfit - expensesTotal,
         };
       });
     }
 
     // Sort by date descending (newest first)
     return summaries.sort((a, b) => b.date.getTime() - a.date.getTime());
-  }, [orders, filter]);
+  }, [orders, expenses, filter]);
 
   // Calculate totals for the current filter period
   const totals = useMemo(() => {
@@ -108,8 +138,10 @@ export function EarningsHistory({ orders, onBack }: EarningsHistoryProps) {
       orderCount: acc.orderCount + item.orderCount,
       totalBottles: acc.totalBottles + item.totalBottles,
       revenue: acc.revenue + item.revenue,
-      profit: acc.profit + item.profit,
-    }), { orderCount: 0, totalBottles: 0, revenue: 0, profit: 0 });
+      grossProfit: acc.grossProfit + item.grossProfit,
+      expenses: acc.expenses + item.expenses,
+      netProfit: acc.netProfit + item.netProfit,
+    }), { orderCount: 0, totalBottles: 0, revenue: 0, grossProfit: 0, expenses: 0, netProfit: 0 });
   }, [earningsData]);
 
   const filterLabels: Record<FilterType, string> = {
@@ -127,7 +159,7 @@ export function EarningsHistory({ orders, onBack }: EarningsHistoryProps) {
         </Button>
         <div>
           <h1 className="text-xl font-bold">History Pendapatan</h1>
-          <p className="text-sm text-muted-foreground">Rekap pendapatan & keuntungan</p>
+          <p className="text-sm text-muted-foreground">Rekap pendapatan & keuntungan bersih</p>
         </div>
       </div>
 
@@ -165,17 +197,30 @@ export function EarningsHistory({ orders, onBack }: EarningsHistoryProps) {
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
               <TrendingUp className="h-4 w-4" />
-              Total Keuntungan
+              Keuntungan Bersih
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-xl font-bold text-primary">{formatShortCurrency(totals.profit)}</p>
+            <p className={`text-xl font-bold ${totals.netProfit >= 0 ? 'text-primary' : 'text-destructive'}`}>
+              {formatShortCurrency(totals.netProfit)}
+            </p>
             <p className="text-xs text-muted-foreground">
-              Margin rata-rata: {totals.totalBottles > 0 ? formatCurrency(Math.round(totals.profit / totals.totalBottles)) : 'Rp 0'}/btl
+              Kotor: {formatShortCurrency(totals.grossProfit)}
             </p>
           </CardContent>
         </Card>
       </div>
+
+      {/* Expenses Summary */}
+      <Card className="border-destructive/30 bg-destructive/5">
+        <CardContent className="flex items-center justify-between py-3">
+          <div className="flex items-center gap-2">
+            <Wallet className="h-4 w-4 text-destructive" />
+            <span className="text-sm font-medium">Total Pengeluaran</span>
+          </div>
+          <span className="font-bold text-destructive">-{formatShortCurrency(totals.expenses)}</span>
+        </CardContent>
+      </Card>
 
       {/* Period Label */}
       <div className="flex items-center gap-2">
@@ -184,7 +229,7 @@ export function EarningsHistory({ orders, onBack }: EarningsHistoryProps) {
       </div>
 
       {/* History List */}
-      <ScrollArea className="h-[calc(100vh-400px)]">
+      <ScrollArea className="h-[calc(100vh-480px)]">
         <div className="space-y-2">
           {earningsData.length === 0 ? (
             <Card>
@@ -194,7 +239,7 @@ export function EarningsHistory({ orders, onBack }: EarningsHistoryProps) {
             </Card>
           ) : (
             earningsData.map((item, index) => (
-              <Card key={index} className={item.orderCount === 0 ? 'opacity-50' : ''}>
+              <Card key={index} className={item.orderCount === 0 && item.expenses === 0 ? 'opacity-50' : ''}>
                 <CardContent className="py-3">
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
@@ -202,11 +247,16 @@ export function EarningsHistory({ orders, onBack }: EarningsHistoryProps) {
                       <p className="text-xs text-muted-foreground">
                         {item.orderCount} order • {item.totalBottles} botol
                       </p>
+                      {item.expenses > 0 && (
+                        <p className="text-xs text-destructive">
+                          Biaya: -{formatShortCurrency(item.expenses)}
+                        </p>
+                      )}
                     </div>
                     <div className="text-right">
                       <p className="font-medium">{formatShortCurrency(item.revenue)}</p>
-                      <p className="text-xs text-primary font-medium">
-                        +{formatShortCurrency(item.profit)}
+                      <p className={`text-xs font-medium ${item.netProfit >= 0 ? 'text-primary' : 'text-destructive'}`}>
+                        {item.netProfit >= 0 ? '+' : ''}{formatShortCurrency(item.netProfit)}
                       </p>
                     </div>
                   </div>
