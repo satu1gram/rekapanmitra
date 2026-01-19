@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useOrders } from '@/hooks/useOrdersDb';
 import { useStock } from '@/hooks/useStockDb';
+import { useGeneralExpenses } from '@/hooks/useGeneralExpenses';
 import { formatCurrency, formatShortCurrency } from '@/lib/formatters';
 import { LOW_STOCK_THRESHOLD, TIER_PRICING, TierType } from '@/types';
 import { EarningsHistory } from './EarningsHistory';
@@ -16,7 +17,8 @@ import {
   Plus,
   PackagePlus,
   Loader2,
-  History
+  History,
+  Wallet
 } from 'lucide-react';
 
 interface DashboardProps {
@@ -27,8 +29,9 @@ export function Dashboard({ onNavigate }: DashboardProps) {
   const [showHistory, setShowHistory] = useState(false);
   const { orders, loading: ordersLoading, getTodayOrders, getWeekOrders, getMonthOrders } = useOrders();
   const { currentStock, isLowStock, loading: stockLoading } = useStock();
+  const { expenses, loading: expensesLoading, getTodayExpenses, getMonthExpenses, getTotalExpenses } = useGeneralExpenses();
 
-  const loading = ordersLoading || stockLoading;
+  const loading = ordersLoading || stockLoading || expensesLoading;
 
   const todayOrders = getTodayOrders();
   const weekOrders = getWeekOrders();
@@ -43,6 +46,14 @@ export function Dashboard({ onNavigate }: DashboardProps) {
   const monthRevenue = monthOrders.reduce((sum, o) => sum + Number(o.total_price), 0);
   const monthProfit = monthOrders.reduce((sum, o) => sum + Number(o.margin), 0);
 
+  // Calculate expenses
+  const todayExpensesTotal = getTotalExpenses(getTodayExpenses());
+  const monthExpensesTotal = getTotalExpenses(getMonthExpenses());
+
+  // Net profit = profit - expenses
+  const todayNetProfit = todayProfit - todayExpensesTotal;
+  const monthNetProfit = monthProfit - monthExpensesTotal;
+
   const averageMargin = monthOrders.length > 0 
     ? Math.round(monthOrders.reduce((sum, o) => sum + (Number(o.margin) / o.quantity), 0) / monthOrders.length)
     : 0;
@@ -56,7 +67,7 @@ export function Dashboard({ onNavigate }: DashboardProps) {
   }
 
   if (showHistory) {
-    return <EarningsHistory orders={orders} onBack={() => setShowHistory(false)} />;
+    return <EarningsHistory orders={orders} expenses={expenses} onBack={() => setShowHistory(false)} />;
   }
 
   return (
@@ -163,16 +174,18 @@ export function Dashboard({ onNavigate }: DashboardProps) {
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
               <TrendingUp className="h-4 w-4" />
-              Keuntungan
+              Keuntungan Bersih
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-xl font-bold text-primary">{formatShortCurrency(todayProfit)}</p>
-            <p className="text-xs text-muted-foreground">
-              Minggu: {formatShortCurrency(weekProfit)}
+            <p className={`text-xl font-bold ${todayNetProfit >= 0 ? 'text-primary' : 'text-destructive'}`}>
+              {formatShortCurrency(todayNetProfit)}
             </p>
             <p className="text-xs text-muted-foreground">
-              Bulan: {formatShortCurrency(monthProfit)}
+              Kotor: {formatShortCurrency(todayProfit)} • Biaya: -{formatShortCurrency(todayExpensesTotal)}
+            </p>
+            <p className={`text-xs ${monthNetProfit >= 0 ? 'text-primary' : 'text-destructive'}`}>
+              Bulan: {formatShortCurrency(monthNetProfit)}
             </p>
           </CardContent>
         </Card>

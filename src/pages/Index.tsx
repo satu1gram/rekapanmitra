@@ -4,6 +4,7 @@ import { Dashboard } from '@/components/dashboard/Dashboard';
 import { OrdersPage } from '@/components/orders/OrdersPage';
 import { StockPage } from '@/components/stock/StockPage';
 import { CustomersPage } from '@/components/customers/CustomersPage';
+import { ExpensesPage } from '@/components/expenses/ExpensesPage';
 import { SettingsPage } from '@/components/settings/SettingsPage';
 import { AuthPage } from '@/components/auth/AuthPage';
 import { useAuth } from '@/hooks/useAuth';
@@ -40,6 +41,8 @@ const Index = () => {
         return <StockPage />;
       case 'customers':
         return <CustomersPage />;
+      case 'expenses':
+        return <ExpensesPage />;
       case 'settings':
         return <SettingsPage />;
       default:
