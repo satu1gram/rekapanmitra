@@ -149,7 +149,7 @@ export function OrdersPage() {
 
     setSubmitting(true);
     try {
-      const newExpense = await addOrderExpense(orderId, expenseName.trim(), expenseAmount);
+      const newExpense = await addOrderExpense(orderId, expenseName.trim(), expenseAmount) as any;
       setOrderExpenses(prev => [...prev, {
         id: newExpense.id,
         orderId: newExpense.order_id,
