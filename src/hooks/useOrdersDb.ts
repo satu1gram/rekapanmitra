@@ -188,7 +188,7 @@ export function useOrders() {
 
   const fetchOrderExpenses = useCallback(async (orderId: string) => {
     const { data, error } = await supabase
-      .from('order_expenses')
+      .from('order_expenses' as any)
       .select('*')
       .eq('order_id', orderId)
       .order('created_at', { ascending: true });
@@ -197,7 +197,7 @@ export function useOrders() {
       console.error('Error fetching expenses:', error);
       return [];
     }
-    return data.map(e => ({
+    return (data || []).map((e: any) => ({
       id: e.id,
       orderId: e.order_id,
       name: e.name,
@@ -210,7 +210,7 @@ export function useOrders() {
     if (!user) throw new Error('User not authenticated');
 
     const { data: expense, error: expenseError } = await supabase
-      .from('order_expenses')
+      .from('order_expenses' as any)
       .insert({
         user_id: user.id,
         order_id: orderId,
@@ -240,7 +240,7 @@ export function useOrders() {
 
   const deleteOrderExpense = useCallback(async (expenseId: string, orderId: string, amount: number) => {
     const { error: expenseError } = await supabase
-      .from('order_expenses')
+      .from('order_expenses' as any)
       .delete()
       .eq('id', expenseId);
 

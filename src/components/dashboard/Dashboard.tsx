@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -5,6 +6,7 @@ import { useOrders } from '@/hooks/useOrdersDb';
 import { useStock } from '@/hooks/useStockDb';
 import { formatCurrency, formatShortCurrency } from '@/lib/formatters';
 import { LOW_STOCK_THRESHOLD, TIER_PRICING, TierType } from '@/types';
+import { EarningsHistory } from './EarningsHistory';
 import { 
   TrendingUp, 
   Package, 
@@ -13,7 +15,8 @@ import {
   AlertTriangle,
   Plus,
   PackagePlus,
-  Loader2
+  Loader2,
+  History
 } from 'lucide-react';
 
 interface DashboardProps {
@@ -21,6 +24,7 @@ interface DashboardProps {
 }
 
 export function Dashboard({ onNavigate }: DashboardProps) {
+  const [showHistory, setShowHistory] = useState(false);
   const { orders, loading: ordersLoading, getTodayOrders, getWeekOrders, getMonthOrders } = useOrders();
   const { currentStock, isLowStock, loading: stockLoading } = useStock();
 
@@ -49,6 +53,10 @@ export function Dashboard({ onNavigate }: DashboardProps) {
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
+  }
+
+  if (showHistory) {
+    return <EarningsHistory orders={orders} onBack={() => setShowHistory(false)} />;
   }
 
   return (
@@ -170,16 +178,17 @@ export function Dashboard({ onNavigate }: DashboardProps) {
         </Card>
       </div>
 
-      {/* Average Margin */}
+      {/* Average Margin + History Button */}
       <Card>
         <CardContent className="flex items-center justify-between py-4">
           <div>
             <p className="text-sm font-medium text-muted-foreground">Margin Rata-rata/Botol</p>
             <p className="text-lg font-bold">{formatCurrency(averageMargin)}</p>
           </div>
-          <Badge variant="secondary">
-            Bulan ini
-          </Badge>
+          <Button variant="outline" size="sm" onClick={() => setShowHistory(true)}>
+            <History className="h-4 w-4 mr-2" />
+            History
+          </Button>
         </CardContent>
       </Card>
 
