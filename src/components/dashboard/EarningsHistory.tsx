@@ -9,6 +9,7 @@ import { format, startOfDay, startOfWeek, startOfMonth, endOfDay, endOfWeek, end
 import { id } from 'date-fns/locale';
 import type { Tables } from '@/integrations/supabase/types';
 import type { GeneralExpense } from '@/hooks/useGeneralExpenses';
+import { EarningsChart } from './EarningsChart';
 
 type Order = Tables<'orders'>;
 
@@ -144,6 +145,24 @@ export function EarningsHistory({ orders, expenses, onBack }: EarningsHistoryPro
     }), { orderCount: 0, totalBottles: 0, revenue: 0, grossProfit: 0, expenses: 0, netProfit: 0 });
   }, [earningsData]);
 
+  const chartPoints = useMemo(() => {
+    // earningsData is sorted newest-first; charts should be oldest-first
+    return [...earningsData]
+      .reverse()
+      .map((x) => ({
+        label:
+          filter === 'daily'
+            ? format(x.date, 'd/M')
+            : filter === 'weekly'
+              ? format(x.date, 'd MMM', { locale: id })
+              : format(x.date, 'MMM yy', { locale: id }),
+        revenue: x.revenue,
+        grossProfit: x.grossProfit,
+        expenses: x.expenses,
+        netProfit: x.netProfit,
+      }));
+  }, [earningsData, filter]);
+
   const filterLabels: Record<FilterType, string> = {
     daily: 'Harian (30 hari)',
     weekly: 'Mingguan (12 minggu)',
@@ -227,6 +246,16 @@ export function EarningsHistory({ orders, expenses, onBack }: EarningsHistoryPro
         <Calendar className="h-4 w-4 text-muted-foreground" />
         <span className="text-sm text-muted-foreground">{filterLabels[filter]}</span>
       </div>
+
+      {/* Trend Chart */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base">Tren Pendapatan & Profit</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <EarningsChart data={chartPoints} />
+        </CardContent>
+      </Card>
 
       {/* History List */}
       <ScrollArea className="h-[calc(100vh-480px)]">
