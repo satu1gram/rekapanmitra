@@ -1,22 +1,33 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { TIER_PRICING } from '@/types';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { TIER_PRICING, MITRA_LEVELS, MitraLevel } from '@/types';
 import { formatCurrency, formatShortCurrency } from '@/lib/formatters';
 import { useAuth } from '@/hooks/useAuth';
+import { useProfile } from '@/hooks/useProfile';
 import { 
   Lock,
   User,
   Info,
   LogOut,
-  Loader2
+  Loader2,
+  Store
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useState } from 'react';
 
 export function SettingsPage() {
   const { user, signOut } = useAuth();
+  const { profile, mitraLevel, updateMitraLevel, loading: profileLoading } = useProfile();
   const [loggingOut, setLoggingOut] = useState(false);
+  const [savingLevel, setSavingLevel] = useState(false);
 
   const handleLogout = async () => {
     setLoggingOut(true);
@@ -27,6 +38,19 @@ export function SettingsPage() {
       toast.error('Gagal keluar');
     } finally {
       setLoggingOut(false);
+    }
+  };
+
+  const handleMitraLevelChange = async (level: MitraLevel) => {
+    setSavingLevel(true);
+    try {
+      await updateMitraLevel(level);
+      toast.success(`Level mitra diubah ke ${MITRA_LEVELS[level].label}`);
+    } catch (error) {
+      console.error('Error updating mitra level:', error);
+      toast.error('Gagal mengubah level mitra');
+    } finally {
+      setSavingLevel(false);
     }
   };
 
@@ -53,8 +77,58 @@ export function SettingsPage() {
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Lokasi</span>
-              <span className="font-medium">Malang, Jawa Timur</span>
+              <span className="font-medium">{profile?.location || 'Malang, Jawa Timur'}</span>
             </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Mitra Level Selection */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Store className="h-4 w-4" />
+            Level Mitra Anda
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Level ini menentukan harga modal Anda saat restok dan menghitung margin di setiap order.
+            </p>
+            {profileLoading ? (
+              <div className="flex items-center justify-center py-4">
+                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+              </div>
+            ) : (
+              <Select
+                value={mitraLevel}
+                onValueChange={(v) => handleMitraLevelChange(v as MitraLevel)}
+                disabled={savingLevel}
+              >
+                <SelectTrigger className="h-12 text-base">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.values(MITRA_LEVELS).map(level => (
+                    <SelectItem key={level.level} value={level.level}>
+                      <div className="flex items-center gap-3">
+                        <span className="font-medium">{level.label}</span>
+                        <span className="text-xs text-muted-foreground">
+                          Modal {formatShortCurrency(level.buyPricePerBottle)}/btl
+                        </span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+            {savingLevel && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="h-3 w-3 animate-spin" />
+                Menyimpan...
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>

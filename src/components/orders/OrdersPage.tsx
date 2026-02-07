@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,11 +17,17 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
 import { useOrders } from '@/hooks/useOrdersDb';
 import { useStock } from '@/hooks/useStockDb';
 import { useCustomers } from '@/hooks/useCustomersDb';
 import { useFileUpload } from '@/hooks/useFileUpload';
-import { TierType, TIER_PRICING, MitraLevel, MITRA_LEVELS, OrderStatus, OrderExpense } from '@/types';
+import { useProfile } from '@/hooks/useProfile';
+import { TierType, TIER_PRICING, MITRA_LEVELS, OrderStatus, OrderExpense } from '@/types';
 import { formatCurrency, formatDateTime, formatShortCurrency } from '@/lib/formatters';
 import {
   Plus,
@@ -36,12 +42,11 @@ import {
   Truck,
   Loader2,
   Edit,
-  Store,
-  UserPlus,
-  Users,
   Calendar,
   PlusCircle,
-  Trash2
+  Trash2,
+  Minus,
+  Settings2
 } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Tables } from '@/integrations/supabase/types';
@@ -62,19 +67,19 @@ export function OrdersPage() {
   const { currentStock, reduceStock } = useStock();
   const { customers, addOrUpdateCustomer } = useCustomers();
   const { uploadTransferProof } = useFileUpload();
+  const { mitraLevel } = useProfile();
 
   const [showForm, setShowForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [uploading, setUploading] = useState(false);
 
-  // Customer selection
-  const [customerMode, setCustomerMode] = useState<'new' | 'existing'>('new');
-  const [selectedCustomerId, setSelectedCustomerId] = useState<string>('');
+  // Customer auto-suggest
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string>('');
+  const [showSuggestions, setShowSuggestions] = useState(false);
 
   const [selectedTier, setSelectedTier] = useState<TierType>('satuan');
-  const [mitraLevel, setMitraLevel] = useState<MitraLevel>('reseller');
   const [quantity, setQuantity] = useState(1);
   const [sellPrice, setSellPrice] = useState(250000);
   const [transferProofUrl, setTransferProofUrl] = useState<string | null>(null);
@@ -83,6 +88,7 @@ export function OrdersPage() {
   const [filterStatus, setFilterStatus] = useState<OrderStatus | 'all'>('all');
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
   const [orderDate, setOrderDate] = useState(new Date().toISOString().split('T')[0]);
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
   // Expenses state
   const [orderExpenses, setOrderExpenses] = useState<OrderExpense[]>([]);
@@ -94,27 +100,31 @@ export function OrdersPage() {
   const [editingOrder, setEditingOrder] = useState<Order | null>(null);
   const [showEditDialog, setShowEditDialog] = useState(false);
 
-  const tierInfo = TIER_PRICING[selectedTier];
   const mitraInfo = MITRA_LEVELS[mitraLevel];
   const totalBuyPrice = mitraInfo.buyPricePerBottle * quantity;
   const totalSellPrice = sellPrice * quantity;
   const estimatedMargin = totalSellPrice - totalBuyPrice;
 
-  // When selecting existing customer, auto-fill fields
-  useEffect(() => {
-    if (customerMode === 'existing' && selectedCustomerId) {
-      const customer = customers.find(c => c.id === selectedCustomerId);
-      if (customer) {
-        setCustomerName(customer.name);
-        setCustomerPhone(customer.phone);
-        // Set tier based on customer tier if available
-        if (customer.tier && TIER_PRICING[customer.tier as TierType]) {
-          setSelectedTier(customer.tier as TierType);
-          setSellPrice(TIER_PRICING[customer.tier as TierType].pricePerBottle);
-        }
-      }
+  // Customer suggestions based on typed name
+  const customerSuggestions = useMemo(() => {
+    if (!customerName.trim() || customerName.length < 2) return [];
+    const query = customerName.toLowerCase();
+    return customers.filter(c =>
+      c.name.toLowerCase().includes(query) ||
+      c.phone.includes(query)
+    ).slice(0, 5);
+  }, [customerName, customers]);
+
+  const selectCustomer = (customer: Tables<'customers'>) => {
+    setCustomerName(customer.name);
+    setCustomerPhone(customer.phone);
+    setSelectedCustomerId(customer.id);
+    if (customer.tier && TIER_PRICING[customer.tier as TierType]) {
+      setSelectedTier(customer.tier as TierType);
+      setSellPrice(TIER_PRICING[customer.tier as TierType].pricePerBottle);
     }
-  }, [customerMode, selectedCustomerId, customers]);
+    setShowSuggestions(false);
+  };
 
   // Fetch expenses when an order is expanded
   useEffect(() => {
@@ -135,7 +145,6 @@ export function OrdersPage() {
     } else {
       setOrderExpenses([]);
     }
-    // Reset expense form
     setExpenseName('');
     setExpenseAmount(0);
   }, [expandedOrder, fetchOrderExpenses]);
@@ -213,16 +222,16 @@ export function OrdersPage() {
 
   const resetForm = () => {
     setShowForm(false);
-    setCustomerMode('new');
     setSelectedCustomerId('');
     setCustomerName('');
     setCustomerPhone('');
     setSelectedTier('satuan');
-    setMitraLevel('reseller');
     setQuantity(1);
     setSellPrice(250000);
     setTransferProofPreview(null);
+    setTransferProofUrl(null);
     setOrderDate(new Date().toISOString().split('T')[0]);
+    setShowAdvanced(false);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -289,6 +298,7 @@ export function OrdersPage() {
     setQuantity(order.quantity);
     setSellPrice(order.price_per_bottle);
     setTransferProofPreview(order.transfer_proof_url);
+    setTransferProofUrl(order.transfer_proof_url);
     if (order.created_at) {
       setOrderDate(new Date(order.created_at).toISOString().split('T')[0]);
     }
@@ -348,152 +358,127 @@ export function OrdersPage() {
           <h1 className="text-2xl font-bold">Order</h1>
           <p className="text-sm text-muted-foreground">{orders.length} total order</p>
         </div>
-        <Button onClick={() => setShowForm(!showForm)}>
-          {showForm ? <X className="mr-2 h-4 w-4" /> : <Plus className="mr-2 h-4 w-4" />}
+        <Button onClick={() => setShowForm(!showForm)} size="lg">
+          {showForm ? <X className="mr-2 h-5 w-5" /> : <Plus className="mr-2 h-5 w-5" />}
           {showForm ? 'Batal' : 'Tambah'}
         </Button>
       </div>
 
-      {/* Add Order Form */}
+      {/* Add Order Form - Simplified */}
       {showForm && (
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">Order Baru</CardTitle>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Customer Mode Toggle */}
-              <div className="space-y-2">
-                <Label>Pilih Customer</Label>
-                <div className="flex gap-2">
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant={customerMode === 'existing' ? 'default' : 'outline'}
-                    onClick={() => setCustomerMode('existing')}
-                    disabled={customers.length === 0}
-                  >
-                    <Users className="mr-2 h-4 w-4" />
-                    Customer Lama
-                  </Button>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant={customerMode === 'new' ? 'default' : 'outline'}
-                    onClick={() => {
-                      setCustomerMode('new');
-                      setSelectedCustomerId('');
-                      setCustomerName('');
-                      setCustomerPhone('');
-                    }}
-                  >
-                    <UserPlus className="mr-2 h-4 w-4" />
-                    Customer Baru
-                  </Button>
-                </div>
-              </div>
-
-              {/* Order Date */}
-              <div className="space-y-2">
-                <Label htmlFor="orderDate">
-                  <Calendar className="mr-1 inline h-4 w-4" />
-                  Tanggal Order
+            <form onSubmit={handleSubmit} className="space-y-5">
+              {/* Customer Name with Auto-suggest */}
+              <div className="space-y-2 relative">
+                <Label htmlFor="customerName" className="text-base font-medium">
+                  <User className="mr-1 inline h-4 w-4" />
+                  Nama Customer
                 </Label>
                 <Input
-                  id="orderDate"
-                  type="date"
-                  value={orderDate}
-                  onChange={(e) => setOrderDate(e.target.value)}
-                  disabled={submitting}
+                  id="customerName"
+                  placeholder="Ketik nama customer..."
+                  value={customerName}
+                  onChange={(e) => {
+                    setCustomerName(e.target.value);
+                    setSelectedCustomerId('');
+                    setShowSuggestions(true);
+                  }}
+                  onFocus={() => setShowSuggestions(true)}
+                  onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
                   required
+                  disabled={submitting}
+                  className="h-12 text-base"
+                />
+                {/* Suggestions Dropdown */}
+                {showSuggestions && customerSuggestions.length > 0 && (
+                  <div className="absolute left-0 right-0 top-full z-50 mt-1 rounded-lg border bg-popover shadow-lg">
+                    {customerSuggestions.map(c => (
+                      <button
+                        key={c.id}
+                        type="button"
+                        className="flex w-full items-center justify-between px-4 py-3 text-left hover:bg-accent transition-colors first:rounded-t-lg last:rounded-b-lg"
+                        onMouseDown={() => selectCustomer(c)}
+                      >
+                        <div>
+                          <p className="font-medium text-base">{c.name}</p>
+                          <p className="text-sm text-muted-foreground">{c.phone}</p>
+                        </div>
+                        <Badge variant="secondary" className="text-xs">
+                          {TIER_PRICING[c.tier as TierType]?.label || c.tier}
+                        </Badge>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* WhatsApp Number */}
+              <div className="space-y-2">
+                <Label htmlFor="customerPhone" className="text-base font-medium">
+                  <Phone className="mr-1 inline h-4 w-4" />
+                  Nomor WhatsApp
+                </Label>
+                <Input
+                  id="customerPhone"
+                  placeholder="08xxxxxxxxxx"
+                  value={customerPhone}
+                  onChange={(e) => setCustomerPhone(e.target.value)}
+                  required
+                  disabled={submitting}
+                  className="h-12 text-base"
                 />
               </div>
 
-              {/* Existing Customer Selection */}
-              {customerMode === 'existing' && customers.length > 0 && (
-                <div className="space-y-2">
-                  <Label>Pilih Customer</Label>
-                  <Select
-                    value={selectedCustomerId}
-                    onValueChange={setSelectedCustomerId}
+              {/* Quantity with +/- Buttons */}
+              <div className="space-y-2">
+                <Label className="text-base font-medium">Jumlah Botol</Label>
+                <div className="flex items-center gap-3">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    className="h-12 w-12 shrink-0 text-lg"
+                    onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                    disabled={submitting || quantity <= 1}
+                  >
+                    <Minus className="h-5 w-5" />
+                  </Button>
+                  <Input
+                    type="number"
+                    min={1}
+                    value={quantity}
+                    onChange={(e) => {
+                      const parsed = parseInt(e.target.value.replace(/^0+/, '')) || 1;
+                      setQuantity(parsed);
+                    }}
+                    disabled={submitting}
+                    className="h-12 text-center text-xl font-bold"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    className="h-12 w-12 shrink-0 text-lg"
+                    onClick={() => setQuantity(quantity + 1)}
                     disabled={submitting}
                   >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Pilih customer..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {customers.map(customer => (
-                        <SelectItem key={customer.id} value={customer.id}>
-                          <div className="flex items-center gap-2">
-                            <span>{customer.name}</span>
-                            <span className="text-xs text-muted-foreground">
-                              ({customer.phone})
-                            </span>
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    <Plus className="h-5 w-5" />
+                  </Button>
                 </div>
-              )}
-
-              {/* Customer Info (editable for new, read-only for existing) */}
-              <div className="grid gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="customerName">
-                    <User className="mr-1 inline h-4 w-4" />
-                    Nama Customer
-                  </Label>
-                  <Input
-                    id="customerName"
-                    placeholder="Nama lengkap"
-                    value={customerName}
-                    onChange={(e) => setCustomerName(e.target.value)}
-                    required
-                    disabled={submitting || (customerMode === 'existing' && !!selectedCustomerId)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="customerPhone">
-                    <Phone className="mr-1 inline h-4 w-4" />
-                    Nomor WhatsApp
-                  </Label>
-                  <Input
-                    id="customerPhone"
-                    placeholder="08xxxxxxxxxx"
-                    value={customerPhone}
-                    onChange={(e) => setCustomerPhone(e.target.value)}
-                    required
-                    disabled={submitting || (customerMode === 'existing' && !!selectedCustomerId)}
-                  />
-                </div>
-              </div>
-
-              {/* Jumlah Botol */}
-              <div className="space-y-2">
-                <Label htmlFor="quantity">Jumlah Botol</Label>
-                <Input
-                  id="quantity"
-                  type="number"
-                  min={0}
-                  value={quantity}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    const parsed = parseInt(val.replace(/^0+/, '')) || 0;
-                    setQuantity(parsed);
-                  }}
-                  disabled={submitting}
-                />
-                <p className="text-xs text-muted-foreground">
-                  Stok tersedia: {currentStock} botol
+                <p className="text-sm text-muted-foreground">
+                  Stok tersedia: <span className="font-semibold">{currentStock}</span> botol
                 </p>
               </div>
 
               {/* Tier/Paket Selection */}
               <div className="space-y-2">
-                <Label>
+                <Label className="text-base font-medium">
                   <Package className="mr-1 inline h-4 w-4" />
-                  Tier Harga (Referensi)
+                  Tier Customer
                 </Label>
                 <Select
                   value={selectedTier}
@@ -503,14 +488,14 @@ export function OrdersPage() {
                   }}
                   disabled={submitting}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="h-12 text-base">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     {Object.values(TIER_PRICING).map(tier => (
                       <SelectItem key={tier.tier} value={tier.tier}>
-                        <div className="flex items-center justify-between gap-4">
-                          <span>{tier.label}</span>
+                        <div className="flex items-center gap-3">
+                          <span className="font-medium">{tier.label}</span>
                           <span className="text-xs text-muted-foreground">
                             @ {formatShortCurrency(tier.pricePerBottle)}/btl
                           </span>
@@ -521,127 +506,130 @@ export function OrdersPage() {
                 </Select>
               </div>
 
-              {/* Mitra Level Selection */}
-              <div className="space-y-2">
-                <Label>
-                  <Store className="mr-1 inline h-4 w-4" />
-                  Level Mitra Anda
-                </Label>
-                <Select
-                  value={mitraLevel}
-                  onValueChange={(v) => setMitraLevel(v as MitraLevel)}
-                  disabled={submitting}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Object.values(MITRA_LEVELS).map(level => (
-                      <SelectItem key={level.level} value={level.level}>
-                        <div className="flex items-center justify-between gap-4">
-                          <span>{level.label}</span>
-                          <span className="text-xs text-muted-foreground">
-                            (Modal: {formatShortCurrency(level.buyPricePerBottle)}/btl)
-                          </span>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Sell Price */}
-              <div className="space-y-2">
-                <Label htmlFor="sellPrice">Harga Jual per Botol</Label>
-                <Input
-                  id="sellPrice"
-                  type="number"
-                  min={0}
-                  step={1000}
-                  value={sellPrice}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    const parsed = parseInt(val.replace(/^0+/, '')) || 0;
-                    setSellPrice(parsed);
-                  }}
-                  disabled={submitting}
-                />
-              </div>
-
-              {/* Transfer Proof Upload */}
-              <div className="space-y-2">
-                <Label>Bukti Transfer</Label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleFileUpload}
-                  ref={fileInputRef}
-                  className="hidden"
-                  disabled={submitting}
-                />
-                {transferProofPreview ? (
-                  <div className="relative">
-                    {uploading && (
-                      <div className="absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-background/80">
-                        <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                      </div>
-                    )}
-                    <img
-                      src={transferProofPreview}
-                      alt="Bukti transfer"
-                      className="h-32 w-full rounded-lg object-cover"
-                    />
-                    <Button
-                      type="button"
-                      size="icon"
-                      variant="destructive"
-                      className="absolute right-2 top-2 h-8 w-8"
-                      onClick={handleRemoveProof}
-                      disabled={submitting || uploading}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ) : (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="w-full"
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={submitting}
-                  >
-                    <Upload className="mr-2 h-4 w-4" />
-                    Upload Bukti Transfer
-                  </Button>
-                )}
-              </div>
-
-              {/* Summary */}
+              {/* Summary - Always Visible */}
               <Card className="bg-muted/50">
                 <CardContent className="space-y-2 py-4">
                   <div className="flex justify-between text-sm">
-                    <span>Harga Modal ({quantity} btl)</span>
+                    <span className="text-muted-foreground">Modal ({quantity} btl × {formatShortCurrency(mitraInfo.buyPricePerBottle)})</span>
                     <span>{formatCurrency(totalBuyPrice)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span>Harga Jual</span>
+                    <span className="text-muted-foreground">Jual ({quantity} btl × {formatShortCurrency(sellPrice)})</span>
                     <span>{formatCurrency(totalSellPrice)}</span>
                   </div>
-                  <div className="flex justify-between font-bold text-primary">
-                    <span>Estimasi Margin</span>
-                    <span>{formatCurrency(estimatedMargin)}</span>
+                  <div className="border-t pt-2">
+                    <div className="flex justify-between text-lg font-bold text-primary">
+                      <span>Estimasi Margin</span>
+                      <span>{formatCurrency(estimatedMargin)}</span>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
 
+              {/* Collapsible Advanced Options */}
+              <Collapsible open={showAdvanced} onOpenChange={setShowAdvanced}>
+                <CollapsibleTrigger asChild>
+                  <Button type="button" variant="ghost" className="w-full gap-2 text-muted-foreground">
+                    <Settings2 className="h-4 w-4" />
+                    Lainnya (Tanggal, Harga Custom, Bukti)
+                    {showAdvanced ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                  </Button>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="space-y-4 pt-2">
+                  {/* Order Date */}
+                  <div className="space-y-2">
+                    <Label htmlFor="orderDate" className="text-base font-medium">
+                      <Calendar className="mr-1 inline h-4 w-4" />
+                      Tanggal Order
+                    </Label>
+                    <Input
+                      id="orderDate"
+                      type="date"
+                      value={orderDate}
+                      onChange={(e) => setOrderDate(e.target.value)}
+                      disabled={submitting}
+                      className="h-12 text-base"
+                    />
+                  </div>
+
+                  {/* Custom Sell Price */}
+                  <div className="space-y-2">
+                    <Label htmlFor="sellPrice" className="text-base font-medium">
+                      Harga Jual per Botol (Custom)
+                    </Label>
+                    <Input
+                      id="sellPrice"
+                      type="number"
+                      min={0}
+                      step={1000}
+                      value={sellPrice}
+                      onChange={(e) => {
+                        const parsed = parseInt(e.target.value.replace(/^0+/, '')) || 0;
+                        setSellPrice(parsed);
+                      }}
+                      disabled={submitting}
+                      className="h-12 text-base"
+                    />
+                  </div>
+
+                  {/* Transfer Proof Upload */}
+                  <div className="space-y-2">
+                    <Label className="text-base font-medium">Bukti Transfer</Label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleFileUpload}
+                      ref={fileInputRef}
+                      className="hidden"
+                      disabled={submitting}
+                    />
+                    {transferProofPreview ? (
+                      <div className="relative">
+                        {uploading && (
+                          <div className="absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-background/80">
+                            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                          </div>
+                        )}
+                        <img
+                          src={transferProofPreview}
+                          alt="Bukti transfer"
+                          className="h-32 w-full rounded-lg object-cover"
+                        />
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="destructive"
+                          className="absolute right-2 top-2 h-8 w-8"
+                          onClick={handleRemoveProof}
+                          disabled={submitting || uploading}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="w-full h-12 text-base"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={submitting}
+                      >
+                        <Upload className="mr-2 h-4 w-4" />
+                        Upload Bukti Transfer
+                      </Button>
+                    )}
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
+
               <Button
                 type="submit"
-                className="w-full"
+                className="w-full h-12 text-base font-semibold"
                 disabled={quantity > currentStock || submitting}
               >
                 {submitting ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                     Menyimpan...
                   </>
                 ) : (
@@ -734,7 +722,6 @@ export function OrdersPage() {
                         </p>
                       </div>
 
-                      {/* Expense List */}
                       <div className="space-y-2">
                         {loadingExpenses ? (
                           <div className="flex justify-center py-2">
@@ -794,8 +781,7 @@ export function OrdersPage() {
                             className="h-8 text-xs"
                             value={expenseAmount}
                             onChange={(e) => {
-                              const val = e.target.value;
-                              const parsed = parseInt(val.replace(/^0+/, '')) || 0;
+                              const parsed = parseInt(e.target.value.replace(/^0+/, '')) || 0;
                               setExpenseAmount(parsed);
                             }}
                             disabled={submitting}
@@ -886,59 +872,69 @@ export function OrdersPage() {
             <DialogTitle>Edit Order</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleEditSubmit} className="space-y-4">
-            <div className="grid gap-4">
+            <div className="space-y-3">
               <div className="space-y-2">
-                <Label htmlFor="editCustomerName">Nama Customer</Label>
+                <Label className="text-base font-medium">Nama Customer</Label>
                 <Input
-                  id="editCustomerName"
                   value={customerName}
                   onChange={(e) => setCustomerName(e.target.value)}
                   required
                   disabled={submitting}
+                  className="h-12 text-base"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="editCustomerPhone">Nomor WhatsApp</Label>
+                <Label className="text-base font-medium">Nomor WhatsApp</Label>
                 <Input
-                  id="editCustomerPhone"
                   value={customerPhone}
                   onChange={(e) => setCustomerPhone(e.target.value)}
                   required
                   disabled={submitting}
+                  className="h-12 text-base"
                 />
               </div>
             </div>
 
-            {/* Edit Order Date */}
+            {/* Quantity with +/- */}
             <div className="space-y-2">
-              <Label htmlFor="editOrderDate">Tanggal Order</Label>
-              <Input
-                id="editOrderDate"
-                type="date"
-                value={orderDate}
-                onChange={(e) => setOrderDate(e.target.value)}
-                disabled={submitting}
-                required
-              />
+              <Label className="text-base font-medium">Jumlah Botol</Label>
+              <div className="flex items-center gap-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="h-12 w-12 shrink-0"
+                  onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                  disabled={submitting || quantity <= 1}
+                >
+                  <Minus className="h-5 w-5" />
+                </Button>
+                <Input
+                  type="number"
+                  min={1}
+                  value={quantity}
+                  onChange={(e) => {
+                    const parsed = parseInt(e.target.value.replace(/^0+/, '')) || 1;
+                    setQuantity(parsed);
+                  }}
+                  disabled={submitting}
+                  className="h-12 text-center text-xl font-bold"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="h-12 w-12 shrink-0"
+                  onClick={() => setQuantity(quantity + 1)}
+                  disabled={submitting}
+                >
+                  <Plus className="h-5 w-5" />
+                </Button>
+              </div>
             </div>
 
             <div className="space-y-2">
-              <Label>Jumlah Botol</Label>
-              <Input
-                type="number"
-                min={0}
-                value={quantity}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  const parsed = parseInt(val.replace(/^0+/, '')) || 0;
-                  setQuantity(parsed);
-                }}
-                disabled={submitting}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Tier Harga</Label>
+              <Label className="text-base font-medium">Tier Harga</Label>
               <Select
                 value={selectedTier}
                 onValueChange={(v) => {
@@ -947,7 +943,7 @@ export function OrdersPage() {
                 }}
                 disabled={submitting}
               >
-                <SelectTrigger>
+                <SelectTrigger className="h-12 text-base">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -961,38 +957,29 @@ export function OrdersPage() {
             </div>
 
             <div className="space-y-2">
-              <Label>Level Mitra</Label>
-              <Select
-                value={mitraLevel}
-                onValueChange={(v) => setMitraLevel(v as MitraLevel)}
+              <Label className="text-base font-medium">Tanggal Order</Label>
+              <Input
+                type="date"
+                value={orderDate}
+                onChange={(e) => setOrderDate(e.target.value)}
                 disabled={submitting}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {Object.values(MITRA_LEVELS).map(level => (
-                    <SelectItem key={level.level} value={level.level}>
-                      {level.label} - Modal {formatShortCurrency(level.buyPricePerBottle)}/btl
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                className="h-12 text-base"
+              />
             </div>
 
             <div className="space-y-2">
-              <Label>Harga Jual per Botol</Label>
+              <Label className="text-base font-medium">Harga Jual per Botol</Label>
               <Input
                 type="number"
                 min={0}
                 step={1000}
                 value={sellPrice}
                 onChange={(e) => {
-                  const val = e.target.value;
-                  const parsed = parseInt(val.replace(/^0+/, '')) || 0;
+                  const parsed = parseInt(e.target.value.replace(/^0+/, '')) || 0;
                   setSellPrice(parsed);
                 }}
                 disabled={submitting}
+                className="h-12 text-base"
               />
             </div>
 
@@ -1017,7 +1004,7 @@ export function OrdersPage() {
               <Button
                 type="button"
                 variant="outline"
-                className="flex-1"
+                className="flex-1 h-12"
                 onClick={() => {
                   setShowEditDialog(false);
                   setEditingOrder(null);
@@ -1026,7 +1013,7 @@ export function OrdersPage() {
               >
                 Batal
               </Button>
-              <Button type="submit" className="flex-1" disabled={submitting}>
+              <Button type="submit" className="flex-1 h-12" disabled={submitting}>
                 {submitting ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
