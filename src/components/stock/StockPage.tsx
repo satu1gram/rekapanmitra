@@ -26,9 +26,15 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
 import { useStock } from '@/hooks/useStockDb';
 import { useFileUpload } from '@/hooks/useFileUpload';
-import { TierType, TIER_PRICING } from '@/types';
+import { useProfile } from '@/hooks/useProfile';
+import { TierType, TIER_PRICING, MITRA_LEVELS } from '@/types';
 import { formatCurrency, formatDateTime, formatShortCurrency } from '@/lib/formatters';
 import {
   Plus,
@@ -41,7 +47,11 @@ import {
   Loader2,
   Edit,
   Trash2,
-  Calendar
+  Calendar,
+  Minus,
+  ChevronDown,
+  ChevronUp,
+  Settings2
 } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Tables } from '@/integrations/supabase/types';
@@ -51,18 +61,21 @@ type StockEntry = Tables<'stock_entries'>;
 export function StockPage() {
   const { currentStock, stockEntries, loading, addStock, updateStockEntry, deleteStockEntry, isLowStock } = useStock();
   const { uploadTransferProof } = useFileUpload();
+  const { mitraLevel } = useProfile();
+
+  const mitraInfo = MITRA_LEVELS[mitraLevel];
 
   const [showForm, setShowForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [quantity, setQuantity] = useState(1);
-  const [selectedTier, setSelectedTier] = useState<TierType>('reseller');
-  const [buyPrice, setBuyPrice] = useState(TIER_PRICING.reseller.pricePerBottle);
+  const [buyPrice, setBuyPrice] = useState(mitraInfo.buyPricePerBottle);
   const [transferProofUrl, setTransferProofUrl] = useState<string | null>(null);
   const [transferProofPreview, setTransferProofPreview] = useState<string | null>(null);
   const [notes, setNotes] = useState('');
   const [stockDate, setStockDate] = useState(new Date().toISOString().split('T')[0]);
   const [filterType, setFilterType] = useState<'all' | 'in' | 'out'>('all');
+  const [showAdvanced, setShowAdvanced] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Edit mode
@@ -74,11 +87,6 @@ export function StockPage() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   const totalBuyPrice = quantity * buyPrice;
-
-  const handleTierChange = (tier: TierType) => {
-    setSelectedTier(tier);
-    setBuyPrice(TIER_PRICING[tier].pricePerBottle);
-  };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -115,18 +123,19 @@ export function StockPage() {
   const resetForm = () => {
     setShowForm(false);
     setQuantity(1);
-    setSelectedTier('reseller');
-    setBuyPrice(TIER_PRICING.reseller.pricePerBottle);
+    setBuyPrice(mitraInfo.buyPricePerBottle);
     setTransferProofUrl(null);
+    setTransferProofPreview(null);
     setNotes('');
     setStockDate(new Date().toISOString().split('T')[0]);
+    setShowAdvanced(false);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (quantity < 0) {
-      toast.error('Jumlah minimal 0 botol');
+    if (quantity < 1) {
+      toast.error('Jumlah minimal 1 botol');
       return;
     }
 
@@ -134,7 +143,7 @@ export function StockPage() {
     try {
       await addStock({
         quantity,
-        tier: selectedTier,
+        tier: mitraLevel as TierType,
         buyPricePerBottle: buyPrice,
         transferProofUrl: transferProofUrl || undefined,
         notes: notes.trim() || undefined,
@@ -155,9 +164,9 @@ export function StockPage() {
   const openEditDialog = (entry: StockEntry) => {
     setEditingEntry(entry);
     setQuantity(entry.quantity);
-    setSelectedTier((entry.tier as TierType) || 'reseller');
-    setBuyPrice(entry.buy_price_per_bottle || TIER_PRICING.reseller.pricePerBottle);
+    setBuyPrice(entry.buy_price_per_bottle || mitraInfo.buyPricePerBottle);
     setTransferProofUrl(entry.transfer_proof_url);
+    setTransferProofPreview(entry.transfer_proof_url);
     setNotes(entry.notes || '');
     if (entry.created_at) {
       setStockDate(new Date(entry.created_at).toISOString().split('T')[0]);
@@ -169,8 +178,8 @@ export function StockPage() {
     e.preventDefault();
     if (!editingEntry) return;
 
-    if (quantity < 0) {
-      toast.error('Jumlah minimal 0 botol');
+    if (quantity < 1) {
+      toast.error('Jumlah minimal 1 botol');
       return;
     }
 
@@ -178,7 +187,7 @@ export function StockPage() {
     try {
       await updateStockEntry(editingEntry.id, {
         quantity,
-        tier: selectedTier,
+        tier: mitraLevel as TierType,
         buyPricePerBottle: buyPrice,
         transferProofUrl: transferProofUrl || undefined,
         notes: notes.trim() || undefined,
@@ -235,8 +244,8 @@ export function StockPage() {
           <h1 className="text-2xl font-bold">Stok</h1>
           <p className="text-sm text-muted-foreground">Kelola persediaan produk</p>
         </div>
-        <Button onClick={() => setShowForm(!showForm)}>
-          {showForm ? <X className="mr-2 h-4 w-4" /> : <Plus className="mr-2 h-4 w-4" />}
+        <Button onClick={() => setShowForm(!showForm)} size="lg">
+          {showForm ? <X className="mr-2 h-5 w-5" /> : <Plus className="mr-2 h-5 w-5" />}
           {showForm ? 'Batal' : 'Restok'}
         </Button>
       </div>
@@ -267,165 +276,169 @@ export function StockPage() {
         </CardContent>
       </Card>
 
-      {/* Add Stock Form */}
+      {/* Add Stock Form - Simplified */}
       {showForm && (
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">Restok dari Distributor</CardTitle>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Tier Selection */}
+            <form onSubmit={handleSubmit} className="space-y-5">
+              {/* Quantity with +/- Buttons */}
               <div className="space-y-2">
-                <Label>Tier Harga Beli</Label>
-                <Select
-                  value={selectedTier}
-                  onValueChange={(v) => handleTierChange(v as TierType)}
-                  disabled={submitting}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Object.values(TIER_PRICING).filter(t => t.tier !== 'satuan').map(tier => (
-                      <SelectItem key={tier.tier} value={tier.tier}>
-                        <div className="flex items-center justify-between gap-4">
-                          <span>{tier.label}</span>
-                          <span className="text-xs text-muted-foreground">
-                            @ {formatShortCurrency(tier.pricePerBottle)}
-                          </span>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Stock Date */}
-              <div className="space-y-2">
-                <Label htmlFor="stockDate">
-                  <Calendar className="mr-1 inline h-4 w-4" />
-                  Tanggal
-                </Label>
-                <Input
-                  id="stockDate"
-                  type="date"
-                  value={stockDate}
-                  onChange={(e) => setStockDate(e.target.value)}
-                  disabled={submitting}
-                  required
-                />
-              </div>
-
-              {/* Quantity */}
-              <div className="space-y-2">
-                <Label htmlFor="quantity">Jumlah Botol</Label>
-                <Input
-                  id="quantity"
-                  type="number"
-                  min={0}
-                  value={quantity}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    const parsed = parseInt(val.replace(/^0+/, '')) || 0;
-                    setQuantity(parsed);
-                  }}
-                  disabled={submitting}
-                />
-              </div>
-
-              {/* Buy Price */}
-              <div className="space-y-2">
-                <Label htmlFor="buyPrice">Harga Beli per Botol</Label>
-                <Input
-                  id="buyPrice"
-                  type="number"
-                  min={0}
-                  step={1000}
-                  value={buyPrice}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    const parsed = parseInt(val.replace(/^0+/, '')) || 0;
-                    setBuyPrice(parsed);
-                  }}
-                  disabled={submitting}
-                />
-              </div>
-
-              {/* Notes */}
-              <div className="space-y-2">
-                <Label htmlFor="notes">Catatan (opsional)</Label>
-                <Input
-                  id="notes"
-                  placeholder="Contoh: Beli dari Pak Budi"
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  disabled={submitting}
-                />
-              </div>
-
-              {/* Transfer Proof Upload */}
-              <div className="space-y-2">
-                <Label>Bukti Bayar (opsional)</Label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleFileUpload}
-                  ref={fileInputRef}
-                  className="hidden"
-                  disabled={submitting}
-                />
-                {transferProofPreview ? (
-                  <div className="relative">
-                    {uploading && (
-                      <div className="absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-background/80">
-                        <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                      </div>
-                    )}
-                    <img
-                      src={transferProofPreview}
-                      alt="Bukti bayar"
-                      className="h-32 w-full rounded-lg object-cover"
-                    />
-                    <Button
-                      type="button"
-                      size="icon"
-                      variant="destructive"
-                      className="absolute right-2 top-2 h-8 w-8"
-                      onClick={handleRemoveProof}
-                      disabled={submitting || uploading}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ) : (
+                <Label className="text-base font-medium">Jumlah Botol</Label>
+                <div className="flex items-center gap-3">
                   <Button
                     type="button"
                     variant="outline"
-                    className="w-full"
-                    onClick={() => fileInputRef.current?.click()}
+                    size="icon"
+                    className="h-12 w-12 shrink-0 text-lg"
+                    onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                    disabled={submitting || quantity <= 1}
+                  >
+                    <Minus className="h-5 w-5" />
+                  </Button>
+                  <Input
+                    type="number"
+                    min={1}
+                    value={quantity}
+                    onChange={(e) => {
+                      const parsed = parseInt(e.target.value.replace(/^0+/, '')) || 1;
+                      setQuantity(parsed);
+                    }}
+                    disabled={submitting}
+                    className="h-12 text-center text-xl font-bold"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    className="h-12 w-12 shrink-0 text-lg"
+                    onClick={() => setQuantity(quantity + 1)}
                     disabled={submitting}
                   >
-                    <Upload className="mr-2 h-4 w-4" />
-                    Upload Bukti Bayar
+                    <Plus className="h-5 w-5" />
                   </Button>
-                )}
+                </div>
               </div>
 
-              {/* Summary */}
+              {/* Buy Price - Auto from profile */}
+              <div className="space-y-2">
+                <Label className="text-base font-medium">Harga Beli per Botol</Label>
+                <div className="flex items-center gap-2 rounded-lg border bg-muted/30 p-3">
+                  <span className="text-lg font-bold">{formatCurrency(buyPrice)}</span>
+                  <span className="text-sm text-muted-foreground">
+                    (Level: {mitraInfo.label})
+                  </span>
+                </div>
+              </div>
+
+              {/* Summary - Always Visible */}
               <Card className="bg-muted/50">
                 <CardContent className="py-4">
-                  <div className="flex justify-between font-bold">
+                  <div className="flex justify-between text-lg font-bold">
                     <span>Total Pembelian</span>
                     <span>{formatCurrency(totalBuyPrice)}</span>
                   </div>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {quantity} botol × {formatCurrency(buyPrice)}
+                  </p>
                 </CardContent>
               </Card>
 
-              <Button type="submit" className="w-full" disabled={submitting}>
+              {/* Collapsible Advanced Options */}
+              <Collapsible open={showAdvanced} onOpenChange={setShowAdvanced}>
+                <CollapsibleTrigger asChild>
+                  <Button type="button" variant="ghost" className="w-full gap-2 text-muted-foreground">
+                    <Settings2 className="h-4 w-4" />
+                    Lainnya (Tanggal, Catatan, Bukti)
+                    {showAdvanced ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                  </Button>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="space-y-4 pt-2">
+                  {/* Stock Date */}
+                  <div className="space-y-2">
+                    <Label htmlFor="stockDate" className="text-base font-medium">
+                      <Calendar className="mr-1 inline h-4 w-4" />
+                      Tanggal
+                    </Label>
+                    <Input
+                      id="stockDate"
+                      type="date"
+                      value={stockDate}
+                      onChange={(e) => setStockDate(e.target.value)}
+                      disabled={submitting}
+                      className="h-12 text-base"
+                    />
+                  </div>
+
+                  {/* Notes */}
+                  <div className="space-y-2">
+                    <Label htmlFor="notes" className="text-base font-medium">Catatan</Label>
+                    <Input
+                      id="notes"
+                      placeholder="Contoh: Beli dari Pak Budi"
+                      value={notes}
+                      onChange={(e) => setNotes(e.target.value)}
+                      disabled={submitting}
+                      className="h-12 text-base"
+                    />
+                  </div>
+
+                  {/* Transfer Proof Upload */}
+                  <div className="space-y-2">
+                    <Label className="text-base font-medium">Bukti Bayar</Label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleFileUpload}
+                      ref={fileInputRef}
+                      className="hidden"
+                      disabled={submitting}
+                    />
+                    {transferProofPreview ? (
+                      <div className="relative">
+                        {uploading && (
+                          <div className="absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-background/80">
+                            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                          </div>
+                        )}
+                        <img
+                          src={transferProofPreview}
+                          alt="Bukti bayar"
+                          className="h-32 w-full rounded-lg object-cover"
+                        />
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="destructive"
+                          className="absolute right-2 top-2 h-8 w-8"
+                          onClick={handleRemoveProof}
+                          disabled={submitting || uploading}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="w-full h-12 text-base"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={submitting}
+                      >
+                        <Upload className="mr-2 h-4 w-4" />
+                        Upload Bukti Bayar
+                      </Button>
+                    )}
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
+
+              <Button type="submit" className="w-full h-12 text-base font-semibold" disabled={submitting}>
                 {submitting ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                     Menyimpan...
                   </>
                 ) : (
@@ -460,14 +473,13 @@ export function StockPage() {
               Belum ada riwayat stok
             </p>
           ) : (
-            stockEntries.map(entry => (
+            stockEntries.filter(e => filterType === 'all' || e.type === filterType).map(entry => (
               <div
                 key={entry.id}
                 className="flex items-center justify-between rounded-lg bg-muted/50 p-3"
               >
                 <div className="flex items-center gap-3">
-                  <div className={`rounded-full p-2 ${entry.type === 'in' ? 'bg-primary/10' : 'bg-destructive/10'
-                    }`}>
+                  <div className={`rounded-full p-2 ${entry.type === 'in' ? 'bg-primary/10' : 'bg-destructive/10'}`}>
                     {entry.type === 'in' ? (
                       <ArrowDown className="h-4 w-4 text-primary" />
                     ) : (
@@ -488,8 +500,7 @@ export function StockPage() {
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="text-right">
-                    <p className={`font-bold ${entry.type === 'in' ? 'text-primary' : 'text-destructive'
-                      }`}>
+                    <p className={`font-bold ${entry.type === 'in' ? 'text-primary' : 'text-destructive'}`}>
                       {entry.type === 'in' ? '+' : '-'}{entry.quantity} botol
                     </p>
                     {entry.total_buy_price && (
@@ -520,7 +531,6 @@ export function StockPage() {
                   )}
                 </div>
               </div>
-
             ))
           )}
         </CardContent>
@@ -533,81 +543,85 @@ export function StockPage() {
             <DialogTitle>Edit Restok</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleEditSubmit} className="space-y-4">
+            {/* Quantity with +/- */}
             <div className="space-y-2">
-              <Label>Tier Harga Beli</Label>
-              <Select
-                value={selectedTier}
-                onValueChange={(v) => handleTierChange(v as TierType)}
-                disabled={submitting}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {Object.values(TIER_PRICING).filter(t => t.tier !== 'satuan').map(tier => (
-                    <SelectItem key={tier.tier} value={tier.tier}>
-                      {tier.label} - {formatShortCurrency(tier.pricePerBottle)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label className="text-base font-medium">Jumlah Botol</Label>
+              <div className="flex items-center gap-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="h-12 w-12 shrink-0"
+                  onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                  disabled={submitting || quantity <= 1}
+                >
+                  <Minus className="h-5 w-5" />
+                </Button>
+                <Input
+                  type="number"
+                  min={1}
+                  value={quantity}
+                  onChange={(e) => {
+                    const parsed = parseInt(e.target.value.replace(/^0+/, '')) || 1;
+                    setQuantity(parsed);
+                  }}
+                  disabled={submitting}
+                  className="h-12 text-center text-xl font-bold"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="h-12 w-12 shrink-0"
+                  onClick={() => setQuantity(quantity + 1)}
+                  disabled={submitting}
+                >
+                  <Plus className="h-5 w-5" />
+                </Button>
+              </div>
             </div>
 
             <div className="space-y-2">
-              <Label>Tanggal</Label>
-              <Input
-                type="date"
-                value={stockDate}
-                onChange={(e) => setStockDate(e.target.value)}
-                disabled={submitting}
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Jumlah Botol</Label>
-              <Input
-                type="number"
-                min={0}
-                value={quantity}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  const parsed = parseInt(val.replace(/^0+/, '')) || 0;
-                  setQuantity(parsed);
-                }}
-                disabled={submitting}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Harga Beli per Botol</Label>
+              <Label className="text-base font-medium">Harga Beli per Botol</Label>
               <Input
                 type="number"
                 min={0}
                 step={1000}
                 value={buyPrice}
                 onChange={(e) => {
-                  const val = e.target.value;
-                  const parsed = parseInt(val.replace(/^0+/, '')) || 0;
+                  const parsed = parseInt(e.target.value.replace(/^0+/, '')) || 0;
                   setBuyPrice(parsed);
                 }}
                 disabled={submitting}
+                className="h-12 text-base"
               />
             </div>
 
             <div className="space-y-2">
-              <Label>Catatan (opsional)</Label>
+              <Label className="text-base font-medium">Tanggal</Label>
+              <Input
+                type="date"
+                value={stockDate}
+                onChange={(e) => setStockDate(e.target.value)}
+                disabled={submitting}
+                className="h-12 text-base"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-base font-medium">Catatan (opsional)</Label>
               <Input
                 placeholder="Contoh: Beli dari Pak Budi"
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 disabled={submitting}
+                className="h-12 text-base"
               />
             </div>
 
             <Card className="bg-muted/50">
               <CardContent className="py-4">
-                <div className="flex justify-between font-bold">
+                <div className="flex justify-between text-lg font-bold">
                   <span>Total Pembelian</span>
                   <span>{formatCurrency(totalBuyPrice)}</span>
                 </div>
@@ -618,7 +632,7 @@ export function StockPage() {
               <Button
                 type="button"
                 variant="outline"
-                className="flex-1"
+                className="flex-1 h-12"
                 onClick={() => {
                   setShowEditDialog(false);
                   setEditingEntry(null);
@@ -628,7 +642,7 @@ export function StockPage() {
               >
                 Batal
               </Button>
-              <Button type="submit" className="flex-1" disabled={submitting}>
+              <Button type="submit" className="flex-1 h-12" disabled={submitting}>
                 {submitting ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -672,6 +686,6 @@ export function StockPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div >
+    </div>
   );
 }

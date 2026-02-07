@@ -150,6 +150,7 @@ export type Database = {
           created_at: string
           id: string
           location: string | null
+          mitra_level: string
           name: string
           phone: string | null
           updated_at: string
@@ -159,6 +160,7 @@ export type Database = {
           created_at?: string
           id?: string
           location?: string | null
+          mitra_level?: string
           name?: string
           phone?: string | null
           updated_at?: string
@@ -168,6 +170,7 @@ export type Database = {
           created_at?: string
           id?: string
           location?: string | null
+          mitra_level?: string
           name?: string
           phone?: string | null
           updated_at?: string
