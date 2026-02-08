@@ -1,14 +1,18 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
-import { TierType, TIER_PRICING, MitraLevel, MITRA_LEVELS, OrderStatus } from '@/types';
+import { TierType, TIER_PRICING, MitraLevel, MITRA_LEVELS, OrderStatus, OrderItem } from '@/types';
 import type { Tables } from '@/integrations/supabase/types';
 
 type Order = Tables<'orders'>;
 
+export interface OrderWithItems extends Order {
+  items?: OrderItem[];
+}
+
 export function useOrders() {
   const { user } = useAuth();
-  const [orders, setOrders] = useState<Order[]>([]);
+  const [orders, setOrders] = useState<OrderWithItems[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchOrders = useCallback(async () => {
@@ -26,9 +30,11 @@ export function useOrders() {
 
     if (error) {
       console.error('Error fetching orders:', error);
-    } else {
-      setOrders(data || []);
+      setLoading(false);
+      return;
     }
+
+    setOrders(data || []);
     setLoading(false);
   }, [user]);
 
@@ -36,27 +42,50 @@ export function useOrders() {
     fetchOrders();
   }, [fetchOrders]);
 
+  const fetchOrderItems = useCallback(async (orderId: string): Promise<OrderItem[]> => {
+    const { data, error } = await supabase
+      .from('order_items' as any)
+      .select('*')
+      .eq('order_id', orderId)
+      .order('created_at', { ascending: true });
+
+    if (error) {
+      console.error('Error fetching order items:', error);
+      return [];
+    }
+
+    return (data || []).map((item: any) => ({
+      id: item.id,
+      productName: item.product_name,
+      productId: item.product_id,
+      quantity: item.quantity,
+      pricePerBottle: Number(item.price_per_bottle),
+      subtotal: Number(item.subtotal),
+    }));
+  }, []);
+
   const addOrder = useCallback(async (orderData: {
     customerName: string;
     customerPhone: string;
     tier: TierType;
-    quantity: number;
-    pricePerBottle: number;
-    mitraLevel: MitraLevel; // Level mitra untuk hitung harga modal
+    items: OrderItem[];
+    mitraLevel: MitraLevel;
     transferProofUrl?: string;
     customerId?: string;
     createdAt?: string;
   }) => {
     if (!user) throw new Error('User not authenticated');
 
-    const tierInfo = TIER_PRICING[orderData.tier];
     const mitraInfo = MITRA_LEVELS[orderData.mitraLevel];
 
-    const totalBottles = orderData.quantity;
-    const buyPrice = mitraInfo.buyPricePerBottle * totalBottles; // Harga modal dari level mitra
-    const sellPrice = orderData.pricePerBottle;
-    const totalPrice = sellPrice * totalBottles;
+    // Calculate totals from items
+    const totalQuantity = orderData.items.reduce((sum, item) => sum + item.quantity, 0);
+    const totalPrice = orderData.items.reduce((sum, item) => sum + item.subtotal, 0);
+    const buyPrice = mitraInfo.buyPricePerBottle * totalQuantity;
     const margin = totalPrice - buyPrice;
+
+    // Average sell price for backward compatibility
+    const avgPricePerBottle = totalQuantity > 0 ? Math.round(totalPrice / totalQuantity) : 0;
 
     const insertData: any = {
       user_id: user.id,
@@ -64,8 +93,8 @@ export function useOrders() {
       customer_name: orderData.customerName,
       customer_phone: orderData.customerPhone,
       tier: orderData.tier,
-      quantity: totalBottles,
-      price_per_bottle: sellPrice,
+      quantity: totalQuantity,
+      price_per_bottle: avgPricePerBottle,
       total_price: totalPrice,
       buy_price: buyPrice,
       margin,
@@ -85,6 +114,27 @@ export function useOrders() {
 
     if (error) throw error;
 
+    // Insert order items
+    if (orderData.items.length > 0) {
+      const itemsToInsert = orderData.items.map(item => ({
+        order_id: data.id,
+        user_id: user.id,
+        product_name: item.productName,
+        product_id: item.productId || null,
+        quantity: item.quantity,
+        price_per_bottle: item.pricePerBottle,
+        subtotal: item.subtotal,
+      }));
+
+      const { error: itemsError } = await supabase
+        .from('order_items' as any)
+        .insert(itemsToInsert);
+
+      if (itemsError) {
+        console.error('Error inserting order items:', itemsError);
+      }
+    }
+
     await fetchOrders();
     return data;
   }, [user, fetchOrders]);
@@ -103,8 +153,7 @@ export function useOrders() {
     customerName: string;
     customerPhone: string;
     tier: TierType;
-    quantity: number;
-    pricePerBottle: number;
+    items: OrderItem[];
     mitraLevel: MitraLevel;
     transferProofUrl?: string;
     customerId?: string;
@@ -112,22 +161,21 @@ export function useOrders() {
   }) => {
     if (!user) throw new Error('User not authenticated');
 
-    const tierInfo = TIER_PRICING[orderData.tier];
     const mitraInfo = MITRA_LEVELS[orderData.mitraLevel];
 
-    const totalBottles = orderData.quantity;
-    const buyPrice = mitraInfo.buyPricePerBottle * totalBottles;
-    const sellPrice = orderData.pricePerBottle;
-    const totalPrice = sellPrice * totalBottles;
+    const totalQuantity = orderData.items.reduce((sum, item) => sum + item.quantity, 0);
+    const totalPrice = orderData.items.reduce((sum, item) => sum + item.subtotal, 0);
+    const buyPrice = mitraInfo.buyPricePerBottle * totalQuantity;
     const margin = totalPrice - buyPrice;
+    const avgPricePerBottle = totalQuantity > 0 ? Math.round(totalPrice / totalQuantity) : 0;
 
     const updateData: any = {
       customer_id: orderData.customerId || null,
       customer_name: orderData.customerName,
       customer_phone: orderData.customerPhone,
       tier: orderData.tier,
-      quantity: totalBottles,
-      price_per_bottle: sellPrice,
+      quantity: totalQuantity,
+      price_per_bottle: avgPricePerBottle,
       total_price: totalPrice,
       buy_price: buyPrice,
       margin,
@@ -144,6 +192,29 @@ export function useOrders() {
       .eq('id', orderId);
 
     if (error) throw error;
+
+    // Delete old items and insert new ones
+    await supabase
+      .from('order_items' as any)
+      .delete()
+      .eq('order_id', orderId);
+
+    if (orderData.items.length > 0) {
+      const itemsToInsert = orderData.items.map(item => ({
+        order_id: orderId,
+        user_id: user.id,
+        product_name: item.productName,
+        product_id: item.productId || null,
+        quantity: item.quantity,
+        price_per_bottle: item.pricePerBottle,
+        subtotal: item.subtotal,
+      }));
+
+      await supabase
+        .from('order_items' as any)
+        .insert(itemsToInsert);
+    }
+
     await fetchOrders();
   }, [user, fetchOrders]);
 
@@ -222,7 +293,6 @@ export function useOrders() {
 
     if (expenseError) throw expenseError;
 
-    // Update order margin
     const order = orders.find(o => o.id === orderId);
     if (order) {
       const newMargin = Number(order.margin) - amount;
@@ -246,7 +316,6 @@ export function useOrders() {
 
     if (expenseError) throw expenseError;
 
-    // Update order margin
     const order = orders.find(o => o.id === orderId);
     if (order) {
       const newMargin = Number(order.margin) + amount;
@@ -272,6 +341,7 @@ export function useOrders() {
     getTodayOrders,
     getWeekOrders,
     getMonthOrders,
+    fetchOrderItems,
     fetchOrderExpenses,
     addOrderExpense,
     deleteOrderExpense,
