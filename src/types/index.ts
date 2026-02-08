@@ -160,3 +160,12 @@ export interface OrderExpense {
   amount: number;
   createdAt: string;
 }
+
+export interface OrderItem {
+  id?: string;
+  productName: string;
+  productId?: string;
+  quantity: number;
+  pricePerBottle: number;
+  subtotal: number;
+}
