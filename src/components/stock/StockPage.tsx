@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -70,6 +70,11 @@ export function StockPage() {
   const [uploading, setUploading] = useState(false);
   const [quantity, setQuantity] = useState(1);
   const [buyPrice, setBuyPrice] = useState(mitraInfo.buyPricePerBottle);
+
+  // Update buyPrice when mitraLevel changes (e.g. after profile loads)
+  useEffect(() => {
+    setBuyPrice(MITRA_LEVELS[mitraLevel].buyPricePerBottle);
+  }, [mitraLevel]);
   const [transferProofUrl, setTransferProofUrl] = useState<string | null>(null);
   const [transferProofPreview, setTransferProofPreview] = useState<string | null>(null);
   const [notes, setNotes] = useState('');
