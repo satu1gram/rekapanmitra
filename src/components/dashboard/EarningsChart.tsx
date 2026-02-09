@@ -77,7 +77,17 @@ export function EarningsChart({ data }: Props) {
           cursor={false}
           content={
             <ChartTooltipContent
-              formatter={(value, name) => [formatShortCurrency(Number(value)), name]}
+              formatter={(value, name) => {
+                const label = config[name as keyof typeof config]?.label || name;
+                return (
+                  <span className="flex items-center justify-between gap-2 w-full">
+                    <span className="text-muted-foreground">{label}</span>
+                    <span className="font-mono font-medium tabular-nums text-foreground">
+                      {formatShortCurrency(Number(value))}
+                    </span>
+                  </span>
+                );
+              }}
             />
           }
         />
