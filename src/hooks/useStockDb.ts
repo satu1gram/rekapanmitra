@@ -59,22 +59,23 @@ export function useStock() {
   const addStock = async (data: {
     quantity: number;
     tier: TierType;
-    buyPricePerBottle: number;
+    buyPricePerBottle?: number;
     transferProofUrl?: string;
     notes?: string;
     createdAt?: string;
+    isInitialStock?: boolean;
   }) => {
     if (!user) throw new Error('User not authenticated');
 
     const insertData: any = {
       user_id: user.id,
-      type: 'in',
+      type: data.isInitialStock ? 'initial' : 'in',
       quantity: data.quantity,
       tier: data.tier,
-      buy_price_per_bottle: data.buyPricePerBottle,
-      total_buy_price: data.quantity * data.buyPricePerBottle,
+      buy_price_per_bottle: data.buyPricePerBottle ?? null,
+      total_buy_price: data.buyPricePerBottle ? data.quantity * data.buyPricePerBottle : null,
       transfer_proof_url: data.transferProofUrl || null,
-      notes: data.notes || null
+      notes: data.notes || (data.isInitialStock ? 'Stok awal' : null)
     };
 
     if (data.createdAt) {
