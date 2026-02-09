@@ -66,9 +66,11 @@ export function StockPage() {
   const mitraInfo = MITRA_LEVELS[mitraLevel];
 
   const [showForm, setShowForm] = useState(false);
+  const [showInitialStockForm, setShowInitialStockForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [quantity, setQuantity] = useState(1);
+  const [initialStockQty, setInitialStockQty] = useState(1);
   const [buyPrice, setBuyPrice] = useState(mitraInfo.buyPricePerBottle);
 
   // Update buyPrice when mitraLevel changes (e.g. after profile loads)
@@ -249,10 +251,19 @@ export function StockPage() {
           <h1 className="text-2xl font-bold">Stok</h1>
           <p className="text-sm text-muted-foreground">Kelola persediaan produk</p>
         </div>
-        <Button onClick={() => setShowForm(!showForm)} size="lg">
-          {showForm ? <X className="mr-2 h-5 w-5" /> : <Plus className="mr-2 h-5 w-5" />}
-          {showForm ? 'Batal' : 'Restok'}
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={() => { setShowInitialStockForm(!showInitialStockForm); setShowForm(false); }}
+          >
+            {showInitialStockForm ? <X className="mr-1 h-4 w-4" /> : <Package className="mr-1 h-4 w-4" />}
+            {showInitialStockForm ? 'Batal' : 'Stok Awal'}
+          </Button>
+          <Button onClick={() => { setShowForm(!showForm); setShowInitialStockForm(false); }} size="lg">
+            {showForm ? <X className="mr-2 h-5 w-5" /> : <Plus className="mr-2 h-5 w-5" />}
+            {showForm ? 'Batal' : 'Restok'}
+          </Button>
+        </div>
       </div>
 
       {/* Current Stock Card */}
@@ -280,6 +291,94 @@ export function StockPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Initial Stock Form */}
+      {showInitialStockForm && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Tambah Stok Awal</CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Untuk inisiasi toko — tanpa perlu memasukkan harga beli
+            </p>
+          </CardHeader>
+          <CardContent>
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                if (initialStockQty < 1) {
+                  toast.error('Jumlah minimal 1 botol');
+                  return;
+                }
+                setSubmitting(true);
+                try {
+                  await addStock({
+                    quantity: initialStockQty,
+                    tier: mitraLevel as TierType,
+                    isInitialStock: true
+                  });
+                  toast.success(`Berhasil menambah ${initialStockQty} botol stok awal!`);
+                  setShowInitialStockForm(false);
+                  setInitialStockQty(1);
+                } catch (error) {
+                  console.error('Error adding initial stock:', error);
+                  toast.error('Gagal menambah stok awal');
+                } finally {
+                  setSubmitting(false);
+                }
+              }}
+              className="space-y-5"
+            >
+              <div className="space-y-2">
+                <Label className="text-base font-medium">Jumlah Botol</Label>
+                <div className="flex items-center gap-3">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    className="h-12 w-12 shrink-0 text-lg"
+                    onClick={() => setInitialStockQty(Math.max(1, initialStockQty - 1))}
+                    disabled={submitting || initialStockQty <= 1}
+                  >
+                    <Minus className="h-5 w-5" />
+                  </Button>
+                  <Input
+                    type="number"
+                    min={1}
+                    value={initialStockQty}
+                    onChange={(e) => {
+                      const parsed = parseInt(e.target.value.replace(/^0+/, '')) || 1;
+                      setInitialStockQty(parsed);
+                    }}
+                    disabled={submitting}
+                    className="h-12 text-center text-xl font-bold"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    className="h-12 w-12 shrink-0 text-lg"
+                    onClick={() => setInitialStockQty(initialStockQty + 1)}
+                    disabled={submitting}
+                  >
+                    <Plus className="h-5 w-5" />
+                  </Button>
+                </div>
+              </div>
+
+              <Button type="submit" className="w-full h-12 text-base font-semibold" disabled={submitting}>
+                {submitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                    Menyimpan...
+                  </>
+                ) : (
+                  'Tambah Stok Awal'
+                )}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Add Stock Form - Simplified */}
       {showForm && (
@@ -473,27 +572,29 @@ export function StockPage() {
               </Button>
             ))}
           </div>
-          {stockEntries.filter(e => filterType === 'all' || e.type === filterType).length === 0 ? (
+          {stockEntries.filter(e => filterType === 'all' || (filterType === 'in' ? (e.type === 'in' || e.type === 'initial') : e.type === filterType)).length === 0 ? (
             <p className="py-4 text-center text-sm text-muted-foreground">
               Belum ada riwayat stok
             </p>
           ) : (
-            stockEntries.filter(e => filterType === 'all' || e.type === filterType).map(entry => (
+            stockEntries.filter(e => filterType === 'all' || (filterType === 'in' ? (e.type === 'in' || e.type === 'initial') : e.type === filterType)).map(entry => (
               <div
                 key={entry.id}
                 className="flex items-center justify-between rounded-lg bg-muted/50 p-3"
               >
                 <div className="flex items-center gap-3">
-                  <div className={`rounded-full p-2 ${entry.type === 'in' ? 'bg-primary/10' : 'bg-destructive/10'}`}>
-                    {entry.type === 'in' ? (
-                      <ArrowDown className="h-4 w-4 text-primary" />
-                    ) : (
+                  <div className={`rounded-full p-2 ${entry.type === 'out' ? 'bg-destructive/10' : entry.type === 'initial' ? 'bg-muted' : 'bg-primary/10'}`}>
+                    {entry.type === 'out' ? (
                       <ArrowUp className="h-4 w-4 text-destructive" />
+                    ) : entry.type === 'initial' ? (
+                      <Package className="h-4 w-4 text-muted-foreground" />
+                    ) : (
+                      <ArrowDown className="h-4 w-4 text-primary" />
                     )}
                   </div>
                   <div>
                     <p className="font-medium">
-                      {entry.type === 'in' ? 'Restok' : 'Keluar'}
+                      {entry.type === 'initial' ? 'Stok Awal' : entry.type === 'in' ? 'Restok' : 'Keluar'}
                     </p>
                     <p className="text-xs text-muted-foreground">
                       {formatDateTime(entry.created_at)}
@@ -505,8 +606,8 @@ export function StockPage() {
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="text-right">
-                    <p className={`font-bold ${entry.type === 'in' ? 'text-primary' : 'text-destructive'}`}>
-                      {entry.type === 'in' ? '+' : '-'}{entry.quantity} botol
+                    <p className={`font-bold ${entry.type === 'out' ? 'text-destructive' : 'text-primary'}`}>
+                      {entry.type === 'out' ? '-' : '+'}{entry.quantity} botol
                     </p>
                     {entry.total_buy_price && (
                       <p className="text-xs text-muted-foreground">
@@ -514,7 +615,7 @@ export function StockPage() {
                       </p>
                     )}
                   </div>
-                  {entry.type === 'in' && (
+                  {(entry.type === 'in' || entry.type === 'initial') && (
                     <div className="flex gap-1">
                       <Button
                         size="icon"
