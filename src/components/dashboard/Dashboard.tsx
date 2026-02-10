@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { useOrders } from '@/hooks/useOrdersDb';
 import { useStock } from '@/hooks/useStockDb';
 import { useGeneralExpenses } from '@/hooks/useGeneralExpenses';
+import { useGeneralIncome } from '@/hooks/useGeneralIncome';
 import { formatCurrency, formatShortCurrency } from '@/lib/formatters';
 import { LOW_STOCK_THRESHOLD, TIER_PRICING, TierType } from '@/types';
 import { EarningsHistory } from './EarningsHistory';
@@ -30,8 +31,9 @@ export function Dashboard({ onNavigate }: DashboardProps) {
   const { orders, loading: ordersLoading, getTodayOrders, getWeekOrders, getMonthOrders } = useOrders();
   const { currentStock, isLowStock, loading: stockLoading } = useStock();
   const { expenses, loading: expensesLoading, getTodayExpenses, getMonthExpenses, getTotalExpenses } = useGeneralExpenses();
+  const { income, loading: incomeLoading, getTodayIncome, getMonthIncome, getTotalIncome } = useGeneralIncome();
 
-  const loading = ordersLoading || stockLoading || expensesLoading;
+  const loading = ordersLoading || stockLoading || expensesLoading || incomeLoading;
 
   const todayOrders = getTodayOrders();
   const weekOrders = getWeekOrders();
@@ -50,9 +52,13 @@ export function Dashboard({ onNavigate }: DashboardProps) {
   const todayExpensesTotal = getTotalExpenses(getTodayExpenses());
   const monthExpensesTotal = getTotalExpenses(getMonthExpenses());
 
-  // Net profit = profit - expenses
-  const todayNetProfit = todayProfit - todayExpensesTotal;
-  const monthNetProfit = monthProfit - monthExpensesTotal;
+  // Calculate other income
+  const todayIncomeTotal = getTotalIncome(getTodayIncome());
+  const monthIncomeTotal = getTotalIncome(getMonthIncome());
+
+  // Net profit = profit - expenses + other income
+  const todayNetProfit = todayProfit - todayExpensesTotal + todayIncomeTotal;
+  const monthNetProfit = monthProfit - monthExpensesTotal + monthIncomeTotal;
 
   const averageMargin = monthOrders.length > 0 
     ? Math.round(monthOrders.reduce((sum, o) => sum + (Number(o.margin) / o.quantity), 0) / monthOrders.length)
@@ -67,7 +73,7 @@ export function Dashboard({ onNavigate }: DashboardProps) {
   }
 
   if (showHistory) {
-    return <EarningsHistory orders={orders} expenses={expenses} onBack={() => setShowHistory(false)} />;
+    return <EarningsHistory orders={orders} expenses={expenses} income={income} onBack={() => setShowHistory(false)} />;
   }
 
   return (
@@ -183,6 +189,7 @@ export function Dashboard({ onNavigate }: DashboardProps) {
             </p>
             <p className="text-xs text-muted-foreground">
               Kotor: {formatShortCurrency(todayProfit)} • Biaya: -{formatShortCurrency(todayExpensesTotal)}
+              {todayIncomeTotal > 0 && ` • Lain: +${formatShortCurrency(todayIncomeTotal)}`}
             </p>
             <p className={`text-xs ${monthNetProfit >= 0 ? 'text-primary' : 'text-destructive'}`}>
               Bulan: {formatShortCurrency(monthNetProfit)}

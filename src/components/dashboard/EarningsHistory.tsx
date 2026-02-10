@@ -6,12 +6,13 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { formatCurrency, formatShortCurrency } from '@/lib/formatters';
-import { TrendingUp, DollarSign, Calendar, ChevronLeft, Wallet, CalendarRange } from 'lucide-react';
+import { TrendingUp, DollarSign, Calendar, ChevronLeft, Wallet, CalendarRange, CircleDollarSign } from 'lucide-react';
 import { format, startOfDay, startOfWeek, startOfMonth, endOfDay, endOfWeek, endOfMonth, eachDayOfInterval, eachWeekOfInterval, eachMonthOfInterval, subDays, subWeeks, subMonths, isSameDay, isSameWeek, isSameMonth } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import type { Tables } from '@/integrations/supabase/types';
 import type { GeneralExpense } from '@/hooks/useGeneralExpenses';
+import type { GeneralIncome } from '@/hooks/useGeneralIncome';
 import { EarningsChart } from './EarningsChart';
 
 type Order = Tables<'orders'>;
@@ -21,6 +22,7 @@ type FilterType = 'daily' | 'weekly' | 'monthly' | 'custom';
 interface EarningsHistoryProps {
   orders: Order[];
   expenses: GeneralExpense[];
+  income: GeneralIncome[];
   onBack: () => void;
 }
 
@@ -32,10 +34,11 @@ interface EarningsSummary {
   revenue: number;
   grossProfit: number;
   expenses: number;
+  otherIncome: number;
   netProfit: number;
 }
 
-export function EarningsHistory({ orders, expenses, onBack }: EarningsHistoryProps) {
+export function EarningsHistory({ orders, expenses, income, onBack }: EarningsHistoryProps) {
   const [filter, setFilter] = useState<FilterType>('daily');
   const [customStart, setCustomStart] = useState<Date | undefined>(subDays(new Date(), 7));
   const [customEnd, setCustomEnd] = useState<Date | undefined>(new Date());
@@ -57,9 +60,13 @@ export function EarningsHistory({ orders, expenses, onBack }: EarningsHistoryPro
         const dayExpenses = expenses.filter(expense =>
           expense.expenseDate === format(day, 'yyyy-MM-dd')
         );
+        const dayIncome = income.filter(i =>
+          i.incomeDate === format(day, 'yyyy-MM-dd')
+        );
         
         const grossProfit = dayOrders.reduce((sum, o) => sum + Number(o.margin), 0);
         const expensesTotal = dayExpenses.reduce((sum, e) => sum + e.amount, 0);
+        const otherIncomeTotal = dayIncome.reduce((sum, i) => sum + i.amount, 0);
         
         return {
           date: day,
@@ -69,7 +76,8 @@ export function EarningsHistory({ orders, expenses, onBack }: EarningsHistoryPro
           revenue: dayOrders.reduce((sum, o) => sum + Number(o.total_price), 0),
           grossProfit,
           expenses: expensesTotal,
-          netProfit: grossProfit - expensesTotal,
+          otherIncome: otherIncomeTotal,
+          netProfit: grossProfit - expensesTotal + otherIncomeTotal,
         };
       });
     } else if (filter === 'weekly') {
@@ -87,9 +95,14 @@ export function EarningsHistory({ orders, expenses, onBack }: EarningsHistoryPro
           const expenseDate = new Date(expense.expenseDate);
           return expenseDate >= weekStart && expenseDate <= weekEnd;
         });
+        const weekIncome = income.filter(i => {
+          const d = new Date(i.incomeDate);
+          return d >= weekStart && d <= weekEnd;
+        });
         
         const grossProfit = weekOrders.reduce((sum, o) => sum + Number(o.margin), 0);
         const expensesTotal = weekExpenses.reduce((sum, e) => sum + e.amount, 0);
+        const otherIncomeTotal = weekIncome.reduce((sum, i) => sum + i.amount, 0);
         
         return {
           date: weekStart,
@@ -99,7 +112,8 @@ export function EarningsHistory({ orders, expenses, onBack }: EarningsHistoryPro
           revenue: weekOrders.reduce((sum, o) => sum + Number(o.total_price), 0),
           grossProfit,
           expenses: expensesTotal,
-          netProfit: grossProfit - expensesTotal,
+          otherIncome: otherIncomeTotal,
+          netProfit: grossProfit - expensesTotal + otherIncomeTotal,
         };
       });
     } else if (filter === 'custom') {
@@ -116,9 +130,13 @@ export function EarningsHistory({ orders, expenses, onBack }: EarningsHistoryPro
           const dayExpenses = expenses.filter(expense =>
             expense.expenseDate === format(day, 'yyyy-MM-dd')
           );
+          const dayIncome = income.filter(i =>
+            i.incomeDate === format(day, 'yyyy-MM-dd')
+          );
           
           const grossProfit = dayOrders.reduce((sum, o) => sum + Number(o.margin), 0);
           const expensesTotal = dayExpenses.reduce((sum, e) => sum + e.amount, 0);
+          const otherIncomeTotal = dayIncome.reduce((sum, i) => sum + i.amount, 0);
           
           return {
             date: day,
@@ -128,7 +146,8 @@ export function EarningsHistory({ orders, expenses, onBack }: EarningsHistoryPro
             revenue: dayOrders.reduce((sum, o) => sum + Number(o.total_price), 0),
             grossProfit,
             expenses: expensesTotal,
-            netProfit: grossProfit - expensesTotal,
+            otherIncome: otherIncomeTotal,
+            netProfit: grossProfit - expensesTotal + otherIncomeTotal,
           };
         });
       }
@@ -147,9 +166,14 @@ export function EarningsHistory({ orders, expenses, onBack }: EarningsHistoryPro
           const expenseDate = new Date(expense.expenseDate);
           return expenseDate >= monthStart && expenseDate <= monthEnd;
         });
+        const monthIncome = income.filter(i => {
+          const d = new Date(i.incomeDate);
+          return d >= monthStart && d <= monthEnd;
+        });
         
         const grossProfit = monthOrders.reduce((sum, o) => sum + Number(o.margin), 0);
         const expensesTotal = monthExpenses.reduce((sum, e) => sum + e.amount, 0);
+        const otherIncomeTotal = monthIncome.reduce((sum, i) => sum + i.amount, 0);
         
         return {
           date: monthStart,
@@ -159,14 +183,15 @@ export function EarningsHistory({ orders, expenses, onBack }: EarningsHistoryPro
           revenue: monthOrders.reduce((sum, o) => sum + Number(o.total_price), 0),
           grossProfit,
           expenses: expensesTotal,
-          netProfit: grossProfit - expensesTotal,
+          otherIncome: otherIncomeTotal,
+          netProfit: grossProfit - expensesTotal + otherIncomeTotal,
         };
       });
     }
 
     // Sort by date descending (newest first)
     return summaries.sort((a, b) => b.date.getTime() - a.date.getTime());
-  }, [orders, expenses, filter, customStart, customEnd]);
+  }, [orders, expenses, income, filter, customStart, customEnd]);
 
   // Calculate totals for the current filter period
   const totals = useMemo(() => {
@@ -176,8 +201,9 @@ export function EarningsHistory({ orders, expenses, onBack }: EarningsHistoryPro
       revenue: acc.revenue + item.revenue,
       grossProfit: acc.grossProfit + item.grossProfit,
       expenses: acc.expenses + item.expenses,
+      otherIncome: acc.otherIncome + item.otherIncome,
       netProfit: acc.netProfit + item.netProfit,
-    }), { orderCount: 0, totalBottles: 0, revenue: 0, grossProfit: 0, expenses: 0, netProfit: 0 });
+    }), { orderCount: 0, totalBottles: 0, revenue: 0, grossProfit: 0, expenses: 0, otherIncome: 0, netProfit: 0 });
   }, [earningsData]);
 
   const chartPoints = useMemo(() => {
@@ -313,7 +339,19 @@ export function EarningsHistory({ orders, expenses, onBack }: EarningsHistoryPro
         </Card>
       </div>
 
-      {/* Expenses Summary */}
+      {/* Income & Expenses Summary */}
+      {totals.otherIncome > 0 && (
+        <Card className="border-primary/30 bg-primary/5">
+          <CardContent className="flex items-center justify-between py-3">
+            <div className="flex items-center gap-2">
+              <CircleDollarSign className="h-4 w-4 text-primary" />
+              <span className="text-sm font-medium">Pemasukan Lain</span>
+            </div>
+            <span className="font-bold text-primary">+{formatShortCurrency(totals.otherIncome)}</span>
+          </CardContent>
+        </Card>
+      )}
+
       <Card className="border-destructive/30 bg-destructive/5">
         <CardContent className="flex items-center justify-between py-3">
           <div className="flex items-center gap-2">
@@ -351,7 +389,7 @@ export function EarningsHistory({ orders, expenses, onBack }: EarningsHistoryPro
             </Card>
           ) : (
             earningsData.map((item, index) => (
-              <Card key={index} className={item.orderCount === 0 && item.expenses === 0 ? 'opacity-50' : ''}>
+              <Card key={index} className={item.orderCount === 0 && item.expenses === 0 && item.otherIncome === 0 ? 'opacity-50' : ''}>
                 <CardContent className="py-3">
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
@@ -359,6 +397,11 @@ export function EarningsHistory({ orders, expenses, onBack }: EarningsHistoryPro
                       <p className="text-xs text-muted-foreground">
                         {item.orderCount} order • {item.totalBottles} botol
                       </p>
+                      {item.otherIncome > 0 && (
+                        <p className="text-xs text-primary">
+                          Pemasukan lain: +{formatShortCurrency(item.otherIncome)}
+                        </p>
+                      )}
                       {item.expenses > 0 && (
                         <p className="text-xs text-destructive">
                           Biaya: -{formatShortCurrency(item.expenses)}
