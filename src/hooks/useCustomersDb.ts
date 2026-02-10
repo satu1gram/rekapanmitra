@@ -93,10 +93,21 @@ export function useCustomers() {
     return customers.find(c => c.phone === phone);
   };
 
+  const updateCustomer = async (id: string, updates: { name?: string; phone?: string }) => {
+    if (!user) throw new Error('User not authenticated');
+    const { error } = await supabase
+      .from('customers')
+      .update(updates)
+      .eq('id', id);
+    if (error) throw error;
+    await fetchCustomers();
+  };
+
   return {
     customers,
     loading,
     addOrUpdateCustomer,
+    updateCustomer,
     getCustomerByPhone,
     refetch: fetchCustomers
   };
