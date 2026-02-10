@@ -83,6 +83,39 @@ export type Database = {
         }
         Relationships: []
       }
+      general_income: {
+        Row: {
+          amount: number
+          category: string | null
+          created_at: string
+          id: string
+          income_date: string
+          name: string
+          notes: string | null
+          user_id: string
+        }
+        Insert: {
+          amount?: number
+          category?: string | null
+          created_at?: string
+          id?: string
+          income_date?: string
+          name: string
+          notes?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          category?: string | null
+          created_at?: string
+          id?: string
+          income_date?: string
+          name?: string
+          notes?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       order_items: {
         Row: {
           created_at: string

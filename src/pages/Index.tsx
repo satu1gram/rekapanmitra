@@ -5,6 +5,7 @@ import { OrdersPage } from '@/components/orders/OrdersPage';
 import { StockPage } from '@/components/stock/StockPage';
 import { CustomersPage } from '@/components/customers/CustomersPage';
 import { ExpensesPage } from '@/components/expenses/ExpensesPage';
+import { IncomePage } from '@/components/income/IncomePage';
 import { SettingsPage } from '@/components/settings/SettingsPage';
 import { AuthPage } from '@/components/auth/AuthPage';
 import { useAuth } from '@/hooks/useAuth';
@@ -43,6 +44,8 @@ const Index = () => {
         return <CustomersPage />;
       case 'expenses':
         return <ExpensesPage />;
+      case 'income':
+        return <IncomePage />;
       case 'settings':
         return <SettingsPage />;
       default:

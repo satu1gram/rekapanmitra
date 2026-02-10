@@ -5,10 +5,11 @@ import {
   Users, 
   Settings,
   Wallet,
+  CircleDollarSign,
   type LucideIcon
 } from 'lucide-react';
 
-export type TabId = 'dashboard' | 'orders' | 'stock' | 'customers' | 'expenses' | 'settings';
+export type TabId = 'dashboard' | 'orders' | 'stock' | 'customers' | 'expenses' | 'income' | 'settings';
 
 export interface NavItem {
   id: TabId;
@@ -23,6 +24,7 @@ export const NAV_PRIMARY_ITEMS: NavItem[] = [
 ];
 
 export const NAV_MORE_ITEMS: NavItem[] = [
+  { id: 'income', label: 'Pemasukan', icon: CircleDollarSign },
   { id: 'expenses', label: 'Biaya', icon: Wallet },
   { id: 'customers', label: 'Customer', icon: Users },
   { id: 'settings', label: 'Pengaturan', icon: Settings },
