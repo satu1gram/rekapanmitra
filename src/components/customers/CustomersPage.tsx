@@ -1,18 +1,65 @@
+import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { useCustomers } from '@/hooks/useCustomersDb';
 import { TIER_PRICING, TierType } from '@/types';
 import { formatCurrency, formatDateTime, formatPhone } from '@/lib/formatters';
+import { toast } from 'sonner';
 import { 
   Users, 
   Phone,
   TrendingUp,
   ShoppingBag,
-  Loader2
+  Loader2,
+  Pencil
 } from 'lucide-react';
+import type { Tables } from '@/integrations/supabase/types';
+
+type Customer = Tables<'customers'>;
 
 export function CustomersPage() {
-  const { customers, loading } = useCustomers();
+  const { customers, loading, updateCustomer } = useCustomers();
+  const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
+  const [editName, setEditName] = useState('');
+  const [editPhone, setEditPhone] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  const openEdit = (customer: Customer) => {
+    setEditingCustomer(customer);
+    setEditName(customer.name);
+    setEditPhone(customer.phone);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingCustomer) return;
+    if (!editName.trim() || !editPhone.trim()) {
+      toast.error('Nama dan nomor HP wajib diisi');
+      return;
+    }
+    setSaving(true);
+    try {
+      await updateCustomer(editingCustomer.id, {
+        name: editName.trim(),
+        phone: editPhone.trim(),
+      });
+      toast.success('Data customer berhasil diperbarui');
+      setEditingCustomer(null);
+    } catch (error) {
+      console.error('Error updating customer:', error);
+      toast.error('Gagal memperbarui data customer');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const getTierColor = (tier: string) => {
     switch (tier) {
@@ -91,9 +138,19 @@ export function CustomersPage() {
                       {formatPhone(customer.phone)}
                     </div>
                   </div>
-                  <Badge variant={getTierColor(customer.tier)}>
-                    {TIER_PRICING[customer.tier as TierType].label}
-                  </Badge>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => openEdit(customer)}
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Badge variant={getTierColor(customer.tier)}>
+                      {TIER_PRICING[customer.tier as TierType].label}
+                    </Badge>
+                  </div>
                 </div>
                 
                 <div className="mt-3 grid grid-cols-3 gap-2 rounded-lg bg-muted/50 p-3">
@@ -126,6 +183,55 @@ export function CustomersPage() {
           ))
         )}
       </div>
+
+      {/* Edit Dialog */}
+      <Dialog open={!!editingCustomer} onOpenChange={(open) => !open && setEditingCustomer(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Customer</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            <div className="space-y-2">
+              <Label htmlFor="editName">Nama</Label>
+              <Input
+                id="editName"
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                disabled={saving}
+                className="h-12 text-base"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="editPhone">Nomor HP / WhatsApp</Label>
+              <Input
+                id="editPhone"
+                value={editPhone}
+                onChange={(e) => setEditPhone(e.target.value)}
+                disabled={saving}
+                className="h-12 text-base"
+              />
+            </div>
+            <div className="flex gap-2 pt-2">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => setEditingCustomer(null)}
+                disabled={saving}
+              >
+                Batal
+              </Button>
+              <Button
+                className="flex-1"
+                onClick={handleSaveEdit}
+                disabled={saving}
+              >
+                {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                Simpan
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
