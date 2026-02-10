@@ -3,17 +3,20 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Calendar as CalendarComponent } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { formatCurrency, formatShortCurrency } from '@/lib/formatters';
-import { TrendingUp, DollarSign, Calendar, ChevronLeft, Wallet } from 'lucide-react';
+import { TrendingUp, DollarSign, Calendar, ChevronLeft, Wallet, CalendarRange } from 'lucide-react';
 import { format, startOfDay, startOfWeek, startOfMonth, endOfDay, endOfWeek, endOfMonth, eachDayOfInterval, eachWeekOfInterval, eachMonthOfInterval, subDays, subWeeks, subMonths, isSameDay, isSameWeek, isSameMonth } from 'date-fns';
 import { id } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
 import type { Tables } from '@/integrations/supabase/types';
 import type { GeneralExpense } from '@/hooks/useGeneralExpenses';
 import { EarningsChart } from './EarningsChart';
 
 type Order = Tables<'orders'>;
 
-type FilterType = 'daily' | 'weekly' | 'monthly';
+type FilterType = 'daily' | 'weekly' | 'monthly' | 'custom';
 
 interface EarningsHistoryProps {
   orders: Order[];
@@ -34,6 +37,8 @@ interface EarningsSummary {
 
 export function EarningsHistory({ orders, expenses, onBack }: EarningsHistoryProps) {
   const [filter, setFilter] = useState<FilterType>('daily');
+  const [customStart, setCustomStart] = useState<Date | undefined>(subDays(new Date(), 7));
+  const [customEnd, setCustomEnd] = useState<Date | undefined>(new Date());
 
   const earningsData = useMemo(() => {
     const now = new Date();
@@ -97,6 +102,36 @@ export function EarningsHistory({ orders, expenses, onBack }: EarningsHistoryPro
           netProfit: grossProfit - expensesTotal,
         };
       });
+    } else if (filter === 'custom') {
+      // Custom date range
+      if (customStart && customEnd) {
+        const start = startOfDay(customStart);
+        const end = endOfDay(customEnd);
+        intervals = eachDayOfInterval({ start, end });
+        
+        summaries = intervals.map(day => {
+          const dayOrders = orders.filter(order => 
+            isSameDay(new Date(order.created_at), day)
+          );
+          const dayExpenses = expenses.filter(expense =>
+            expense.expenseDate === format(day, 'yyyy-MM-dd')
+          );
+          
+          const grossProfit = dayOrders.reduce((sum, o) => sum + Number(o.margin), 0);
+          const expensesTotal = dayExpenses.reduce((sum, e) => sum + e.amount, 0);
+          
+          return {
+            date: day,
+            label: format(day, 'd MMM yyyy', { locale: id }),
+            orderCount: dayOrders.length,
+            totalBottles: dayOrders.reduce((sum, o) => sum + o.quantity, 0),
+            revenue: dayOrders.reduce((sum, o) => sum + Number(o.total_price), 0),
+            grossProfit,
+            expenses: expensesTotal,
+            netProfit: grossProfit - expensesTotal,
+          };
+        });
+      }
     } else {
       // Last 12 months
       const startDate = subMonths(now, 12);
@@ -131,7 +166,7 @@ export function EarningsHistory({ orders, expenses, onBack }: EarningsHistoryPro
 
     // Sort by date descending (newest first)
     return summaries.sort((a, b) => b.date.getTime() - a.date.getTime());
-  }, [orders, expenses, filter]);
+  }, [orders, expenses, filter, customStart, customEnd]);
 
   // Calculate totals for the current filter period
   const totals = useMemo(() => {
@@ -167,6 +202,9 @@ export function EarningsHistory({ orders, expenses, onBack }: EarningsHistoryPro
     daily: 'Harian (30 hari)',
     weekly: 'Mingguan (12 minggu)',
     monthly: 'Bulanan (12 bulan)',
+    custom: customStart && customEnd 
+      ? `${format(customStart, 'd MMM yyyy', { locale: id })} - ${format(customEnd, 'd MMM yyyy', { locale: id })}`
+      : 'Pilih rentang tanggal',
   };
 
   return (
@@ -183,8 +221,8 @@ export function EarningsHistory({ orders, expenses, onBack }: EarningsHistoryPro
       </div>
 
       {/* Filter Tabs */}
-      <div className="flex gap-2">
-        {(['daily', 'weekly', 'monthly'] as FilterType[]).map((type) => (
+      <div className="flex gap-2 flex-wrap">
+        {(['daily', 'weekly', 'monthly', 'custom'] as FilterType[]).map((type) => (
           <Button
             key={type}
             variant={filter === type ? 'default' : 'outline'}
@@ -192,10 +230,55 @@ export function EarningsHistory({ orders, expenses, onBack }: EarningsHistoryPro
             onClick={() => setFilter(type)}
             className="flex-1"
           >
-            {type === 'daily' ? 'Harian' : type === 'weekly' ? 'Mingguan' : 'Bulanan'}
+            {type === 'daily' ? 'Harian' : type === 'weekly' ? 'Mingguan' : type === 'monthly' ? 'Bulanan' : 'Custom'}
           </Button>
         ))}
       </div>
+
+      {/* Custom Date Range Picker */}
+      {filter === 'custom' && (
+        <Card>
+          <CardContent className="py-3 flex flex-col gap-2">
+            <p className="text-sm font-medium text-muted-foreground flex items-center gap-1">
+              <CalendarRange className="h-4 w-4" /> Pilih Rentang Tanggal
+            </p>
+            <div className="flex gap-2">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm" className={cn("flex-1 justify-start text-left font-normal", !customStart && "text-muted-foreground")}>
+                    {customStart ? format(customStart, 'd MMM yyyy', { locale: id }) : 'Dari'}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <CalendarComponent
+                    mode="single"
+                    selected={customStart}
+                    onSelect={setCustomStart}
+                    initialFocus
+                    className={cn("p-3 pointer-events-auto")}
+                  />
+                </PopoverContent>
+              </Popover>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm" className={cn("flex-1 justify-start text-left font-normal", !customEnd && "text-muted-foreground")}>
+                    {customEnd ? format(customEnd, 'd MMM yyyy', { locale: id }) : 'Sampai'}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <CalendarComponent
+                    mode="single"
+                    selected={customEnd}
+                    onSelect={setCustomEnd}
+                    initialFocus
+                    className={cn("p-3 pointer-events-auto")}
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Summary Cards */}
       <div className="grid grid-cols-2 gap-3">
