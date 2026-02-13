@@ -105,6 +105,9 @@ export function Dashboard({ onNavigate }: DashboardProps) {
         </Card>
       )}
 
+      {/* Monthly Summary - Primary */}
+      <MonthlySummary orders={orders} stockEntries={stockEntries} expenses={expenses} income={income} />
+
       {/* Quick Actions */}
       <div className="grid grid-cols-2 gap-3">
         <Button 
@@ -212,9 +215,6 @@ export function Dashboard({ onNavigate }: DashboardProps) {
           </Button>
         </CardContent>
       </Card>
-
-      {/* Monthly Summary */}
-      <MonthlySummary orders={orders} stockEntries={stockEntries} expenses={expenses} income={income} />
 
       {/* Recent Orders */}
       <Card>

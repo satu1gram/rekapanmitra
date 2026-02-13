@@ -69,6 +69,7 @@ export function MonthlySummary({ orders, stockEntries, expenses, income }: Month
     });
 
     const restockBottles = monthRestocks.reduce((sum, e) => sum + e.quantity, 0);
+    const restockCost = monthRestocks.reduce((sum, e) => sum + Number(e.total_buy_price || 0), 0);
     const orderBottles = monthOrders.reduce((sum, o) => sum + o.quantity, 0);
     const revenue = monthOrders.reduce((sum, o) => sum + Number(o.total_price), 0);
     const grossProfit = monthOrders.reduce((sum, o) => sum + Number(o.margin), 0);
@@ -79,6 +80,7 @@ export function MonthlySummary({ orders, stockEntries, expenses, income }: Month
     return {
       orderCount: monthOrders.length,
       restockBottles,
+      restockCost,
       orderBottles,
       revenue,
       grossProfit,
@@ -114,6 +116,9 @@ export function MonthlySummary({ orders, stockEntries, expenses, income }: Month
             <div>
               <p className="text-xs text-muted-foreground">Restok</p>
               <p className="text-lg font-bold">{summary.restockBottles} <span className="text-xs font-normal text-muted-foreground">botol</span></p>
+              {summary.restockCost > 0 && (
+                <p className="text-xs text-muted-foreground">Modal: {formatShortCurrency(summary.restockCost)}</p>
+              )}
             </div>
           </div>
           <div className="flex items-center gap-2 rounded-lg bg-muted/50 p-3">
