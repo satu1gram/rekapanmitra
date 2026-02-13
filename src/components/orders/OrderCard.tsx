@@ -139,9 +139,12 @@ export function OrderCard({
             </div>
           </div>
           <div className="mt-2 flex items-center justify-between text-sm">
-            <span className="text-muted-foreground">
-              {order.quantity} botol • {TIER_PRICING[order.tier as TierType]?.label || order.tier}
-            </span>
+            <div>
+              <span className="text-muted-foreground">
+                {order.quantity} botol • {TIER_PRICING[order.tier as TierType]?.label || order.tier}
+              </span>
+              <p className="text-xs text-muted-foreground">{formatDateTime(order.created_at)}</p>
+            </div>
             <span className="font-semibold">{formatCurrency(Number(order.total_price))}</span>
           </div>
         </div>
