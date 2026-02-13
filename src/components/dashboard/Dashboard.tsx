@@ -9,6 +9,7 @@ import { useGeneralIncome } from '@/hooks/useGeneralIncome';
 import { formatCurrency, formatShortCurrency } from '@/lib/formatters';
 import { LOW_STOCK_THRESHOLD, TIER_PRICING, TierType } from '@/types';
 import { EarningsHistory } from './EarningsHistory';
+import { MonthlySummary } from './MonthlySummary';
 import { 
   TrendingUp, 
   Package, 
@@ -29,7 +30,7 @@ interface DashboardProps {
 export function Dashboard({ onNavigate }: DashboardProps) {
   const [showHistory, setShowHistory] = useState(false);
   const { orders, loading: ordersLoading, getTodayOrders, getWeekOrders, getMonthOrders } = useOrders();
-  const { currentStock, isLowStock, loading: stockLoading } = useStock();
+  const { currentStock, stockEntries, isLowStock, loading: stockLoading } = useStock();
   const { expenses, loading: expensesLoading, getTodayExpenses, getMonthExpenses, getTotalExpenses } = useGeneralExpenses();
   const { income, loading: incomeLoading, getTodayIncome, getMonthIncome, getTotalIncome } = useGeneralIncome();
 
@@ -211,6 +212,9 @@ export function Dashboard({ onNavigate }: DashboardProps) {
           </Button>
         </CardContent>
       </Card>
+
+      {/* Monthly Summary */}
+      <MonthlySummary orders={orders} stockEntries={stockEntries} expenses={expenses} income={income} />
 
       {/* Recent Orders */}
       <Card>
