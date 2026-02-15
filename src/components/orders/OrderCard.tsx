@@ -16,7 +16,9 @@ import {
   Trash2,
   Loader2,
   Package,
+  Copy,
 } from 'lucide-react';
+import { generateReceiptText } from '@/lib/receiptGenerator';
 import { toast } from 'sonner';
 import type { Tables } from '@/integrations/supabase/types';
 
@@ -277,6 +279,38 @@ export function OrderCard({
                     />
                   </div>
                 )}
+
+                {/* Copy Receipt */}
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="w-full"
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    const receiptText = generateReceiptText({
+                      customerName: order.customer_name,
+                      customerPhone: order.customer_phone,
+                      orderDate: order.created_at,
+                      items: orderItems.length > 0 ? orderItems : [{
+                        productName: 'Produk',
+                        quantity: order.quantity,
+                        pricePerBottle: Number(order.price_per_bottle),
+                        subtotal: Number(order.total_price),
+                      }],
+                      totalQuantity: order.quantity,
+                      totalPrice: Number(order.total_price),
+                    });
+                    try {
+                      await navigator.clipboard.writeText(receiptText);
+                      toast.success('Struk disalin ke clipboard!');
+                    } catch {
+                      toast.error('Gagal menyalin struk');
+                    }
+                  }}
+                >
+                  <Copy className="mr-2 h-4 w-4" />
+                  Salin Struk
+                </Button>
 
                 {/* Status Actions */}
                 <div className="flex gap-2">
