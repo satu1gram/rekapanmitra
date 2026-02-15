@@ -205,6 +205,7 @@ export function ExpensesPage() {
                       <div className="flex items-center gap-2 text-xs text-muted-foreground">
                         <Calendar className="h-3 w-3" />
                         {format(new Date(expense.expenseDate), 'd MMM yyyy', { locale: id })}
+                        <span className="font-medium text-destructive">-{formatCurrency(expense.amount)}</span>
                       </div>
                       {expense.notes && (
                         <p className="text-xs text-muted-foreground mt-1 truncate">{expense.notes}</p>
