@@ -31,12 +31,14 @@ export function CustomersPage() {
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [editName, setEditName] = useState('');
   const [editPhone, setEditPhone] = useState('');
+  const [editAddress, setEditAddress] = useState('');
   const [saving, setSaving] = useState(false);
 
   const openEdit = (customer: Customer) => {
     setEditingCustomer(customer);
     setEditName(customer.name);
     setEditPhone(customer.phone);
+    setEditAddress((customer as any).address || '');
   };
 
   const handleSaveEdit = async () => {
@@ -50,6 +52,7 @@ export function CustomersPage() {
       await updateCustomer(editingCustomer.id, {
         name: editName.trim(),
         phone: editPhone.trim(),
+        address: editAddress.trim() || null,
       });
       toast.success('Data customer berhasil diperbarui');
       setEditingCustomer(null);
@@ -136,6 +139,11 @@ export function CustomersPage() {
                     <div className="flex items-center gap-1 text-sm text-muted-foreground">
                       <Phone className="h-3 w-3" />
                       {formatPhone(customer.phone)}
+                      {(customer as any).address && (
+                        <p className="text-xs text-muted-foreground truncate max-w-[200px]">
+                          📍 {(customer as any).address}
+                        </p>
+                      )}
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -207,6 +215,17 @@ export function CustomersPage() {
                 id="editPhone"
                 value={editPhone}
                 onChange={(e) => setEditPhone(e.target.value)}
+                disabled={saving}
+                className="h-12 text-base"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="editAddress">Alamat</Label>
+              <Input
+                id="editAddress"
+                placeholder="Alamat pengiriman (opsional)"
+                value={editAddress}
+                onChange={(e) => setEditAddress(e.target.value)}
                 disabled={saving}
                 className="h-12 text-base"
               />

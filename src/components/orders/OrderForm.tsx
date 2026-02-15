@@ -47,6 +47,7 @@ interface OrderFormProps {
   onSubmit: (data: {
     customerName: string;
     customerPhone: string;
+    customerAddress?: string;
     tier: TierType;
     items: OrderItem[];
     transferProofUrl?: string;
@@ -62,6 +63,7 @@ interface OrderFormProps {
     items: OrderItem[];
     transferProofUrl?: string | null;
     orderDate?: string;
+    customerAddress?: string;
   };
 }
 
@@ -98,6 +100,7 @@ export function OrderForm({
 
   const [customerName, setCustomerName] = useState(initialData?.customerName || '');
   const [customerPhone, setCustomerPhone] = useState(initialData?.customerPhone || '');
+  const [customerAddress, setCustomerAddress] = useState(initialData?.customerAddress || '');
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>('');
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [selectedTier, setSelectedTier] = useState<TierType>(initialData?.tier || 'satuan');
@@ -135,6 +138,7 @@ export function OrderForm({
     setCustomerName(customer.name);
     setCustomerPhone(customer.phone);
     setSelectedCustomerId(customer.id);
+    setCustomerAddress((customer as any).address || '');
     if (customer.tier && TIER_PRICING[customer.tier as TierType]) {
       setSelectedTier(customer.tier as TierType);
     }
@@ -207,6 +211,7 @@ export function OrderForm({
     onSubmit({
       customerName: customerName.trim(),
       customerPhone: customerPhone.trim(),
+      customerAddress: customerAddress.trim() || undefined,
       tier: selectedTier,
       items,
       transferProofUrl: transferProofUrl || undefined,
@@ -279,6 +284,21 @@ export function OrderForm({
               value={customerPhone}
               onChange={(e) => setCustomerPhone(e.target.value)}
               required
+              disabled={submitting}
+              className="h-12 text-base"
+            />
+          </div>
+
+          {/* Address */}
+          <div className="space-y-2">
+            <Label htmlFor="customerAddress" className="text-base font-medium">
+              📍 Alamat Pengiriman
+            </Label>
+            <Input
+              id="customerAddress"
+              placeholder="Alamat pengiriman (opsional)"
+              value={customerAddress}
+              onChange={(e) => setCustomerAddress(e.target.value)}
               disabled={submitting}
               className="h-12 text-base"
             />

@@ -3,6 +3,7 @@ import { OrderItem } from '@/types';
 interface ReceiptData {
   customerName: string;
   customerPhone: string;
+  customerAddress?: string;
   orderDate: string;
   items: OrderItem[];
   totalQuantity: number;
@@ -29,6 +30,10 @@ export function generateReceiptText(data: ReceiptData): string {
   });
 
   lines.push('');
+  if (data.customerAddress) {
+    lines.push(`Kirim ke alamat: ${data.customerAddress}`);
+    lines.push('');
+  }
   lines.push(`No. HP: ${data.customerPhone}`);
   lines.push('');
 

@@ -290,6 +290,7 @@ export function OrderCard({
                     const receiptText = generateReceiptText({
                       customerName: order.customer_name,
                       customerPhone: order.customer_phone,
+                      customerAddress: (order as any).customer_address || '',
                       orderDate: order.created_at,
                       items: orderItems.length > 0 ? orderItems : [{
                         productName: 'Produk',
