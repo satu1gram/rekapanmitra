@@ -259,27 +259,22 @@ export function OrdersPage({ openAddForm = false, onAddFormClose }: OrdersPagePr
   return (
     <div className="flex flex-col min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="px-6 pt-10 pb-6 bg-white rounded-b-[2rem] shadow-sm z-10 sticky top-0">
-        <div className="flex flex-col gap-4">
-          <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 leading-tight">
-            Riwayat<br />Bulanan
-          </h1>
-          {/* Month Selector */}
-          <button
-            onClick={() => setShowMonthPicker(p => !p)}
-            className="flex items-center justify-between w-full bg-slate-100 p-4 rounded-2xl border-2 border-slate-200 active:bg-slate-200 transition-colors"
-          >
-            <div className="flex items-center gap-3">
-              <div className="bg-white p-2 rounded-xl shadow-sm">
-                <Calendar className="h-5 w-5 text-slate-700" />
-              </div>
-              <div className="text-left">
-                <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Bulan</p>
-                <p className="text-lg font-black text-slate-900">{MONTH_NAMES_ID[selectedMonth]} {selectedYear}</p>
-              </div>
+      <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-slate-200 px-5 py-4">
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center justify-between">
+            <div className="flex flex-col">
+              <span className="text-xs font-bold text-slate-400 uppercase tracking-widest leading-none mb-1">Riwayat</span>
+              <h1 className="text-lg font-black text-slate-900 leading-none">Riwayat Bulanan</h1>
             </div>
-            <ChevronDown className={cn("h-7 w-7 text-slate-900 transition-transform", showMonthPicker && "rotate-180")} />
-          </button>
+            {/* Month Selector pill */}
+            <button
+              onClick={() => setShowMonthPicker(p => !p)}
+              className="flex items-center gap-2 bg-slate-900 text-white px-4 py-2.5 rounded-full shadow-lg active:scale-95 transition-transform"
+            >
+              <span className="text-sm font-black tracking-tight">{MONTH_NAMES_ID[selectedMonth]} {selectedYear}</span>
+              <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", showMonthPicker && "rotate-180")} />
+            </button>
+          </div>
 
           {/* Inline Month Picker */}
           {showMonthPicker && (
@@ -289,7 +284,7 @@ export function OrdersPage({ openAddForm = false, onAddFormClose }: OrdersPagePr
                 <button onClick={() => setSelectedYear(y => y - 1)} className="p-2 rounded-xl hover:bg-slate-100">
                   <ChevronLeft className="h-5 w-5 text-slate-600" />
                 </button>
-                <span className="text-lg font-black text-slate-900">{selectedYear}</span>
+                <span className="text-base font-black text-slate-900">{selectedYear}</span>
                 <button onClick={() => setSelectedYear(y => y + 1)} className="p-2 rounded-xl hover:bg-slate-100">
                   <ChevronRight className="h-5 w-5 text-slate-600" />
                 </button>
@@ -317,47 +312,47 @@ export function OrdersPage({ openAddForm = false, onAddFormClose }: OrdersPagePr
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 px-6 py-6 space-y-6">
+      <main className="flex-1 px-4 py-4 space-y-3">
 
         {/* Performance Chart Button */}
         <button
-          className="w-full bg-white border-[3px] border-blue-600 rounded-2xl p-5 flex items-center justify-center gap-4 shadow-lg active:bg-blue-50 transition-all active:scale-[0.98]"
+          className="w-full bg-white border-2 border-blue-600 rounded-2xl p-4 flex items-center justify-center gap-3 shadow-md active:bg-blue-50 transition-all active:scale-[0.98]"
           onClick={() => setShowPerforma(true)}
         >
-          <BarChart3 className="h-9 w-9 text-blue-700" />
-          <span className="text-xl font-extrabold text-blue-800 tracking-tight">Lihat Grafik Performa</span>
+          <BarChart3 className="h-6 w-6 text-blue-700" />
+          <span className="text-base font-black text-blue-800 tracking-tight uppercase">Lihat Grafik Performa</span>
         </button>
 
         {/* Summary Cards */}
         <div>
-          <h2 className="text-xl font-bold text-slate-800 px-1 mb-4">Ringkasan Bulan Ini</h2>
-          <div className="space-y-4">
+          <h2 className="text-base font-black text-slate-800 px-1 mb-3 uppercase tracking-wide">Ringkasan Bulan Ini</h2>
+          <div className="space-y-3">
             {/* Omset */}
-            <div className="bg-white p-6 rounded-3xl shadow-md border border-slate-100">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="p-3 bg-blue-50 text-blue-600 rounded-2xl">
-                  <ShoppingCart className="h-7 w-7" />
+            <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
+              <div className="flex items-center gap-2 mb-1">
+                <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
+                  <ShoppingCart className="h-4 w-4 text-blue-600" />
                 </div>
-                <span className="text-slate-500 font-bold text-base uppercase tracking-wide">Total Omset</span>
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Total Omset</span>
               </div>
-              <p className="text-4xl font-black text-slate-900 mt-2">{formatCurrency(totalRevenue)}</p>
+              <p className="text-4xl font-black text-slate-900 tracking-tighter">{formatCurrency(totalRevenue)}</p>
             </div>
 
             {/* Keuntungan Bersih */}
-            <div className="bg-white p-6 rounded-3xl shadow-md border-2 border-emerald-100 relative overflow-hidden">
+            <div className="bg-white p-5 rounded-2xl shadow-sm border-2 border-emerald-100 relative overflow-hidden">
               <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-50 rounded-full -mr-10 -mt-10 opacity-50 pointer-events-none" />
-              <div className="flex items-center gap-3 mb-2 relative z-10">
-                <div className="p-3 bg-emerald-100 text-emerald-700 rounded-2xl">
-                  <TrendingUp className="h-7 w-7" />
+              <div className="flex items-center gap-2 mb-1 relative z-10">
+                <div className="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center">
+                  <TrendingUp className="h-4 w-4 text-emerald-700" />
                 </div>
-                <span className="text-slate-500 font-bold text-base uppercase tracking-wide">Keuntungan Bersih</span>
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Keuntungan Bersih</span>
               </div>
               <div className="relative z-10">
-                <p className={cn("text-4xl font-black mt-2", netProfit >= 0 ? "text-emerald-600" : "text-red-600")}>
+                <p className={cn("text-4xl font-black tracking-tighter", netProfit >= 0 ? "text-emerald-600" : "text-red-600")}>
                   {formatCurrency(netProfit)}
                 </p>
                 {isCurrentMonth && expensesTotal > 0 && (
-                  <p className="text-sm text-slate-500 mt-1">
+                  <p className="text-xs text-slate-500 mt-1">
                     Margin: {formatCurrency(totalProfit)} · Biaya: -{formatCurrency(expensesTotal)}
                     {incomeTotal > 0 && ` · Lain: +${formatCurrency(incomeTotal)}`}
                   </p>
@@ -366,15 +361,15 @@ export function OrdersPage({ openAddForm = false, onAddFormClose }: OrdersPagePr
             </div>
 
             {/* Total Terjual */}
-            <div className="bg-white p-6 rounded-3xl shadow-md border border-slate-100">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="p-3 bg-orange-50 text-orange-600 rounded-2xl">
-                  <Package className="h-7 w-7" />
+            <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
+              <div className="flex items-center gap-2 mb-1">
+                <div className="w-8 h-8 rounded-lg bg-orange-50 flex items-center justify-center">
+                  <Package className="h-4 w-4 text-orange-600" />
                 </div>
-                <span className="text-slate-500 font-bold text-base uppercase tracking-wide">Total Produk Terjual</span>
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Total Produk Terjual</span>
               </div>
-              <p className="text-4xl font-black text-slate-900 mt-2">
-                {totalQty} <span className="text-2xl font-bold text-slate-400">pcs</span>
+              <p className="text-4xl font-black text-slate-900 tracking-tighter">
+                {totalQty} <span className="text-xl font-bold text-slate-400">pcs</span>
               </p>
             </div>
           </div>
@@ -382,8 +377,8 @@ export function OrdersPage({ openAddForm = false, onAddFormClose }: OrdersPagePr
 
         {/* Daily Breakdown */}
         <div className="pb-6">
-          <div className="flex items-center justify-between mb-4 px-1">
-            <h2 className="text-xl font-bold text-slate-800">Rincian Harian</h2>
+          <div className="flex items-center justify-between mb-3 px-1">
+            <h2 className="text-base font-black text-slate-800 uppercase tracking-wide">Rincian Harian</h2>
             {dailySummaries.length > 5 && (
               <button
                 onClick={() => setShowAllDays(v => !v)}

@@ -137,7 +137,7 @@ export function SettingsPage() {
                 <Package className="h-6 w-6 text-orange-600" />
               </div>
               <div>
-                <h2 className="text-lg font-extrabold text-slate-800">Etalase Produk</h2>
+                <h2 className="text-base font-black text-slate-800">Etalase Produk</h2>
                 <p className="text-xs text-slate-500 font-medium italic">Koleksi jualan Anda</p>
               </div>
             </div>
@@ -237,7 +237,7 @@ export function SettingsPage() {
               <TrendingUp className="h-6 w-6 text-emerald-600" />
             </div>
             <div>
-              <h2 className="text-lg font-extrabold text-slate-800">Potensi Profit</h2>
+              <h2 className="text-base font-black text-slate-800">Potensi Profit</h2>
               <p className="text-xs text-slate-500 font-medium">Bandingkan margin & keuntungan</p>
             </div>
           </div>
@@ -338,7 +338,7 @@ export function SettingsPage() {
               <div className="w-10 h-10 bg-rose-200/50 rounded-xl flex items-center justify-center text-rose-600">
                 <LogOut className="h-5 w-5" />
               </div>
-              <span className="font-extrabold text-rose-600">
+              <span className="font-black text-sm uppercase tracking-wide text-rose-600">
                 {loggingOut ? 'Keluar...' : 'Keluar Aplikasi'}
               </span>
             </div>

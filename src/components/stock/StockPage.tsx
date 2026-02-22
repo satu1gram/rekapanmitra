@@ -382,64 +382,95 @@ export function StockPage() {
     );
   }
 
-  /* ─── HISTORY VIEW ─── */
   if (view === 'history') {
     return (
-      <div className="flex flex-col min-h-screen bg-gray-50">
-        <header className="flex items-center justify-between px-5 py-5 sticky top-0 bg-gray-50/95 backdrop-blur-sm z-10 border-b border-gray-200/50">
-          <div>
-            <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">Riwayat Stok</h1>
-          </div>
-          <button onClick={() => setView('main')}
-            className="w-11 h-11 rounded-xl bg-red-50 text-red-600 border border-red-100 hover:bg-red-100 flex items-center justify-center transition-colors">
-            <X className="h-5 w-5" />
+      <div className="flex flex-col min-h-screen bg-slate-50">
+        {/* Header */}
+        <header className="flex items-center space-x-4 px-5 py-5 sticky top-0 bg-slate-50/95 backdrop-blur-sm z-30 border-b border-gray-200/50">
+          <button
+            onClick={() => setView('main')}
+            className="flex items-center justify-center w-11 h-11 rounded-xl bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 active:scale-95 transition-all shadow-sm"
+          >
+            <ChevronDown className="h-5 w-5 rotate-90" />
           </button>
+          <div>
+            <h1 className="text-2xl font-black text-gray-900 tracking-tight">Riwayat Aktivitas</h1>
+            <p className="text-sm text-gray-500 font-medium">Transaksi &amp; Stok</p>
+          </div>
         </header>
-        <div className="px-5 py-4 space-y-3">
+
+        <div className="px-5 py-4 space-y-4">
           {stockEntries.length === 0 ? (
-            <div className="text-center py-12 text-gray-400">
-              <Package className="h-12 w-12 mx-auto mb-3 opacity-40" />
-              <p className="font-semibold">Belum ada riwayat stok</p>
+            <div className="text-center py-16 text-gray-400">
+              <Package className="h-12 w-12 mx-auto mb-3 opacity-30" />
+              <p className="font-bold text-sm">Belum ada riwayat stok</p>
             </div>
-          ) : stockEntries.map(entry => (
-            <div key={entry.id} className="bg-white rounded-2xl px-5 py-4 flex items-center justify-between border border-gray-100 shadow-sm">
-              <div className="flex items-center gap-4">
-                <div className={cn('rounded-full p-2.5', entry.type === 'out' ? 'bg-red-50' : 'bg-emerald-50')}>
-                  {entry.type === 'out'
-                    ? <ArrowUp className="h-5 w-5 text-red-500" />
-                    : <ArrowDown className="h-5 w-5 text-emerald-600" />}
-                </div>
-                <div>
-                  <p className="font-bold text-gray-900">
-                    {entry.notes === 'Stok awal' ? 'Stok Awal' : entry.type === 'in' ? 'Restok' : 'Keluar'}
-                  </p>
-                  <p className="text-xs text-gray-500 mt-0.5">{formatDateTime(entry.created_at)}</p>
-                  {entry.notes && entry.notes !== 'Stok awal' && (
-                    <p className="text-xs text-gray-400 mt-0.5">{entry.notes}</p>
+          ) : stockEntries.map(entry => {
+            const isIn = entry.type === 'in';
+            const label = entry.notes === 'Stok awal'
+              ? 'Stok Awal'
+              : isIn ? 'Barang Masuk' : 'Barang Keluar';
+            const totalValue = Number(mitraInfo.buyPricePerBottle) * entry.quantity;
+            return (
+              <div key={entry.id} className="bg-white rounded-3xl p-5 shadow-[0_2px_8px_-2px_rgba(0,0,0,0.05)] border border-gray-100 flex flex-col gap-4">
+                {/* Top row: icon + badge + name + date */}
+                <div className="flex items-start gap-4">
+                  <div className={cn(
+                    'w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0 border',
+                    isIn ? 'bg-blue-50 border-blue-100' : 'bg-green-50 border-green-100'
+                  )}>
+                    {isIn
+                      ? <ArrowDown className="h-7 w-7 text-blue-600" />
+                      : <ArrowUp className="h-7 w-7 text-emerald-600" />}
+                  </div>
+                  <div className="flex-1">
+                    <span className={cn(
+                      'text-xs font-black px-2.5 py-0.5 rounded-full uppercase tracking-wide',
+                      isIn ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'
+                    )}>
+                      {label}
+                    </span>
+                    <h3 className="text-lg font-black text-gray-900 leading-tight mt-1">
+                      {mitraInfo.label}
+                    </h3>
+                    <p className="text-sm text-gray-500 font-medium mt-0.5">
+                      {formatDateTime(entry.created_at)}
+                    </p>
+                  </div>
+                  {/* Edit/Delete for restok entries */}
+                  {entry.type !== 'out' && (
+                    <div className="flex gap-1">
+                      <button onClick={() => openEdit(entry)}
+                        className="w-8 h-8 rounded-lg bg-gray-50 text-gray-500 hover:bg-gray-100 flex items-center justify-center border border-gray-100">
+                        <Edit className="h-3.5 w-3.5" />
+                      </button>
+                      <button onClick={() => handleDelete(entry)}
+                        className="w-8 h-8 rounded-lg bg-red-50 text-red-400 hover:bg-red-100 flex items-center justify-center">
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
                   )}
                 </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="text-right">
-                  <p className={cn('font-black text-base', entry.type === 'out' ? 'text-red-500' : 'text-emerald-600')}>
-                    {entry.type === 'out' ? '-' : '+'}{entry.quantity} botol
-                  </p>
-                </div>
-                {entry.type !== 'out' && (
-                  <div className="flex gap-1">
-                    <button onClick={() => openEdit(entry)}
-                      className="w-8 h-8 rounded-lg bg-gray-50 text-gray-500 hover:bg-gray-100 flex items-center justify-center">
-                      <Edit className="h-4 w-4" />
-                    </button>
-                    <button onClick={() => handleDelete(entry)}
-                      className="w-8 h-8 rounded-lg bg-red-50 text-red-400 hover:bg-red-100 flex items-center justify-center">
-                      <Trash2 className="h-4 w-4" />
-                    </button>
+
+                {/* Bottom row: Jumlah | Total */}
+                <div className="flex justify-between items-end border-t border-gray-100 pt-3">
+                  <div>
+                    <p className="text-xs text-gray-500 font-bold mb-0.5">Jumlah</p>
+                    <p className="text-2xl font-black text-gray-800">
+                      {isIn ? '+' : '-'}{entry.quantity}{' '}
+                      <span className="text-sm font-bold text-gray-500">btl</span>
+                    </p>
                   </div>
-                )}
+                  <div className="text-right">
+                    <p className="text-xs text-gray-500 font-bold mb-0.5">Total</p>
+                    <p className={cn('text-2xl font-black', isIn ? 'text-blue-600' : 'text-emerald-600')}>
+                      {formatCurrency(isIn ? totalValue : totalValue)}
+                    </p>
+                  </div>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     );
@@ -513,32 +544,60 @@ export function StockPage() {
         {stockEntries.length > 0 && (
           <section>
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-lg font-bold text-gray-800">Riwayat Terbaru</h3>
-              <button onClick={() => setView('history')} className="text-emerald-600 font-semibold text-sm hover:text-emerald-700">
+              <h3 className="text-base font-black text-gray-800 uppercase tracking-wide">Riwayat Terbaru</h3>
+              <button onClick={() => setView('history')} className="text-emerald-600 font-black text-xs uppercase tracking-wide hover:text-emerald-700">
                 Lihat semua →
               </button>
             </div>
             <div className="space-y-3">
-              {stockEntries.slice(0, 3).map(entry => (
-                <div key={entry.id} className="bg-white rounded-2xl px-5 py-4 flex items-center justify-between border border-gray-100 shadow-sm">
-                  <div className="flex items-center gap-4">
-                    <div className={cn('rounded-full p-2.5', entry.type === 'out' ? 'bg-red-50' : 'bg-emerald-50')}>
-                      {entry.type === 'out'
-                        ? <ArrowUp className="h-5 w-5 text-red-500" />
-                        : <ArrowDown className="h-5 w-5 text-emerald-600" />}
+              {stockEntries.slice(0, 3).map(entry => {
+                const isIn = entry.type === 'in';
+                const label = entry.notes === 'Stok awal'
+                  ? 'Stok Awal'
+                  : isIn ? 'Barang Masuk' : 'Barang Keluar';
+                const totalValue = Number(mitraInfo.buyPricePerBottle) * entry.quantity;
+                return (
+                  <div key={entry.id} className="bg-white rounded-3xl p-5 shadow-[0_2px_8px_-2px_rgba(0,0,0,0.05)] border border-gray-100 flex flex-col gap-3">
+                    {/* Icon + badge + name + time */}
+                    <div className="flex items-start gap-3">
+                      <div className={cn(
+                        'w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 border',
+                        isIn ? 'bg-blue-50 border-blue-100' : 'bg-green-50 border-green-100'
+                      )}>
+                        {isIn
+                          ? <ArrowDown className="h-5 w-5 text-blue-600" />
+                          : <ArrowUp className="h-5 w-5 text-emerald-600" />}
+                      </div>
+                      <div>
+                        <span className={cn(
+                          'text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wide',
+                          isIn ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'
+                        )}>
+                          {label}
+                        </span>
+                        <p className="font-black text-gray-900 text-sm leading-tight mt-0.5">{mitraInfo.label}</p>
+                        <p className="text-xs text-gray-500 mt-0.5">{formatDateTime(entry.created_at)}</p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="font-bold text-gray-900 text-sm">
-                        {entry.notes === 'Stok awal' ? 'Stok Awal' : entry.type === 'in' ? 'Restok' : 'Keluar'}
-                      </p>
-                      <p className="text-xs text-gray-500">{formatDateTime(entry.created_at)}</p>
+                    {/* Jumlah | Total */}
+                    <div className="flex justify-between items-end border-t border-gray-100 pt-2">
+                      <div>
+                        <p className="text-[10px] text-gray-500 font-black uppercase tracking-wider mb-0.5">Jumlah</p>
+                        <p className="text-xl font-black text-gray-800">
+                          {isIn ? '+' : '-'}{entry.quantity}{' '}
+                          <span className="text-xs font-bold text-gray-500">btl</span>
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-[10px] text-gray-500 font-black uppercase tracking-wider mb-0.5">Total</p>
+                        <p className={cn('text-xl font-black', isIn ? 'text-blue-600' : 'text-emerald-600')}>
+                          {formatCurrency(totalValue)}
+                        </p>
+                      </div>
                     </div>
                   </div>
-                  <p className={cn('font-black text-base', entry.type === 'out' ? 'text-red-500' : 'text-emerald-600')}>
-                    {entry.type === 'out' ? '-' : '+'}{entry.quantity} botol
-                  </p>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </section>
         )}

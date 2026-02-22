@@ -62,7 +62,12 @@ function createEmptyItem(products: { id: string; name: string; default_sell_pric
 }
 
 
-// Auto-resolve price per bottle based on total quantity (tier brackets)
+// Price from customer tier (primary rule)
+function getPriceByTier(tier: TierType): number {
+  return TIER_PRICING[tier]?.pricePerBottle ?? 250000;
+}
+
+// Fallback: auto-price by total quantity (used only for 'satuan')
 const TIER_BRACKETS: { minQty: number; price: number }[] = [
   { minQty: 200, price: 150000 },
   { minQty: 40, price: 170000 },
@@ -122,6 +127,17 @@ export function OrderForm({ customers, currentStock, submitting, onSubmit, onCan
     setCustomPriceSet(new Set());
   }, [products, initialData]);
 
+  // Sync item prices when tier changes (e.g. manual tier switch in advanced panel)
+  useEffect(() => {
+    if (selectedTier === 'satuan') return; // satuan uses qty-based brackets, not synced here
+    const tierPrice = getPriceByTier(selectedTier);
+    setItems(prev => prev.map((item, i) => {
+      if (customPriceSet.has(i)) return item; // keep custom overrides
+      return { ...item, pricePerBottle: tierPrice, subtotal: item.quantity * tierPrice };
+    }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedTier]);
+
   // Custom price modal state
   const [customPriceProductIdx, setCustomPriceProductIdx] = useState<number | null>(null);
   const [customPriceInput, setCustomPriceInput] = useState('');
@@ -151,7 +167,16 @@ export function OrderForm({ customers, currentStock, submitting, onSubmit, onCan
     setCustomerPhone(c.phone);
     setSelectedCustomerId(c.id);
     setCustomerAddress((c as any).address || '');
-    if (c.tier && TIER_PRICING[c.tier as TierType]) setSelectedTier(c.tier as TierType);
+    const tier = (c.tier && TIER_PRICING[c.tier as TierType]) ? c.tier as TierType : 'satuan';
+    setSelectedTier(tier);
+    // Apply customer tier price to all items immediately
+    const tierPrice = getPriceByTier(tier);
+    setItems(prev => prev.map(item => ({
+      ...item,
+      pricePerBottle: tierPrice,
+      subtotal: item.quantity * tierPrice,
+    })));
+    setCustomPriceSet(new Set()); // reset any custom overrides
     setShowSearch(false);
   };
 
@@ -162,12 +187,12 @@ export function OrderForm({ customers, currentStock, submitting, onSubmit, onCan
         const newQty = item.quantity + 1;
         return { ...item, quantity: newQty };
       });
-      // Recalculate prices based on total qty for non-custom-priced items
+      // Price rule: tier-first, qty-bracket only for satuan
       const newTotal = newItems.reduce((s, it) => s + it.quantity, 0);
-      const autoPrice = getPriceByQty(newTotal);
+      const basePrice = selectedTier === 'satuan' ? getPriceByQty(newTotal) : getPriceByTier(selectedTier);
       return newItems.map((item, i) => {
         if (customPriceSet.has(i)) return { ...item, subtotal: item.quantity * item.pricePerBottle };
-        return { ...item, pricePerBottle: autoPrice, subtotal: item.quantity * autoPrice };
+        return { ...item, pricePerBottle: basePrice, subtotal: item.quantity * basePrice };
       });
     });
   };
@@ -179,11 +204,12 @@ export function OrderForm({ customers, currentStock, submitting, onSubmit, onCan
         const newQty = Math.max(0, item.quantity - 1);
         return { ...item, quantity: newQty };
       });
+      // Price rule: tier-first, qty-bracket only for satuan
       const newTotal = newItems.reduce((s, it) => s + it.quantity, 0);
-      const autoPrice = getPriceByQty(newTotal);
+      const basePrice = selectedTier === 'satuan' ? getPriceByQty(newTotal) : getPriceByTier(selectedTier);
       return newItems.map((item, i) => {
         if (customPriceSet.has(i)) return { ...item, subtotal: item.quantity * item.pricePerBottle };
-        return { ...item, pricePerBottle: autoPrice, subtotal: item.quantity * autoPrice };
+        return { ...item, pricePerBottle: basePrice, subtotal: item.quantity * basePrice };
       });
     });
   };
@@ -600,7 +626,7 @@ export function OrderForm({ customers, currentStock, submitting, onSubmit, onCan
       </main>
 
       {/* ── FIXED SAVE BUTTON ── */}
-      <div className="fixed bottom-0 left-0 right-0 max-w-lg mx-auto p-6 bg-gradient-to-t from-white via-white/90 to-transparent pointer-events-none z-20">
+      <div className="fixed bottom-[5rem] left-0 right-0 max-w-lg mx-auto p-6 bg-gradient-to-t from-white via-white/90 to-transparent pointer-events-none z-20">
         <div className="pointer-events-auto">
           <button
             onClick={handleSubmit}
