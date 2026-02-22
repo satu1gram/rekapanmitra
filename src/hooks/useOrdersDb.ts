@@ -140,14 +140,16 @@ export function useOrders() {
   }, [user, fetchOrders]);
 
   const updateOrderStatus = useCallback(async (orderId: string, status: OrderStatus) => {
+    if (!user) throw new Error('User not authenticated');
     const { error } = await supabase
       .from('orders')
       .update({ status })
-      .eq('id', orderId);
+      .eq('id', orderId)
+      .eq('user_id', user.id);
 
     if (error) throw error;
     await fetchOrders();
-  }, [fetchOrders]);
+  }, [user, fetchOrders]);
 
   const updateOrder = useCallback(async (orderId: string, orderData: {
     customerName: string;
@@ -219,14 +221,16 @@ export function useOrders() {
   }, [user, fetchOrders]);
 
   const deleteOrder = useCallback(async (orderId: string) => {
+    if (!user) throw new Error('User not authenticated');
     const { error } = await supabase
       .from('orders')
       .delete()
-      .eq('id', orderId);
+      .eq('id', orderId)
+      .eq('user_id', user.id);
 
     if (error) throw error;
     await fetchOrders();
-  }, [fetchOrders]);
+  }, [user, fetchOrders]);
 
   const getOrdersByDateRange = (startDate: Date, endDate: Date) => {
     return orders.filter(order => {
@@ -265,7 +269,10 @@ export function useOrders() {
       .order('created_at', { ascending: true });
 
     if (error) {
-      console.error('Error fetching expenses:', error);
+      // Silently ignore if table doesn't exist (PGRST205)
+      if ((error as any).code !== 'PGRST205') {
+        console.error('Error fetching expenses:', error);
+      }
       return [];
     }
     return (data || []).map((e: any) => ({
@@ -291,7 +298,12 @@ export function useOrders() {
       .select()
       .single();
 
-    if (expenseError) throw expenseError;
+    if (expenseError) {
+      if ((expenseError as any).code === 'PGRST205') {
+        throw new Error('Fitur pengeluaran belum tersedia di database ini.');
+      }
+      throw expenseError;
+    }
 
     const order = orders.find(o => o.id === orderId);
     if (order) {

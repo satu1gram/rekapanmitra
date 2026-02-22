@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Konfirmasi Order Berhasil SimpleBiz</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;display=swap"
+        rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <style type="text/tailwindcss">
+        :root {
+            --primary: #059669;
+            --primary-light: #ecfdf5;
+            --primary-dark: #047857;
+            --surface: #ffffff;
+            --bg: #f9fafb;
+            --text-main: #111827;
+            --text-sub: #4b5563;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg);
+            color: var(--text-main);
+        }
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }@keyframes subtle-pulse {
+            0% { box-shadow: 0 0 0 0 rgba(5, 150, 105, 0.4); }
+            70% { box-shadow: 0 0 0 20px rgba(5, 150, 105, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(5, 150, 105, 0); }
+        }
+        .success-circle {
+            animation: subtle-pulse 2s infinite;
+        }
+    </style>
+    <style>
+        body {
+            min-height: max(884px, 100dvh);
+        }
+    </style>
+    <style>
+        body {
+            min-height: max(884px, 100dvh);
+        }
+    </style>
+    <style>
+        body {
+            min-height: max(884px, 100dvh);
+        }
+    </style>
+</head>
+
+<body class="min-h-screen">
+    <div class="max-w-md mx-auto min-h-screen flex flex-col relative bg-white">
+        <main class="flex-1 px-6 flex flex-col items-center justify-center text-center space-y-10 py-12">
+            <div class="relative">
+                <div class="w-40 h-40 bg-emerald-50 rounded-full flex items-center justify-center success-circle">
+                    <span class="material-symbols-outlined text-[6rem] text-emerald-600 font-bold"
+                        style="font-variation-settings: 'FILL' 1, 'wght' 700;">check_circle</span>
+                </div>
+            </div>
+            <h1 class="text-4xl font-black text-slate-900 leading-tight">
+                Order Berhasil<br />Disimpan!
+            </h1>
+            <div class="w-full bg-slate-50 border-2 border-slate-100 rounded-3xl p-8 space-y-6 shadow-sm">
+                <div class="space-y-1">
+                    <p class="text-xl font-bold text-slate-500">Total Order</p>
+                    <p class="text-4xl font-extrabold text-slate-900 tracking-tight">Rp 250.000</p>
+                </div>
+                <div class="h-px w-full bg-slate-200"></div>
+                <div class="space-y-1">
+                    <p class="text-xl font-bold text-slate-500">Estimasi Profit</p>
+                    <p class="text-4xl font-extrabold text-emerald-600 tracking-tight">Rp 45.000</p>
+                </div>
+            </div>
+            <button
+                class="w-full bg-emerald-50 border border-emerald-100 text-emerald-700 hover:bg-emerald-100 active:bg-emerald-200 rounded-2xl p-4 flex items-center justify-center gap-2 transition-colors">
+                <span class="material-symbols-outlined text-2xl">content_copy</span>
+                <span class="text-lg font-bold">Salin info order untuk WhatsApp</span>
+            </button>
+        </main>
+        <div class="p-6 pb-8 space-y-4 bg-white border-t border-slate-50">
+            <button
+                class="w-full h-20 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white rounded-full shadow-lg shadow-emerald-200 flex items-center justify-center gap-3 transition-colors">
+                <span class="material-symbols-outlined text-3xl font-bold">add_shopping_cart</span>
+                <span class="text-2xl font-bold tracking-tight">Tambah Order Baru</span>
+            </button>
+            <button
+                class="w-full h-20 bg-white border-4 border-emerald-600 text-emerald-700 hover:bg-emerald-50 active:bg-emerald-100 rounded-full flex items-center justify-center gap-3 transition-colors">
+                <span class="material-symbols-outlined text-3xl font-bold">home</span>
+                <span class="text-2xl font-bold tracking-tight">Kembali ke Beranda</span>
+            </button>
+        </div>
+    </div>
+</body>
+
+</html>

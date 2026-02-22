@@ -1,6 +1,4 @@
-import { useState } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { useState, useMemo } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -11,16 +9,67 @@ import { useOrders } from '@/hooks/useOrdersDb';
 import { useStock } from '@/hooks/useStockDb';
 import { useCustomers } from '@/hooks/useCustomersDb';
 import { useProfile } from '@/hooks/useProfile';
-import { TierType, OrderStatus, OrderItem } from '@/types';
-import { Plus, X, Loader2 } from 'lucide-react';
+import { useGeneralExpenses } from '@/hooks/useGeneralExpenses';
+import { useGeneralIncome } from '@/hooks/useGeneralIncome';
+import { TierType, OrderItem, MITRA_LEVELS } from '@/types';
+import {
+  Loader2,
+  Calendar,
+  ChevronDown,
+  ChevronRight,
+  TrendingUp,
+  ShoppingCart,
+  Package,
+  BarChart3,
+  ChevronLeft,
+  X,
+} from 'lucide-react';
 import { toast } from 'sonner';
 import type { Tables } from '@/integrations/supabase/types';
 import { OrderForm } from './OrderForm';
 import { OrderCard } from './OrderCard';
+import { PerformaPage } from './PerformaPage';
+import { OrderResultPage, OrderResult } from './OrderResultPage';
+import { formatCurrency } from '@/lib/formatters';
+import { cn } from '@/lib/utils';
 
 type Order = Tables<'orders'>;
 
-export function OrdersPage() {
+const MONTH_NAMES_ID = [
+  'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+  'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember',
+];
+
+const DAY_NAMES_ID = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
+
+interface DailySummary {
+  date: Date;
+  dayName: string;
+  dayNum: number;
+  revenue: number;
+  profit: number;
+  quantity: number;
+  orders: Order[];
+}
+
+interface OrdersPageProps { openAddForm?: boolean; onAddFormClose?: () => void; }
+
+export function OrdersPage({ openAddForm = false, onAddFormClose }: OrdersPageProps) {
+  const now = new Date();
+  const [selectedYear, setSelectedYear] = useState(now.getFullYear());
+  const [selectedMonth, setSelectedMonth] = useState(now.getMonth()); // 0-indexed
+  const [showMonthPicker, setShowMonthPicker] = useState(false);
+  const [expandedDay, setExpandedDay] = useState<string | null>(null);
+  const [showAddModal, setShowAddModal] = useState(openAddForm);
+  const [submitting, setSubmitting] = useState(false);
+  const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
+  const [editingOrder, setEditingOrder] = useState<Order | null>(null);
+  const [editItems, setEditItems] = useState<OrderItem[]>([]);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [showAllDays, setShowAllDays] = useState(false);
+  const [showPerforma, setShowPerforma] = useState(false);
+  const [orderResult, setOrderResult] = useState<OrderResult | null>(null);
+
   const {
     orders,
     loading,
@@ -35,199 +84,400 @@ export function OrdersPage() {
   const { currentStock, reduceStock } = useStock();
   const { customers, addOrUpdateCustomer } = useCustomers();
   const { mitraLevel } = useProfile();
+  const { getTotalExpenses, getMonthExpenses } = useGeneralExpenses();
+  const { getTotalIncome, getMonthIncome } = useGeneralIncome();
 
-  const [showForm, setShowForm] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [filterStatus, setFilterStatus] = useState<OrderStatus | 'all'>('all');
-  const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
+  // Filter orders for selected month/year
+  const monthOrders = useMemo(() => {
+    return orders.filter(o => {
+      const d = new Date(o.created_at);
+      return d.getFullYear() === selectedYear && d.getMonth() === selectedMonth;
+    });
+  }, [orders, selectedYear, selectedMonth]);
 
-  // Edit mode
-  const [editingOrder, setEditingOrder] = useState<Order | null>(null);
-  const [editItems, setEditItems] = useState<OrderItem[]>([]);
-  const [showEditDialog, setShowEditDialog] = useState(false);
+  // Summary stats
+  const totalRevenue = monthOrders.reduce((sum, o) => sum + Number(o.total_price), 0);
+  const totalProfit = monthOrders.reduce((sum, o) => sum + Number(o.margin), 0);
+  const totalQty = monthOrders.reduce((sum, o) => sum + o.quantity, 0);
+
+  // General expenses & income for selected month (only current month is available from hook)
+  const isCurrentMonth = selectedMonth === now.getMonth() && selectedYear === now.getFullYear();
+  const expensesTotal = isCurrentMonth ? getTotalExpenses(getMonthExpenses()) : 0;
+  const incomeTotal = isCurrentMonth ? getTotalIncome(getMonthIncome()) : 0;
+  const netProfit = totalProfit - expensesTotal + incomeTotal;
+
+  // Group orders by day
+  const dailySummaries = useMemo((): DailySummary[] => {
+    const map = new Map<string, DailySummary>();
+    for (const o of monthOrders) {
+      const d = new Date(o.created_at);
+      const key = d.toDateString();
+      if (!map.has(key)) {
+        map.set(key, {
+          date: d,
+          dayName: DAY_NAMES_ID[d.getDay()],
+          dayNum: d.getDate(),
+          revenue: 0,
+          profit: 0,
+          quantity: 0,
+          orders: [],
+        });
+      }
+      const entry = map.get(key)!;
+      entry.revenue += Number(o.total_price);
+      entry.profit += Number(o.margin);
+      entry.quantity += o.quantity;
+      entry.orders.push(o);
+    }
+    return Array.from(map.values()).sort((a, b) => b.date.getTime() - a.date.getTime());
+  }, [monthOrders]);
+
+  const visibleDays = showAllDays ? dailySummaries : dailySummaries.slice(0, 5);
+
+  // Month navigation
+  const goPrevMonth = () => {
+    if (selectedMonth === 0) { setSelectedMonth(11); setSelectedYear(y => y - 1); }
+    else setSelectedMonth(m => m - 1);
+  };
+  const goNextMonth = () => {
+    if (selectedMonth === 11) { setSelectedMonth(0); setSelectedYear(y => y + 1); }
+    else setSelectedMonth(m => m + 1);
+  };
 
   const handleSubmit = async (data: {
-    customerName: string;
-    customerPhone: string;
-    tier: TierType;
-    items: OrderItem[];
-    transferProofUrl?: string;
-    customerId?: string;
-    createdAt?: string;
+    customerName: string; customerPhone: string; tier: TierType;
+    items: OrderItem[]; transferProofUrl?: string; customerId?: string; createdAt?: string;
   }) => {
     const totalQuantity = data.items.reduce((sum, item) => sum + item.quantity, 0);
-
     if (totalQuantity > currentStock) {
-      toast.error(`Stok tidak cukup. Tersisa ${currentStock} botol`);
+      setShowAddModal(false); onAddFormClose?.();
+      setOrderResult({ success: false, errorMessage: `Stok tidak cukup. Tersisa ${currentStock} pcs.` });
       return;
     }
-
     setSubmitting(true);
+    const totalPrice = data.items.reduce((sum, item) => sum + item.subtotal, 0);
+    const totalBuy = MITRA_LEVELS[mitraLevel].buyPricePerBottle * totalQuantity;
     try {
-      const order = await addOrder({
-        ...data,
-        mitraLevel,
+      // ─── OPERASI KRITIS: hanya ini yang menentukan sukses/gagal ───
+      const order = await addOrder({ ...data, mitraLevel });
+
+      // Order berhasil disimpan → tampilkan sukses segera
+      setShowAddModal(false); onAddFormClose?.();
+      setOrderResult({
+        success: true,
+        totalPrice,
+        estimatedProfit: totalPrice - totalBuy,
+        customerName: data.customerName,
+        customerPhone: data.customerPhone,
       });
 
-      await reduceStock(totalQuantity, order.id);
-
-      const totalPrice = data.items.reduce((sum, item) => sum + item.subtotal, 0);
-      await addOrUpdateCustomer({
+      // ─── OPERASI SEKUNDER: gagal tidak mempengaruhi layar sukses ───
+      reduceStock(totalQuantity, order.id).catch(err =>
+        console.error('reduceStock failed (order already saved):', err)
+      );
+      addOrUpdateCustomer({
         customerName: data.customerName,
         customerPhone: data.customerPhone,
         tier: data.tier,
         totalPrice,
-      });
+      }).catch(err => console.error('addOrUpdateCustomer failed:', err));
 
-      toast.success('Order berhasil ditambahkan!');
-      setShowForm(false);
-    } catch (error) {
-      console.error('Error adding order:', error);
-      toast.error('Gagal menambah order');
+    } catch (error: any) {
+      // Hanya addOrder yang bisa masuk sini
+      setShowAddModal(false); onAddFormClose?.();
+      setOrderResult({ success: false, errorMessage: error?.message || 'Gagal menyimpan order ke database.' });
     } finally {
       setSubmitting(false);
     }
   };
 
-  const handleStatusChange = async (orderId: string, newStatus: OrderStatus) => {
+  const handleStatusChange = async (orderId: string, newStatus: any) => {
     try {
       await updateOrderStatus(orderId, newStatus);
       toast.success(`Status diubah ke ${newStatus}`);
-    } catch (error) {
-      toast.error('Gagal mengubah status');
-    }
+    } catch { toast.error('Gagal mengubah status'); }
   };
 
   const openEditDialog = async (order: Order) => {
     setEditingOrder(order);
-    // Fetch existing items for this order
     const items = await fetchOrderItems(order.id);
-    if (items.length > 0) {
-      setEditItems(items);
-    } else {
-      // Backward compatibility: create single item from order data
-      setEditItems([{
-        productName: 'Produk',
-        quantity: order.quantity,
-        pricePerBottle: Number(order.price_per_bottle),
-        subtotal: Number(order.total_price),
-      }]);
-    }
+    setEditItems(items.length > 0 ? items : [{
+      productName: 'Produk', quantity: order.quantity,
+      pricePerBottle: Number(order.price_per_bottle), subtotal: Number(order.total_price),
+    }]);
     setShowEditDialog(true);
   };
 
   const handleEditSubmit = async (data: {
-    customerName: string;
-    customerPhone: string;
-    tier: TierType;
-    items: OrderItem[];
-    transferProofUrl?: string;
-    customerId?: string;
-    createdAt?: string;
+    customerName: string; customerPhone: string; tier: TierType;
+    items: OrderItem[]; transferProofUrl?: string; customerId?: string; createdAt?: string;
   }) => {
     if (!editingOrder) return;
-
     setSubmitting(true);
     try {
-      await updateOrder(editingOrder.id, {
-        ...data,
-        mitraLevel,
-      });
-
+      await updateOrder(editingOrder.id, { ...data, mitraLevel });
       toast.success('Order berhasil diupdate!');
-      setShowEditDialog(false);
-      setEditingOrder(null);
-    } catch (error) {
-      console.error('Error updating order:', error);
-      toast.error('Gagal mengupdate order');
-    } finally {
-      setSubmitting(false);
-    }
+      setShowEditDialog(false); setEditingOrder(null);
+    } catch { toast.error('Gagal mengupdate order'); }
+    finally { setSubmitting(false); }
   };
 
-  const filteredOrders = filterStatus === 'all'
-    ? orders
-    : orders.filter(o => o.status === filterStatus);
+  if (showAddModal) {
+    return (
+      <OrderForm
+        customers={customers}
+        currentStock={currentStock}
+        submitting={submitting}
+        onSubmit={handleSubmit}
+        onCancel={() => setShowAddModal(false)}
+      />
+    );
+  }
+
+  if (orderResult) {
+    return (
+      <OrderResultPage
+        result={orderResult}
+        onAddNew={() => { setOrderResult(null); setShowAddModal(true); }}
+        onGoHome={() => { setOrderResult(null); }}
+      />
+    );
+  }
+
+  if (showPerforma) {
+    return <PerformaPage onBack={() => setShowPerforma(false)} />;
+  }
 
   if (loading) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <Loader2 className="h-8 w-8 animate-spin text-emerald-600" />
       </div>
     );
   }
 
   return (
-    <div className="space-y-4 pb-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Order</h1>
-          <p className="text-sm text-muted-foreground">{orders.length} total order</p>
-        </div>
-        <Button onClick={() => setShowForm(!showForm)} size="lg">
-          {showForm ? <X className="mr-2 h-5 w-5" /> : <Plus className="mr-2 h-5 w-5" />}
-          {showForm ? 'Batal' : 'Tambah'}
-        </Button>
-      </div>
-
-      {/* Add Order Form */}
-      {showForm && (
-        <OrderForm
-          customers={customers}
-          currentStock={currentStock}
-          submitting={submitting}
-          onSubmit={handleSubmit}
-          onCancel={() => setShowForm(false)}
-        />
-      )}
-
-      {/* Filter */}
-      <div className="flex gap-2 overflow-x-auto pb-2">
-        {(['all', 'pending', 'terkirim', 'selesai'] as const).map(status => (
-          <Button
-            key={status}
-            size="sm"
-            variant={filterStatus === status ? 'default' : 'outline'}
-            onClick={() => setFilterStatus(status)}
+    <div className="flex flex-col min-h-screen bg-gray-50">
+      {/* Header */}
+      <header className="px-6 pt-10 pb-6 bg-white rounded-b-[2rem] shadow-sm z-10 sticky top-0">
+        <div className="flex flex-col gap-4">
+          <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 leading-tight">
+            Riwayat<br />Bulanan
+          </h1>
+          {/* Month Selector */}
+          <button
+            onClick={() => setShowMonthPicker(p => !p)}
+            className="flex items-center justify-between w-full bg-slate-100 p-4 rounded-2xl border-2 border-slate-200 active:bg-slate-200 transition-colors"
           >
-            {status === 'all' ? 'Semua' : status}
-          </Button>
-        ))}
-      </div>
+            <div className="flex items-center gap-3">
+              <div className="bg-white p-2 rounded-xl shadow-sm">
+                <Calendar className="h-5 w-5 text-slate-700" />
+              </div>
+              <div className="text-left">
+                <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Bulan</p>
+                <p className="text-lg font-black text-slate-900">{MONTH_NAMES_ID[selectedMonth]} {selectedYear}</p>
+              </div>
+            </div>
+            <ChevronDown className={cn("h-7 w-7 text-slate-900 transition-transform", showMonthPicker && "rotate-180")} />
+          </button>
 
-      {/* Orders List */}
-      <div className="space-y-3">
-        {filteredOrders.length === 0 ? (
-          <Card>
-            <CardContent className="py-8 text-center text-muted-foreground">
-              Belum ada order
-            </CardContent>
-          </Card>
-        ) : (
-          filteredOrders.map(order => (
-            <OrderCard
-              key={order.id}
-              order={order}
-              expanded={expandedOrder === order.id}
-              onToggleExpand={() => setExpandedOrder(expandedOrder === order.id ? null : order.id)}
-              onStatusChange={handleStatusChange}
-              onEdit={openEditDialog}
-              fetchOrderExpenses={fetchOrderExpenses}
-              addOrderExpense={addOrderExpense}
-              deleteOrderExpense={deleteOrderExpense}
-              fetchOrderItems={fetchOrderItems}
-            />
-          ))
-        )}
-      </div>
+          {/* Inline Month Picker */}
+          {showMonthPicker && (
+            <div className="bg-white rounded-2xl border-2 border-slate-200 overflow-hidden shadow-lg">
+              {/* Year nav */}
+              <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
+                <button onClick={() => setSelectedYear(y => y - 1)} className="p-2 rounded-xl hover:bg-slate-100">
+                  <ChevronLeft className="h-5 w-5 text-slate-600" />
+                </button>
+                <span className="text-lg font-black text-slate-900">{selectedYear}</span>
+                <button onClick={() => setSelectedYear(y => y + 1)} className="p-2 rounded-xl hover:bg-slate-100">
+                  <ChevronRight className="h-5 w-5 text-slate-600" />
+                </button>
+              </div>
+              {/* Month grid */}
+              <div className="grid grid-cols-3 gap-2 p-3">
+                {MONTH_NAMES_ID.map((name, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => { setSelectedMonth(idx); setShowMonthPicker(false); }}
+                    className={cn(
+                      "py-2.5 rounded-xl text-sm font-bold transition-colors",
+                      selectedMonth === idx && selectedYear === selectedYear
+                        ? "bg-emerald-600 text-white"
+                        : "bg-slate-50 text-slate-700 hover:bg-slate-100"
+                    )}
+                  >
+                    {name.slice(0, 3)}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="flex-1 px-6 py-6 space-y-6">
+
+        {/* Performance Chart Button */}
+        <button
+          className="w-full bg-white border-[3px] border-blue-600 rounded-2xl p-5 flex items-center justify-center gap-4 shadow-lg active:bg-blue-50 transition-all active:scale-[0.98]"
+          onClick={() => setShowPerforma(true)}
+        >
+          <BarChart3 className="h-9 w-9 text-blue-700" />
+          <span className="text-xl font-extrabold text-blue-800 tracking-tight">Lihat Grafik Performa</span>
+        </button>
+
+        {/* Summary Cards */}
+        <div>
+          <h2 className="text-xl font-bold text-slate-800 px-1 mb-4">Ringkasan Bulan Ini</h2>
+          <div className="space-y-4">
+            {/* Omset */}
+            <div className="bg-white p-6 rounded-3xl shadow-md border border-slate-100">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="p-3 bg-blue-50 text-blue-600 rounded-2xl">
+                  <ShoppingCart className="h-7 w-7" />
+                </div>
+                <span className="text-slate-500 font-bold text-base uppercase tracking-wide">Total Omset</span>
+              </div>
+              <p className="text-4xl font-black text-slate-900 mt-2">{formatCurrency(totalRevenue)}</p>
+            </div>
+
+            {/* Keuntungan Bersih */}
+            <div className="bg-white p-6 rounded-3xl shadow-md border-2 border-emerald-100 relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-50 rounded-full -mr-10 -mt-10 opacity-50 pointer-events-none" />
+              <div className="flex items-center gap-3 mb-2 relative z-10">
+                <div className="p-3 bg-emerald-100 text-emerald-700 rounded-2xl">
+                  <TrendingUp className="h-7 w-7" />
+                </div>
+                <span className="text-slate-500 font-bold text-base uppercase tracking-wide">Keuntungan Bersih</span>
+              </div>
+              <div className="relative z-10">
+                <p className={cn("text-4xl font-black mt-2", netProfit >= 0 ? "text-emerald-600" : "text-red-600")}>
+                  {formatCurrency(netProfit)}
+                </p>
+                {isCurrentMonth && expensesTotal > 0 && (
+                  <p className="text-sm text-slate-500 mt-1">
+                    Margin: {formatCurrency(totalProfit)} · Biaya: -{formatCurrency(expensesTotal)}
+                    {incomeTotal > 0 && ` · Lain: +${formatCurrency(incomeTotal)}`}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* Total Terjual */}
+            <div className="bg-white p-6 rounded-3xl shadow-md border border-slate-100">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="p-3 bg-orange-50 text-orange-600 rounded-2xl">
+                  <Package className="h-7 w-7" />
+                </div>
+                <span className="text-slate-500 font-bold text-base uppercase tracking-wide">Total Produk Terjual</span>
+              </div>
+              <p className="text-4xl font-black text-slate-900 mt-2">
+                {totalQty} <span className="text-2xl font-bold text-slate-400">pcs</span>
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Daily Breakdown */}
+        <div className="pb-6">
+          <div className="flex items-center justify-between mb-4 px-1">
+            <h2 className="text-xl font-bold text-slate-800">Rincian Harian</h2>
+            {dailySummaries.length > 5 && (
+              <button
+                onClick={() => setShowAllDays(v => !v)}
+                className="text-emerald-600 font-bold text-sm bg-emerald-50 px-3 py-1.5 rounded-lg"
+              >
+                {showAllDays ? 'Lebih Sedikit' : 'Lihat Semua'}
+              </button>
+            )}
+          </div>
+
+          {dailySummaries.length === 0 ? (
+            <div className="bg-white rounded-2xl p-8 text-center border border-slate-100 shadow-sm">
+              <p className="text-slate-400 font-medium">Belum ada order di bulan ini</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {visibleDays.map(day => {
+                const dayKey = day.date.toDateString();
+                const isExpanded = expandedDay === dayKey;
+                return (
+                  <div key={dayKey} className="rounded-2xl overflow-hidden shadow-sm border border-slate-100">
+                    {/* Day row */}
+                    <button
+                      className="w-full bg-white p-4 flex items-center justify-between text-left active:bg-slate-50 transition-colors"
+                      onClick={() => setExpandedDay(isExpanded ? null : dayKey)}
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className={cn(
+                          "w-14 h-14 rounded-2xl flex flex-col items-center justify-center font-bold shrink-0",
+                          day.date.getDay() === 0
+                            ? "bg-red-50 text-red-600 border border-red-100"
+                            : "bg-slate-100 text-slate-700"
+                        )}>
+                          <span className="text-xs uppercase">{day.dayName}</span>
+                          <span className="text-xl">{day.dayNum}</span>
+                        </div>
+                        <div>
+                          <p className="font-bold text-slate-900 text-lg">{formatCurrency(day.revenue)}</p>
+                          <p className={cn("text-sm font-semibold", day.profit >= 0 ? "text-emerald-600" : "text-red-500")}>
+                            {day.profit >= 0 ? '+' : ''}{formatCurrency(day.profit)} (Untung)
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-slate-400 font-medium">{day.orders.length} order</span>
+                        <ChevronRight className={cn("h-5 w-5 text-slate-300 transition-transform", isExpanded && "rotate-90")} />
+                      </div>
+                    </button>
+
+                    {/* Expanded orders for the day */}
+                    {isExpanded && (
+                      <div className="border-t border-slate-100 bg-gray-50 p-3 space-y-2">
+                        {day.orders.map(order => (
+                          <OrderCard
+                            key={order.id}
+                            order={order}
+                            expanded={expandedOrder === order.id}
+                            onToggleExpand={() => setExpandedOrder(expandedOrder === order.id ? null : order.id)}
+                            onStatusChange={handleStatusChange}
+                            onEdit={openEditDialog}
+                            fetchOrderExpenses={fetchOrderExpenses}
+                            addOrderExpense={addOrderExpense}
+                            deleteOrderExpense={deleteOrderExpense}
+                            fetchOrderItems={fetchOrderItems}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </main>
+
+      {/* Add Order Modal */}
+      <Dialog open={showAddModal} onOpenChange={setShowAddModal}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Tambah Order</DialogTitle>
+          </DialogHeader>
+          <OrderForm
+            customers={customers}
+            currentStock={currentStock}
+            submitting={submitting}
+            onSubmit={handleSubmit}
+            onCancel={() => setShowAddModal(false)}
+          />
+        </DialogContent>
+      </Dialog>
 
       {/* Edit Order Dialog */}
-      <Dialog open={showEditDialog} onOpenChange={(open) => {
-        if (!open) {
-          setShowEditDialog(false);
-          setEditingOrder(null);
-        }
-      }}>
+      <Dialog open={showEditDialog} onOpenChange={(open) => { if (!open) { setShowEditDialog(false); setEditingOrder(null); } }}>
         <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Order</DialogTitle>
@@ -235,13 +485,10 @@ export function OrdersPage() {
           {editingOrder && (
             <OrderForm
               customers={customers}
-              currentStock={currentStock + editingOrder.quantity} // Add back the existing quantity
+              currentStock={currentStock + editingOrder.quantity}
               submitting={submitting}
               onSubmit={handleEditSubmit}
-              onCancel={() => {
-                setShowEditDialog(false);
-                setEditingOrder(null);
-              }}
+              onCancel={() => { setShowEditDialog(false); setEditingOrder(null); }}
               initialData={{
                 customerName: editingOrder.customer_name,
                 customerPhone: editingOrder.customer_phone,

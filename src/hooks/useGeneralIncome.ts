@@ -41,7 +41,10 @@ export function useGeneralIncome() {
       .order('income_date', { ascending: false });
 
     if (error) {
-      console.error('Error fetching general income:', error);
+      // Silently ignore if table doesn't exist (PGRST205)
+      if ((error as any).code !== 'PGRST205') {
+        console.error('Error fetching general income:', error);
+      }
     } else {
       setIncome((data || []).map((e: any) => ({
         id: e.id,

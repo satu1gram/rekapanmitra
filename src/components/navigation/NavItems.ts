@@ -1,11 +1,8 @@
 import { 
   LayoutDashboard, 
-  ShoppingCart, 
+  Receipt,
   Package, 
-  Users, 
   Settings,
-  Wallet,
-  CircleDollarSign,
   type LucideIcon
 } from 'lucide-react';
 
@@ -19,16 +16,12 @@ export interface NavItem {
 
 export const NAV_PRIMARY_ITEMS: NavItem[] = [
   { id: 'dashboard', label: 'Beranda', icon: LayoutDashboard },
-  { id: 'orders', label: 'Order', icon: ShoppingCart },
-  { id: 'stock', label: 'Stok', icon: Package },
+  { id: 'orders', label: 'Riwayat', icon: Receipt },
+  { id: 'stock', label: 'Produk', icon: Package },
+  { id: 'settings', label: 'Akun', icon: Settings },
 ];
 
-export const NAV_MORE_ITEMS: NavItem[] = [
-  { id: 'income', label: 'Pemasukan', icon: CircleDollarSign },
-  { id: 'expenses', label: 'Biaya', icon: Wallet },
-  { id: 'customers', label: 'Customer', icon: Users },
-  { id: 'settings', label: 'Pengaturan', icon: Settings },
-];
+export const NAV_MORE_ITEMS: NavItem[] = [];
 
 // Backwards-compat: full list, if other parts need it later.
 export const NAV_ITEMS: NavItem[] = [...NAV_PRIMARY_ITEMS, ...NAV_MORE_ITEMS];

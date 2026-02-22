@@ -69,7 +69,7 @@ export function useStock() {
 
     const insertData: any = {
       user_id: user.id,
-      type: data.isInitialStock ? 'initial' : 'in',
+      type: 'in',  // DB constraint only allows 'in' or 'out'; initial stock uses notes to distinguish
       quantity: data.quantity,
       tier: data.tier,
       buy_price_per_bottle: data.buyPricePerBottle ?? null,
@@ -193,8 +193,8 @@ export function useStock() {
 
     if (deleteError) throw deleteError;
 
-    // Adjust stock based on entry type
-    const adjustment = entryType === 'in' ? -entryQuantity : entryQuantity;
+    // 'initial' entries should be treated the same as 'in' for stock adjustment
+    const adjustment = (entryType === 'in' || entryType === 'initial') ? -entryQuantity : entryQuantity;
     const newStock = currentStock + adjustment;
 
     const { error: updateError } = await supabase
