@@ -53,14 +53,14 @@ CREATE INDEX IF NOT EXISTS general_income_user_id_date_idx
 CREATE INDEX IF NOT EXISTS customers_user_id_idx
   ON public.customers (user_id);
 
--- Order items & Order expenses: dibungkus blok DO agar tidak error jika tabel belum ada
+-- Order items & Order expenses: dibungkus blok DO dengan EXECUTE (Dynamic SQL) agar tidak error saat parsing query
 DO $$ 
 BEGIN
   IF EXISTS (SELECT FROM pg_tables WHERE schemaname = 'public' AND tablename = 'order_items') THEN
-    CREATE INDEX IF NOT EXISTS order_items_user_id_idx ON public.order_items (user_id);
+    EXECUTE 'CREATE INDEX IF NOT EXISTS order_items_user_id_idx ON public.order_items (user_id);';
   END IF;
 
   IF EXISTS (SELECT FROM pg_tables WHERE schemaname = 'public' AND tablename = 'order_expenses') THEN
-    CREATE INDEX IF NOT EXISTS order_expenses_user_id_idx ON public.order_expenses (user_id);
+    EXECUTE 'CREATE INDEX IF NOT EXISTS order_expenses_user_id_idx ON public.order_expenses (user_id);';
   END IF;
 END $$;
