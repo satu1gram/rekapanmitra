@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="id"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Login SimpleBiz Senior 2026</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style type="text/tailwindcss">
+    :root {
+        --primary: #10B981;--primary-hover: #059669;
+        --text-dark: #1F2937;
+        --input-bg: #E0E7FF;
+        --card-border: #E5E7EB;
+    }
+    body {
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        background-color: #F3F4F6;
+    }
+    .login-card {
+        background: white;
+        box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.08);
+        border: 1px solid var(--card-border);
+    }
+    .material-symbols-outlined {
+        font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    }input::placeholder {
+        color: #6B7280;
+        opacity: 0.8;
+    }
+    .input-group:focus-within .input-icon {
+        color: var(--primary);
+    }
+</style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="min-h-screen flex items-center justify-center p-4 bg-slate-50">
+<main class="w-full max-w-lg">
+<div class="text-center mb-8">
+<h1 class="text-3xl font-extrabold text-[var(--primary)] tracking-tight mb-2">BP Community Manager</h1>
+<p class="text-slate-500 text-lg font-medium">Mitra Bisnis Terpercaya</p>
+</div>
+<div class="login-card rounded-3xl p-8 md:p-10 w-full relative overflow-hidden">
+<div class="absolute -top-24 -right-24 w-48 h-48 bg-emerald-50 rounded-full blur-3xl opacity-50 pointer-events-none"></div>
+<div class="relative z-10">
+<h2 class="text-center text-2xl font-bold text-slate-800 mb-2">Selamat Datang Kembali</h2>
+<p class="text-center text-slate-500 mb-8 text-lg">Masuk ke akun Anda</p>
+<form class="space-y-8">
+<div class="space-y-3">
+<label class="flex items-center gap-2 text-xl font-bold text-slate-800" for="email">
+<span class="material-symbols-outlined text-2xl">mail</span>
+                            Email
+                        </label>
+<div class="relative input-group">
+<input class="w-full bg-[#EFF6FF] border-2 border-slate-200 focus:border-[var(--primary)] focus:ring-0 rounded-2xl px-6 py-5 text-xl text-slate-900 placeholder-slate-400 transition-colors" id="email" placeholder="nama@email.com" type="email" value="satu1gram@gmail.com"/>
+</div>
+</div>
+<div class="space-y-3">
+<label class="flex items-center gap-2 text-xl font-bold text-slate-800" for="password">
+<span class="material-symbols-outlined text-2xl">lock</span>
+                            Kata Sandi
+                        </label>
+<div class="relative input-group">
+<input class="w-full bg-[#EFF6FF] border-2 border-slate-200 focus:border-[var(--primary)] focus:ring-0 rounded-2xl px-6 py-5 text-xl text-slate-900 placeholder-slate-400 transition-colors tracking-widest" id="password" placeholder="••••••••" type="password" value="password123"/>
+</div>
+</div>
+<button class="w-full bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-white text-xl font-bold py-6 rounded-2xl shadow-lg shadow-emerald-500/30 flex items-center justify-center gap-3 transition-transform active:scale-[0.98] mt-8" type="button">
+<span>Masuk ke Akun</span>
+<span class="material-symbols-outlined text-3xl">login</span>
+</button>
+<div class="text-center pt-4">
+<a class="inline-block text-lg font-bold text-[var(--primary)] hover:underline hover:text-[var(--primary-hover)] py-2 px-4 rounded-lg" href="#">
+                            Belum punya akun? Daftar
+                        </a>
+</div>
+</form>
+</div>
+</div>
+<div class="mt-8 text-center space-y-2">
+<div class="flex justify-center items-center gap-2 text-slate-400">
+<span class="material-symbols-outlined text-xl">verified_user</span>
+<span class="text-sm font-medium">Aman &amp; Terenkripsi</span>
+</div>
+<p class="text-slate-400 text-sm">Versi 2.0.1 • 2026</p>
+</div>
+</main>
+
+</body></html>

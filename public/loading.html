@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Loading General SimpleBiz V2</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,typography,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap"
+        rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <style type="text/tailwindcss">
+        :root {
+            --primary: #059669;
+            --primary-dark: #047857;
+            --surface: #ffffff;
+            --bg: #f9fafb;
+            --whatsapp: #25D366;
+            --whatsapp-dark: #128C7E;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg);
+        }
+        @keyframes pulse-soft {
+            0%, 100% { transform: scale(1); opacity: 0.5; }
+            50% { transform: scale(1.1); opacity: 0.8; }
+        }
+        .animate-pulse-soft {
+            animation: pulse-soft 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        @keyframes spin-slow {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        .animate-spin-slow {
+            animation: spin-slow 1.5s linear infinite;
+        }
+    </style>
+    <style>
+        body {
+            min-height: max(884px, 100dvh);
+        }
+    </style>
+    <style>
+        body {
+            min-height: max(884px, 100dvh);
+        }
+    </style>
+</head>
+
+<body class="text-slate-900 bg-white">
+    <div class="max-w-md mx-auto min-h-screen flex flex-col items-center justify-center relative px-6">
+        <div class="relative w-48 h-48 flex items-center justify-center mb-10">
+            <div class="absolute inset-0 bg-emerald-100 rounded-full animate-pulse-soft"></div>
+            <div class="absolute inset-4 bg-white/80 rounded-full backdrop-blur-sm z-10"></div>
+            <div
+                class="relative z-20 w-16 h-16 border-4 border-slate-100 border-t-emerald-600 rounded-full animate-spin-slow">
+            </div>
+        </div>
+        <div class="space-y-4 text-center z-10 max-w-[280px]">
+            <h1 class="text-2xl font-extrabold text-slate-800 leading-tight">
+                Mohon Tunggu Sebentar...
+            </h1>
+            <p class="text-slate-500 text-lg font-medium">
+                Sedang memproses data Anda
+            </p>
+        </div>
+        <div class="sr-only" role="status">
+            Loading data, please wait.
+        </div>
+    </div>
+
+</body>
+
+</html>

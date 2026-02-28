@@ -14,25 +14,26 @@ import { formatShortCurrency } from '@/lib/formatters';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { toast } from 'sonner';
-import { 
-  Plus, 
-  Loader2, 
+import {
+  Plus,
+  Loader2,
   TrendingUp,
-  Edit2, 
+  Edit2,
   Trash2,
   Calendar,
   CircleDollarSign
 } from 'lucide-react';
+import { LoadingScreen } from '@/components/ui/LoadingScreen';
 
 export function IncomePage() {
-  const { 
-    income, 
-    loading, 
-    addIncome, 
-    updateIncome, 
+  const {
+    income,
+    loading,
+    addIncome,
+    updateIncome,
     deleteIncome,
     getMonthIncome,
-    getTotalIncome 
+    getTotalIncome
   } = useGeneralIncome();
 
   const [showAddDialog, setShowAddDialog] = useState(false);
@@ -126,11 +127,7 @@ export function IncomePage() {
   };
 
   if (loading) {
-    return (
-      <div className="flex min-h-[50vh] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
+    return <LoadingScreen />;
   }
 
   return (
@@ -190,8 +187,8 @@ export function IncomePage() {
                 </p>
               ) : (
                 income.map(item => (
-                  <div 
-                    key={item.id} 
+                  <div
+                    key={item.id}
                     className="flex items-center justify-between rounded-lg bg-muted/50 p-3"
                   >
                     <div className="flex-1 min-w-0">

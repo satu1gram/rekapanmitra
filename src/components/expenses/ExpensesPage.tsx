@@ -14,25 +14,26 @@ import { formatCurrency, formatShortCurrency } from '@/lib/formatters';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { toast } from 'sonner';
-import { 
-  Plus, 
-  Loader2, 
-  Wallet, 
-  Edit2, 
+import {
+  Plus,
+  Loader2,
+  Wallet,
+  Edit2,
   Trash2,
   Calendar,
   TrendingDown
 } from 'lucide-react';
+import { LoadingScreen } from '@/components/ui/LoadingScreen';
 
 export function ExpensesPage() {
-  const { 
-    expenses, 
-    loading, 
-    addExpense, 
-    updateExpense, 
+  const {
+    expenses,
+    loading,
+    addExpense,
+    updateExpense,
     deleteExpense,
     getMonthExpenses,
-    getTotalExpenses 
+    getTotalExpenses
   } = useGeneralExpenses();
 
   const [showAddDialog, setShowAddDialog] = useState(false);
@@ -127,11 +128,7 @@ export function ExpensesPage() {
   };
 
   if (loading) {
-    return (
-      <div className="flex min-h-[50vh] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
+    return <LoadingScreen />;
   }
 
   return (
@@ -191,8 +188,8 @@ export function ExpensesPage() {
                 </p>
               ) : (
                 expenses.map(expense => (
-                  <div 
-                    key={expense.id} 
+                  <div
+                    key={expense.id}
                     className="flex items-center justify-between rounded-lg bg-muted/50 p-3"
                   >
                     <div className="flex-1 min-w-0">

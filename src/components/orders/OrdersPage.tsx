@@ -19,11 +19,10 @@ import {
   ChevronRight,
   TrendingUp,
   ShoppingCart,
-  Package,
   BarChart3,
   ChevronLeft,
-  X,
 } from 'lucide-react';
+import { LoadingScreen } from '@/components/ui/LoadingScreen';
 import { toast } from 'sonner';
 import type { Tables } from '@/integrations/supabase/types';
 import { OrderForm } from './OrderForm';
@@ -57,7 +56,7 @@ interface OrdersPageProps { openAddForm?: boolean; onAddFormClose?: () => void; 
 export function OrdersPage({ openAddForm = false, onAddFormClose }: OrdersPageProps) {
   const now = new Date();
   const [selectedYear, setSelectedYear] = useState(now.getFullYear());
-  const [selectedMonth, setSelectedMonth] = useState(now.getMonth()); // 0-indexed
+  const [selectedMonth, setSelectedMonth] = useState(now.getMonth());
   const [showMonthPicker, setShowMonthPicker] = useState(false);
   const [expandedDay, setExpandedDay] = useState<string | null>(null);
   const [showAddModal, setShowAddModal] = useState(openAddForm);
@@ -87,7 +86,6 @@ export function OrdersPage({ openAddForm = false, onAddFormClose }: OrdersPagePr
   const { getTotalExpenses, getMonthExpenses } = useGeneralExpenses();
   const { getTotalIncome, getMonthIncome } = useGeneralIncome();
 
-  // Filter orders for selected month/year
   const monthOrders = useMemo(() => {
     return orders.filter(o => {
       const d = new Date(o.created_at);
@@ -95,18 +93,15 @@ export function OrdersPage({ openAddForm = false, onAddFormClose }: OrdersPagePr
     });
   }, [orders, selectedYear, selectedMonth]);
 
-  // Summary stats
   const totalRevenue = monthOrders.reduce((sum, o) => sum + Number(o.total_price), 0);
   const totalProfit = monthOrders.reduce((sum, o) => sum + Number(o.margin), 0);
   const totalQty = monthOrders.reduce((sum, o) => sum + o.quantity, 0);
 
-  // General expenses & income for selected month (only current month is available from hook)
   const isCurrentMonth = selectedMonth === now.getMonth() && selectedYear === now.getFullYear();
   const expensesTotal = isCurrentMonth ? getTotalExpenses(getMonthExpenses()) : 0;
   const incomeTotal = isCurrentMonth ? getTotalIncome(getMonthIncome()) : 0;
   const netProfit = totalProfit - expensesTotal + incomeTotal;
 
-  // Group orders by day
   const dailySummaries = useMemo((): DailySummary[] => {
     const map = new Map<string, DailySummary>();
     for (const o of monthOrders) {
@@ -134,16 +129,6 @@ export function OrdersPage({ openAddForm = false, onAddFormClose }: OrdersPagePr
 
   const visibleDays = showAllDays ? dailySummaries : dailySummaries.slice(0, 5);
 
-  // Month navigation
-  const goPrevMonth = () => {
-    if (selectedMonth === 0) { setSelectedMonth(11); setSelectedYear(y => y - 1); }
-    else setSelectedMonth(m => m - 1);
-  };
-  const goNextMonth = () => {
-    if (selectedMonth === 11) { setSelectedMonth(0); setSelectedYear(y => y + 1); }
-    else setSelectedMonth(m => m + 1);
-  };
-
   const handleSubmit = async (data: {
     customerName: string; customerPhone: string; tier: TierType;
     items: OrderItem[]; transferProofUrl?: string; customerId?: string; createdAt?: string;
@@ -158,10 +143,7 @@ export function OrdersPage({ openAddForm = false, onAddFormClose }: OrdersPagePr
     const totalPrice = data.items.reduce((sum, item) => sum + item.subtotal, 0);
     const totalBuy = MITRA_LEVELS[mitraLevel].buyPricePerBottle * totalQuantity;
     try {
-      // ─── OPERASI KRITIS: hanya ini yang menentukan sukses/gagal ───
       const order = await addOrder({ ...data, mitraLevel });
-
-      // Order berhasil disimpan → tampilkan sukses segera
       setShowAddModal(false); onAddFormClose?.();
       setOrderResult({
         success: true,
@@ -170,8 +152,6 @@ export function OrdersPage({ openAddForm = false, onAddFormClose }: OrdersPagePr
         customerName: data.customerName,
         customerPhone: data.customerPhone,
       });
-
-      // ─── OPERASI SEKUNDER: gagal tidak mempengaruhi layar sukses ───
       reduceStock(totalQuantity, order.id).catch(err =>
         console.error('reduceStock failed (order already saved):', err)
       );
@@ -181,9 +161,7 @@ export function OrdersPage({ openAddForm = false, onAddFormClose }: OrdersPagePr
         tier: data.tier,
         totalPrice,
       }).catch(err => console.error('addOrUpdateCustomer failed:', err));
-
     } catch (error: any) {
-      // Hanya addOrder yang bisa masuk sini
       setShowAddModal(false); onAddFormClose?.();
       setOrderResult({ success: false, errorMessage: error?.message || 'Gagal menyimpan order ke database.' });
     } finally {
@@ -249,140 +227,146 @@ export function OrdersPage({ openAddForm = false, onAddFormClose }: OrdersPagePr
   }
 
   if (loading) {
-    return (
-      <div className="flex min-h-[50vh] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-emerald-600" />
-      </div>
-    );
+    return <LoadingScreen />;
   }
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-slate-200 px-5 py-4">
-        <div className="flex flex-col gap-3">
-          <div className="flex items-center justify-between">
-            <div className="flex flex-col">
-              <span className="text-xs font-bold text-slate-400 uppercase tracking-widest leading-none mb-1">Riwayat</span>
-              <h1 className="text-lg font-black text-slate-900 leading-none">Riwayat Bulanan</h1>
-            </div>
-            {/* Month Selector pill */}
-            <button
-              onClick={() => setShowMonthPicker(p => !p)}
-              className="flex items-center gap-2 bg-slate-900 text-white px-4 py-2.5 rounded-full shadow-lg active:scale-95 transition-transform"
-            >
-              <span className="text-sm font-black tracking-tight">{MONTH_NAMES_ID[selectedMonth]} {selectedYear}</span>
-              <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", showMonthPicker && "rotate-180")} />
-            </button>
-          </div>
+      <header className="px-5 pt-8 pb-4 bg-white shadow-sm z-10 sticky top-0">
+        <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 mb-3">Riwayat Bulanan</h1>
 
-          {/* Inline Month Picker */}
-          {showMonthPicker && (
-            <div className="bg-white rounded-2xl border-2 border-slate-200 overflow-hidden shadow-lg">
-              {/* Year nav */}
-              <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
-                <button onClick={() => setSelectedYear(y => y - 1)} className="p-2 rounded-xl hover:bg-slate-100">
-                  <ChevronLeft className="h-5 w-5 text-slate-600" />
-                </button>
-                <span className="text-base font-black text-slate-900">{selectedYear}</span>
-                <button onClick={() => setSelectedYear(y => y + 1)} className="p-2 rounded-xl hover:bg-slate-100">
-                  <ChevronRight className="h-5 w-5 text-slate-600" />
-                </button>
-              </div>
-              {/* Month grid */}
-              <div className="grid grid-cols-3 gap-2 p-3">
-                {MONTH_NAMES_ID.map((name, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => { setSelectedMonth(idx); setShowMonthPicker(false); }}
-                    className={cn(
-                      "py-2.5 rounded-xl text-sm font-bold transition-colors",
-                      selectedMonth === idx && selectedYear === selectedYear
-                        ? "bg-emerald-600 text-white"
-                        : "bg-slate-50 text-slate-700 hover:bg-slate-100"
-                    )}
-                  >
-                    {name.slice(0, 3)}
-                  </button>
-                ))}
-              </div>
+        {/* Month picker row + Grafik button */}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowMonthPicker(p => !p)}
+            className="flex-1 flex items-center gap-2.5 bg-slate-100 px-3.5 py-2.5 rounded-2xl border border-slate-200 active:bg-slate-200 transition-colors"
+          >
+            <div className="bg-white p-1.5 rounded-lg shadow-sm shrink-0">
+              <Calendar className="h-4 w-4 text-slate-600" />
             </div>
-          )}
+            <div className="text-left">
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider leading-none">Bulan</p>
+              <p className="text-sm font-black text-slate-900 leading-tight mt-0.5">{MONTH_NAMES_ID[selectedMonth]} {selectedYear}</p>
+            </div>
+            <ChevronDown className={cn("h-4 w-4 text-slate-500 ml-auto transition-transform", showMonthPicker && "rotate-180")} />
+          </button>
+          <button
+            onClick={() => setShowPerforma(true)}
+            className="flex flex-col items-center justify-center bg-blue-50 border border-blue-200 rounded-2xl px-3 py-2 gap-0.5 shrink-0 active:bg-blue-100 transition-colors"
+          >
+            <BarChart3 className="h-5 w-5 text-blue-600" />
+            <span className="text-[10px] font-bold text-blue-600">Grafik</span>
+          </button>
         </div>
+
+        {/* Month Picker dropdown */}
+        {showMonthPicker && (
+          <div className="mt-2 bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-lg">
+            <div className="flex items-center justify-between px-4 py-2.5 border-b border-slate-100">
+              <button onClick={() => setSelectedYear(y => y - 1)} className="p-1.5 rounded-xl hover:bg-slate-100">
+                <ChevronLeft className="h-4 w-4 text-slate-600" />
+              </button>
+              <span className="text-sm font-black text-slate-900">{selectedYear}</span>
+              <button onClick={() => setSelectedYear(y => y + 1)} className="p-1.5 rounded-xl hover:bg-slate-100">
+                <ChevronRight className="h-4 w-4 text-slate-600" />
+              </button>
+            </div>
+            <div className="grid grid-cols-4 gap-1.5 p-2.5">
+              {MONTH_NAMES_ID.map((name, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => { setSelectedMonth(idx); setShowMonthPicker(false); }}
+                  className={cn(
+                    "py-2 rounded-xl text-xs font-bold transition-colors",
+                    selectedMonth === idx
+                      ? "bg-emerald-600 text-white"
+                      : "bg-slate-50 text-slate-700 hover:bg-slate-100"
+                  )}
+                >
+                  {name.slice(0, 3)}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 px-4 py-4 space-y-3">
+      <main className="flex-1 px-4 py-4 space-y-4 pb-8">
 
-        {/* Performance Chart Button */}
-        <button
-          className="w-full bg-white border-2 border-blue-600 rounded-2xl p-4 flex items-center justify-center gap-3 shadow-md active:bg-blue-50 transition-all active:scale-[0.98]"
-          onClick={() => setShowPerforma(true)}
-        >
-          <BarChart3 className="h-6 w-6 text-blue-700" />
-          <span className="text-base font-black text-blue-800 tracking-tight uppercase">Lihat Grafik Performa</span>
-        </button>
-
-        {/* Summary Cards */}
+        {/* Ringkasan Bulan Ini */}
         <div>
-          <h2 className="text-base font-black text-slate-800 px-1 mb-3 uppercase tracking-wide">Ringkasan Bulan Ini</h2>
-          <div className="space-y-3">
-            {/* Omset */}
-            <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
-              <div className="flex items-center gap-2 mb-1">
-                <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
-                  <ShoppingCart className="h-4 w-4 text-blue-600" />
+          <h2 className="text-base font-bold text-slate-800 mb-2.5">Ringkasan Bulan Ini</h2>
+          <div className="space-y-2">
+
+            {/* Total Omset */}
+            <div className="bg-white px-4 py-3.5 rounded-2xl shadow-sm border border-slate-100">
+              <div className="flex items-center gap-2 mb-1.5">
+                <div className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
+                  <ShoppingCart className="h-3.5 w-3.5 text-blue-600" />
                 </div>
                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Total Omset</span>
               </div>
-              <p className="text-4xl font-black text-slate-900 tracking-tighter">{formatCurrency(totalRevenue)}</p>
+              <p className="text-2xl font-black text-slate-900 tracking-tight">{formatCurrency(totalRevenue)}</p>
             </div>
 
             {/* Keuntungan Bersih */}
-            <div className="bg-white p-5 rounded-2xl shadow-sm border-2 border-emerald-100 relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-50 rounded-full -mr-10 -mt-10 opacity-50 pointer-events-none" />
-              <div className="flex items-center gap-2 mb-1 relative z-10">
-                <div className="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center">
-                  <TrendingUp className="h-4 w-4 text-emerald-700" />
+            <div className="bg-white px-4 py-3.5 rounded-2xl shadow-sm border-2 border-emerald-100 relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-20 h-20 bg-emerald-50 rounded-full -mr-6 -mt-6 opacity-60 pointer-events-none" />
+              <div className="flex items-center gap-2 mb-1.5 relative z-10">
+                <div className="w-7 h-7 rounded-lg bg-emerald-100 flex items-center justify-center shrink-0">
+                  <TrendingUp className="h-3.5 w-3.5 text-emerald-700" />
                 </div>
                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Keuntungan Bersih</span>
               </div>
-              <div className="relative z-10">
-                <p className={cn("text-4xl font-black tracking-tighter", netProfit >= 0 ? "text-emerald-600" : "text-red-600")}>
-                  {formatCurrency(netProfit)}
+              <div className="flex items-center gap-3 relative z-10">
+                <p className={cn("text-2xl font-black tracking-tight", netProfit >= 0 ? "text-emerald-600" : "text-red-600")}>
+                  {netProfit < 0 ? '-' : ''}{formatCurrency(Math.abs(netProfit))}
                 </p>
-                {isCurrentMonth && expensesTotal > 0 && (
-                  <p className="text-xs text-slate-500 mt-1">
-                    Margin: {formatCurrency(totalProfit)} · Biaya: -{formatCurrency(expensesTotal)}
-                    {incomeTotal > 0 && ` · Lain: +${formatCurrency(incomeTotal)}`}
-                  </p>
+                {isCurrentMonth && totalRevenue > 0 && netProfit !== 0 && (
+                  <div className={cn(
+                    "flex items-center gap-1 px-2 py-0.5 rounded-full border text-xs font-black",
+                    netProfit >= 0
+                      ? "bg-emerald-50 border-emerald-100 text-emerald-600"
+                      : "bg-red-50 border-red-100 text-red-600"
+                  )}>
+                    <TrendingUp className="h-3 w-3" />
+                    <span>{netProfit >= 0 ? '+' : ''}{Math.round((netProfit / totalRevenue) * 100)}%</span>
+                  </div>
                 )}
               </div>
+              {isCurrentMonth && expensesTotal > 0 && (
+                <p className="text-[10px] text-slate-400 mt-1 relative z-10">
+                  Margin: {formatCurrency(totalProfit)} · Biaya: -{formatCurrency(expensesTotal)}
+                  {incomeTotal > 0 && ` · Lain: +${formatCurrency(incomeTotal)}`}
+                </p>
+              )}
             </div>
 
             {/* Total Terjual */}
-            <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
-              <div className="flex items-center gap-2 mb-1">
-                <div className="w-8 h-8 rounded-lg bg-orange-50 flex items-center justify-center">
-                  <Package className="h-4 w-4 text-orange-600" />
+            <div className="bg-white px-4 py-3.5 rounded-2xl shadow-sm border border-slate-100">
+              <div className="flex items-center gap-2 mb-1.5">
+                <div className="w-7 h-7 rounded-lg bg-orange-50 flex items-center justify-center shrink-0">
+                  <ShoppingCart className="h-3.5 w-3.5 text-orange-500" />
                 </div>
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Total Produk Terjual</span>
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Total Terjual</span>
               </div>
-              <p className="text-4xl font-black text-slate-900 tracking-tighter">
-                {totalQty} <span className="text-xl font-bold text-slate-400">pcs</span>
+              <p className="text-2xl font-black text-slate-900 tracking-tight">
+                {totalQty} <span className="text-base font-bold text-slate-400">pcs</span>
               </p>
             </div>
           </div>
         </div>
 
-        {/* Daily Breakdown */}
+        {/* Rincian Harian */}
         <div className="pb-6">
-          <div className="flex items-center justify-between mb-3 px-1">
-            <h2 className="text-base font-black text-slate-800 uppercase tracking-wide">Rincian Harian</h2>
+          <div className="flex items-center justify-between mb-2.5">
+            <h2 className="text-base font-bold text-slate-800">Rincian Harian</h2>
             {dailySummaries.length > 5 && (
               <button
                 onClick={() => setShowAllDays(v => !v)}
-                className="text-emerald-600 font-bold text-sm bg-emerald-50 px-3 py-1.5 rounded-lg"
+                className="text-emerald-600 font-bold text-xs bg-emerald-50 px-2.5 py-1 rounded-lg"
               >
                 {showAllDays ? 'Lebih Sedikit' : 'Lihat Semua'}
               </button>
@@ -391,44 +375,42 @@ export function OrdersPage({ openAddForm = false, onAddFormClose }: OrdersPagePr
 
           {dailySummaries.length === 0 ? (
             <div className="bg-white rounded-2xl p-8 text-center border border-slate-100 shadow-sm">
-              <p className="text-slate-400 font-medium">Belum ada order di bulan ini</p>
+              <p className="text-slate-400 font-medium text-sm">Belum ada order di bulan ini</p>
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-2">
               {visibleDays.map(day => {
                 const dayKey = day.date.toDateString();
                 const isExpanded = expandedDay === dayKey;
                 return (
                   <div key={dayKey} className="rounded-2xl overflow-hidden shadow-sm border border-slate-100">
-                    {/* Day row */}
                     <button
-                      className="w-full bg-white p-4 flex items-center justify-between text-left active:bg-slate-50 transition-colors"
+                      className="w-full bg-white px-4 py-3 flex items-center justify-between text-left active:bg-slate-50 transition-colors"
                       onClick={() => setExpandedDay(isExpanded ? null : dayKey)}
                     >
-                      <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-3">
                         <div className={cn(
-                          "w-14 h-14 rounded-2xl flex flex-col items-center justify-center font-bold shrink-0",
+                          "w-11 h-11 rounded-xl flex flex-col items-center justify-center font-bold shrink-0",
                           day.date.getDay() === 0
                             ? "bg-red-50 text-red-600 border border-red-100"
                             : "bg-slate-100 text-slate-700"
                         )}>
-                          <span className="text-xs uppercase">{day.dayName}</span>
-                          <span className="text-xl">{day.dayNum}</span>
+                          <span className="text-[9px] uppercase font-bold leading-none">{day.dayName}</span>
+                          <span className="text-base font-black leading-tight">{day.dayNum}</span>
                         </div>
                         <div>
-                          <p className="font-bold text-slate-900 text-lg">{formatCurrency(day.revenue)}</p>
-                          <p className={cn("text-sm font-semibold", day.profit >= 0 ? "text-emerald-600" : "text-red-500")}>
+                          <p className="font-bold text-slate-900 text-sm">{formatCurrency(day.revenue)}</p>
+                          <p className={cn("text-xs font-semibold", day.profit >= 0 ? "text-emerald-600" : "text-red-500")}>
                             {day.profit >= 0 ? '+' : ''}{formatCurrency(day.profit)} (Untung)
                           </p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs text-slate-400 font-medium">{day.orders.length} order</span>
-                        <ChevronRight className={cn("h-5 w-5 text-slate-300 transition-transform", isExpanded && "rotate-90")} />
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[10px] text-slate-400 font-medium">{day.orders.length} order</span>
+                        <ChevronRight className={cn("h-4 w-4 text-slate-300 transition-transform", isExpanded && "rotate-90")} />
                       </div>
                     </button>
 
-                    {/* Expanded orders for the day */}
                     {isExpanded && (
                       <div className="border-t border-slate-100 bg-gray-50 p-3 space-y-2">
                         {day.orders.map(order => (

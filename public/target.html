@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Setel Target Bulanan SimpleBiz</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,typography,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;display=swap"
+        rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <style type="text/tailwindcss">
+        :root {
+            --primary: #059669;
+            --primary-dark: #047857;
+            --surface: #ffffff;
+            --bg: #f8fafc;
+            --dark-card: #0f172a;
+            --accent: #10b981;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg);
+            -webkit-font-smoothing: antialiased;
+        }
+        .keypad-btn:active {
+            transform: scale(0.95);
+            background-color: #e2e8f0;
+        }
+        .input-card.active {
+            border-color: var(--primary);
+            background-color: #f0fdf4;
+            box-shadow: 0 4px 6px -1px rgba(5, 150, 105, 0.1), 0 2px 4px -1px rgba(5, 150, 105, 0.06);
+        }::-webkit-scrollbar {
+            width: 0px;
+            background: transparent;
+        }
+    </style>
+    <style>
+        body {
+            min-height: 100dvh;
+        }
+    </style>
+    <style>
+        body {
+            min-height: max(884px, 100dvh);
+        }
+    </style>
+</head>
+
+<body class="text-slate-900 bg-slate-50">
+    <div class="max-w-md mx-auto min-h-screen flex flex-col relative bg-white">
+        <header class="sticky top-0 z-30 bg-white border-b border-slate-100 px-5 py-4 flex items-center gap-4">
+            <button
+                class="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-900 hover:bg-slate-200 active:scale-95 transition-transform"
+                onclick="history.back()">
+                <span class="material-symbols-outlined text-2xl font-bold">arrow_back</span>
+            </button>
+            <div class="flex flex-col">
+                <span class="text-xs font-bold text-slate-500 uppercase tracking-widest leading-none mb-1">Februari
+                    2026</span>
+                <h1 class="text-xl font-black text-slate-900 leading-none">Setel Target Bulanan</h1>
+            </div>
+        </header>
+        <main class="flex-1 px-5 py-6 flex flex-col gap-5 overflow-y-auto pb-4">
+            <div
+                class="input-card active border-2 border-emerald-500 bg-emerald-50 p-5 rounded-[1.5rem] transition-all cursor-pointer relative overflow-hidden">
+                <div class="flex items-center gap-3 mb-2">
+                    <div class="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-700">
+                        <span class="material-symbols-outlined text-2xl">trending_up</span>
+                    </div>
+                    <span class="text-sm font-bold text-emerald-800 uppercase tracking-wider">Target Untung</span>
+                </div>
+                <div class="flex items-baseline justify-end gap-1 mt-2">
+                    <span class="text-xl font-bold text-emerald-600">Rp</span>
+                    <span class="text-4xl font-black tracking-tighter text-emerald-900">10.000.000</span>
+                </div>
+                <div class="absolute bottom-6 right-5 w-0.5 h-8 bg-emerald-600 animate-pulse"></div>
+            </div>
+            <div
+                class="input-card border-2 border-slate-100 bg-white p-5 rounded-[1.5rem] transition-all cursor-pointer hover:bg-slate-50 active:scale-[0.99]">
+                <div class="flex items-center gap-3 mb-2">
+                    <div class="w-10 h-10 rounded-xl bg-orange-50 flex items-center justify-center text-orange-600">
+                        <span class="material-symbols-outlined text-2xl">shopping_bag</span>
+                    </div>
+                    <span class="text-sm font-bold text-slate-500 uppercase tracking-wider">Target Terjual</span>
+                </div>
+                <div class="flex items-baseline justify-end gap-2 mt-2">
+                    <span class="text-4xl font-black tracking-tighter text-slate-300">0</span>
+                    <span class="text-lg font-bold text-slate-400">Pcs</span>
+                </div>
+            </div>
+            <div
+                class="input-card border-2 border-slate-100 bg-white p-5 rounded-[1.5rem] transition-all cursor-pointer hover:bg-slate-50 active:scale-[0.99]">
+                <div class="flex items-center gap-3 mb-2">
+                    <div class="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center text-red-600">
+                        <span class="material-symbols-outlined text-2xl">inventory_2</span>
+                    </div>
+                    <span class="text-sm font-bold text-slate-500 uppercase tracking-wider">Target Stok</span>
+                </div>
+                <div class="flex items-baseline justify-end gap-2 mt-2">
+                    <span class="text-4xl font-black tracking-tighter text-slate-300">0</span>
+                    <span class="text-lg font-bold text-slate-400">Item</span>
+                </div>
+            </div>
+        </main>
+        <div
+            class="bg-slate-50 border-t border-slate-200 p-5 pb-8 rounded-t-[2rem] shadow-[0_-10px_40px_rgba(0,0,0,0.05)] z-40">
+            <div class="grid grid-cols-3 gap-3 mb-6">
+                <button
+                    class="keypad-btn h-16 text-2xl font-bold text-slate-900 bg-white border-b-4 border-slate-200 rounded-2xl shadow-sm flex items-center justify-center">1</button>
+                <button
+                    class="keypad-btn h-16 text-2xl font-bold text-slate-900 bg-white border-b-4 border-slate-200 rounded-2xl shadow-sm flex items-center justify-center">2</button>
+                <button
+                    class="keypad-btn h-16 text-2xl font-bold text-slate-900 bg-white border-b-4 border-slate-200 rounded-2xl shadow-sm flex items-center justify-center">3</button>
+                <button
+                    class="keypad-btn h-16 text-2xl font-bold text-slate-900 bg-white border-b-4 border-slate-200 rounded-2xl shadow-sm flex items-center justify-center">4</button>
+                <button
+                    class="keypad-btn h-16 text-2xl font-bold text-slate-900 bg-white border-b-4 border-slate-200 rounded-2xl shadow-sm flex items-center justify-center">5</button>
+                <button
+                    class="keypad-btn h-16 text-2xl font-bold text-slate-900 bg-white border-b-4 border-slate-200 rounded-2xl shadow-sm flex items-center justify-center">6</button>
+                <button
+                    class="keypad-btn h-16 text-2xl font-bold text-slate-900 bg-white border-b-4 border-slate-200 rounded-2xl shadow-sm flex items-center justify-center">7</button>
+                <button
+                    class="keypad-btn h-16 text-2xl font-bold text-slate-900 bg-white border-b-4 border-slate-200 rounded-2xl shadow-sm flex items-center justify-center">8</button>
+                <button
+                    class="keypad-btn h-16 text-2xl font-bold text-slate-900 bg-white border-b-4 border-slate-200 rounded-2xl shadow-sm flex items-center justify-center">9</button>
+                <button
+                    class="keypad-btn h-16 text-2xl font-bold text-slate-900 bg-slate-100 border-b-4 border-slate-200 rounded-2xl shadow-sm flex items-center justify-center">.</button>
+                <button
+                    class="keypad-btn h-16 text-2xl font-bold text-slate-900 bg-white border-b-4 border-slate-200 rounded-2xl shadow-sm flex items-center justify-center">0</button>
+                <button
+                    class="keypad-btn h-16 text-2xl font-bold text-red-600 bg-red-50 border-b-4 border-red-100 rounded-2xl shadow-sm flex items-center justify-center">
+                    <span class="material-symbols-outlined">backspace</span>
+                </button>
+            </div>
+            <button
+                class="w-full bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] active:bg-emerald-800 transition-all text-white text-xl font-black py-5 px-6 rounded-[1.5rem] shadow-xl shadow-emerald-200 flex items-center justify-center gap-2 border-b-4 border-emerald-800">
+                <span>Simpan Target</span>
+                <span class="material-symbols-outlined">check_circle</span>
+            </button>
+        </div>
+    </div>
+
+</body>
+
+</html>

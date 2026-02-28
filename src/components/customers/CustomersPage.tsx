@@ -14,14 +14,15 @@ import { useCustomers } from '@/hooks/useCustomersDb';
 import { TIER_PRICING, TierType } from '@/types';
 import { formatCurrency, formatDateTime, formatPhone } from '@/lib/formatters';
 import { toast } from 'sonner';
-import { 
-  Users, 
+import {
+  Users,
   Phone,
   TrendingUp,
   ShoppingBag,
   Loader2,
   Pencil
 } from 'lucide-react';
+import { LoadingScreen } from '@/components/ui/LoadingScreen';
 import type { Tables } from '@/integrations/supabase/types';
 
 type Customer = Tables<'customers'>;
@@ -75,11 +76,7 @@ export function CustomersPage() {
   };
 
   if (loading) {
-    return (
-      <div className="flex min-h-[50vh] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
+    return <LoadingScreen />;
   }
 
   return (
@@ -160,7 +157,7 @@ export function CustomersPage() {
                     </Badge>
                   </div>
                 </div>
-                
+
                 <div className="mt-3 grid grid-cols-3 gap-2 rounded-lg bg-muted/50 p-3">
                   <div className="text-center">
                     <p className="text-lg font-bold">{customer.total_orders}</p>

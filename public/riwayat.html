@@ -46,16 +46,6 @@
             min-height: max(884px, 100dvh);
         }
     </style>
-    <style>
-        body {
-            min-height: max(884px, 100dvh);
-        }
-    </style>
-    <style>
-        body {
-            min-height: max(884px, 100dvh);
-        }
-    </style>
 </head>
 
 <body class="text-slate-900 min-h-screen">
@@ -83,13 +73,13 @@
         </header>
         <main class="flex-1 px-6 py-6 space-y-6">
             <section class="space-y-4">
-                <button
-                    class="w-full bg-white border-[3px] border-blue-600 rounded-2xl p-5 flex items-center justify-center gap-4 shadow-lg active:bg-blue-50 transition-all transform active:scale-[0.98]">
-                    <span class="material-symbols-outlined text-blue-700 text-[40px] font-bold">bar_chart</span>
-                    <span class="text-[20px] font-extrabold text-blue-800 tracking-tight leading-none">Lihat Grafik
-                        Performa</span>
-                </button>
-                <h2 class="text-xl font-bold text-slate-800 px-1 pt-2">Ringkasan Bulan Ini</h2>
+                <div class="flex items-center justify-between px-1 pt-2">
+                    <h2 class="text-xl font-bold text-slate-800">Ringkasan Bulan Ini</h2>
+                    <button class="flex items-center gap-1.5 text-blue-600 active:text-blue-800 transition-colors">
+                        <span class="material-symbols-outlined text-[20px] font-bold">bar_chart</span>
+                        <span class="text-sm font-bold tracking-tight">Lihat Grafik</span>
+                    </button>
+                </div>
                 <div class="bg-white p-6 rounded-3xl shadow-md border border-slate-100 flex flex-col justify-between">
                     <div class="flex items-start justify-between mb-2">
                         <div class="flex items-center gap-3">

@@ -1,10 +1,14 @@
 import { useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { Mail, Lock, User, Loader2, LogIn, UserPlus, ShieldCheck } from 'lucide-react';
 
 export function AuthPage() {
   const { signIn, signUp } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const from = (location.state as any)?.from?.pathname ?? '/';
   const [isLogin, setIsLogin] = useState(true);
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState('');
@@ -18,7 +22,10 @@ export function AuthPage() {
       if (isLogin) {
         const { error } = await signIn(email, password);
         if (error) toast.error(error.message || 'Gagal masuk. Periksa email dan password.');
-        else toast.success('Berhasil masuk!');
+        else {
+          toast.success('Berhasil masuk!');
+          navigate(from, { replace: true });
+        }
       } else {
         if (!name.trim()) { toast.error('Nama wajib diisi'); setLoading(false); return; }
         const { error } = await signUp(email, password, name);

@@ -4,6 +4,7 @@ import { useGeneralExpenses } from '@/hooks/useGeneralExpenses';
 import { useGeneralIncome } from '@/hooks/useGeneralIncome';
 import { formatCurrency } from '@/lib/formatters';
 import { ArrowLeft, TrendingUp, Download, Loader2 } from 'lucide-react';
+import { LoadingScreen } from '@/components/ui/LoadingScreen';
 import { cn } from '@/lib/utils';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
@@ -27,7 +28,6 @@ export function PerformaPage({ onBack }: PerformaPageProps) {
 
   const loading = ordersLoading || expensesLoading || incomeLoading;
 
-  // Build per-month data for selected year
   const monthlyData = useMemo(() => {
     return MONTHS.map((_, idx) => {
       const monthOrders = orders.filter(o => {
@@ -37,7 +37,6 @@ export function PerformaPage({ onBack }: PerformaPageProps) {
       const revenue = monthOrders.reduce((s, o) => s + Number(o.total_price), 0);
       const margin = monthOrders.reduce((s, o) => s + Number(o.margin), 0);
 
-      // For current month only, account for general expenses/income
       const isCurrentMonth = idx === now.getMonth() && selectedYear === now.getFullYear();
       let netProfit = margin;
       if (isCurrentMonth) {
@@ -56,13 +55,26 @@ export function PerformaPage({ onBack }: PerformaPageProps) {
     });
   }, [orders, expenses, income, selectedYear]);
 
+  // Previous year data for comparison
+  const prevYearTotal = useMemo(() => {
+    const prevOrders = orders.filter(o => new Date(o.created_at).getFullYear() === selectedYear - 1);
+    const revenue = prevOrders.reduce((s, o) => s + Number(o.total_price), 0);
+    const margin = prevOrders.reduce((s, o) => s + Number(o.margin), 0);
+    const qty = prevOrders.reduce((s, o) => s + o.quantity, 0);
+    return { revenue, profit: margin, qty };
+  }, [orders, selectedYear]);
+
   const values = monthlyData.map(m =>
     metric === 'profit' ? m.profit : metric === 'omset' ? m.revenue : m.qty
   );
   const maxVal = Math.max(...values, 1);
   const totalValue = values.reduce((s, v) => s + v, 0);
 
-  // Top 3 months
+  const prevTotal = metric === 'profit' ? prevYearTotal.profit
+    : metric === 'omset' ? prevYearTotal.revenue
+      : prevYearTotal.qty;
+  const growthPct = prevTotal > 0 ? Math.round(((totalValue - prevTotal) / prevTotal) * 100) : null;
+
   const top3 = useMemo(() => {
     return [...monthlyData]
       .map((m, idx) => ({ idx, value: metric === 'profit' ? m.profit : metric === 'omset' ? m.revenue : m.qty }))
@@ -77,163 +89,161 @@ export function PerformaPage({ onBack }: PerformaPageProps) {
     return Array.from(years).sort((a, b) => a - b);
   }, [orders]);
 
+  // Make sure at least 3 years shown
+  const displayYears = useMemo(() => {
+    const base = Array.from(new Set([...availableYears, now.getFullYear(), now.getFullYear() + 1])).sort((a, b) => a - b);
+    return base.slice(0, Math.max(3, base.length));
+  }, [availableYears]);
+
+  const metricLabel = metric === 'profit' ? 'Keuntungan' : metric === 'omset' ? 'Omset' : 'Produk Terjual';
+  const metricColor = metric === 'profit' ? 'emerald' : metric === 'omset' ? 'blue' : 'indigo';
+
+  const barColorClass = (val: number, idx: number) => {
+    const heightPct = maxVal > 0 ? (val / maxVal) * 100 : 0;
+    const isTop = top3.some(t => t.idx === idx);
+    const isHighest = top3[0]?.idx === idx;
+    if (metric === 'profit') {
+      return isHighest ? 'bg-emerald-700' : isTop ? 'bg-emerald-500' : heightPct > 60 ? 'bg-emerald-400' : 'bg-emerald-200';
+    }
+    if (metric === 'omset') {
+      return isHighest ? 'bg-blue-700' : isTop ? 'bg-blue-500' : heightPct > 60 ? 'bg-blue-400' : 'bg-blue-200';
+    }
+    return isHighest ? 'bg-indigo-700' : isTop ? 'bg-indigo-500' : heightPct > 60 ? 'bg-indigo-400' : 'bg-indigo-200';
+  };
+
   if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50">
-        <Loader2 className="h-8 w-8 animate-spin text-emerald-600" />
-      </div>
-    );
+    return <LoadingScreen />;
   }
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="px-6 pt-10 pb-6 bg-white rounded-b-[2rem] shadow-sm z-10 sticky top-0">
-        <div className="flex flex-col gap-4">
-          {/* Back + Title */}
-          <div className="flex items-center gap-3">
-            <button
-              onClick={onBack}
-              className="p-2 -ml-2 rounded-full hover:bg-slate-100 active:bg-slate-200 transition-colors"
-            >
-              <ArrowLeft className="h-7 w-7 text-slate-900" />
-            </button>
-            <h1 className="text-2xl font-extrabold tracking-tight text-slate-900">
-              Grafik Performa {selectedYear}
-            </h1>
-          </div>
+      <header className="px-5 pt-8 pb-4 bg-white shadow-sm z-10 sticky top-0">
+        <div className="flex items-center gap-3 mb-4">
+          <button
+            onClick={onBack}
+            className="p-1.5 -ml-1 rounded-full hover:bg-slate-100 active:bg-slate-200 transition-colors"
+          >
+            <ArrowLeft className="h-5 w-5 text-slate-900" />
+          </button>
+          <h1 className="text-xl font-extrabold tracking-tight text-slate-900">
+            Grafik Performa {selectedYear}
+          </h1>
+        </div>
 
-          {/* Year Selector */}
-          <div>
-            <p className="text-slate-500 font-bold text-xs uppercase mb-2 ml-1">Pilih Tahun</p>
-            <div className="flex items-center gap-2 bg-slate-50 p-1.5 rounded-2xl border border-slate-200">
-              {availableYears.map(year => (
-                <button
-                  key={year}
-                  onClick={() => setSelectedYear(year)}
-                  className={cn(
-                    "flex-1 py-3 px-1 rounded-xl font-black text-lg transition-all",
-                    selectedYear === year
-                      ? "bg-blue-700 text-white shadow-md scale-105 border border-blue-900"
-                      : "text-slate-400 font-bold hover:bg-slate-200 hover:text-slate-600"
-                  )}
-                >
-                  {year}
-                </button>
-              ))}
-              {/* Always show next year as upcoming */}
-              {!availableYears.includes(now.getFullYear() + 1) && (
-                <button
-                  onClick={() => setSelectedYear(now.getFullYear() + 1)}
-                  className={cn(
-                    "flex-1 py-3 px-1 rounded-xl font-bold text-lg transition-all",
-                    selectedYear === now.getFullYear() + 1
-                      ? "bg-blue-700 text-white shadow-md scale-105 border border-blue-900"
-                      : "text-slate-400 hover:bg-slate-200 hover:text-slate-600"
-                  )}
-                >
-                  {now.getFullYear() + 1}
-                </button>
-              )}
-            </div>
+        {/* Year selector */}
+        <div className="mb-3">
+          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Pilih Tahun</p>
+          <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl border border-slate-200">
+            {displayYears.map(year => (
+              <button
+                key={year}
+                onClick={() => setSelectedYear(year)}
+                className={cn(
+                  "flex-1 py-2 px-1 rounded-lg font-black text-sm transition-all",
+                  selectedYear === year
+                    ? "bg-blue-700 text-white shadow-md border border-blue-900"
+                    : "text-slate-400 hover:bg-slate-200 hover:text-slate-600"
+                )}
+              >
+                {year}
+              </button>
+            ))}
           </div>
+        </div>
 
-          {/* Metric Toggle */}
-          <div className="bg-slate-100 p-1.5 rounded-2xl flex mt-1">
+        {/* Metric tabs */}
+        <div className="bg-slate-100 p-1 rounded-xl flex gap-1">
+          {(['profit', 'omset', 'qty'] as MetricType[]).map(m => (
             <button
-              onClick={() => setMetric('profit')}
+              key={m}
+              onClick={() => setMetric(m)}
               className={cn(
-                "flex-1 py-3 px-2 rounded-xl font-bold text-base text-center transition-all",
-                metric === 'profit'
-                  ? "bg-white shadow-sm text-emerald-700 font-black border border-slate-200"
+                "flex-1 py-2 px-1 rounded-lg font-bold text-xs text-center transition-all leading-tight",
+                metric === m
+                  ? m === 'profit'
+                    ? "bg-white shadow-sm text-emerald-700 font-black border border-slate-200"
+                    : m === 'omset'
+                      ? "bg-white shadow-sm text-blue-700 font-black border border-slate-200"
+                      : "bg-white shadow-sm text-indigo-700 font-black border border-slate-200"
                   : "text-slate-500 hover:bg-slate-200/50"
               )}
             >
-              Keuntungan
+              {m === 'profit' ? 'Keuntungan' : m === 'omset' ? 'Omset' : 'Terjual (Pcs)'}
             </button>
-            <button
-              onClick={() => setMetric('omset')}
-              className={cn(
-                "flex-1 py-3 px-2 rounded-xl font-bold text-base text-center transition-all",
-                metric === 'omset'
-                  ? "bg-white shadow-sm text-blue-700 font-black border border-slate-200"
-                  : "text-slate-500 hover:bg-slate-200/50"
-              )}
-            >
-              Omset
-            </button>
-            <button
-              onClick={() => setMetric('qty')}
-              className={cn(
-                "flex-1 py-3 px-2 rounded-xl font-bold text-base text-center leading-tight transition-all",
-                metric === 'qty'
-                  ? "bg-white shadow-sm text-indigo-700 font-black border border-slate-200"
-                  : "text-slate-500 hover:bg-slate-200/50"
-              )}
-            >
-              Terjual{"\n"}(Pcs)
-            </button>
-          </div>
+          ))}
         </div>
       </header>
 
-      <main className="flex-1 px-6 py-6 space-y-8 pb-8">
-        {/* Total Summary Card */}
-        <section className="bg-white p-6 rounded-[2rem] shadow-md border-2 border-emerald-100 relative overflow-hidden text-center">
-          <div className={cn('absolute top-0 left-0 w-full h-2',
-            metric === 'profit' ? 'bg-emerald-500' : metric === 'omset' ? 'bg-blue-500' : 'bg-indigo-500')} />
-          <h2 className="text-slate-500 font-bold text-base uppercase tracking-wider mb-2 mt-1">
-            Total {metric === 'profit' ? 'Keuntungan' : metric === 'omset' ? 'Omset' : 'Produk Terjual'} {selectedYear}
-          </h2>
-          <p className={cn(
-            "text-[2.5rem] leading-none font-black tracking-tight my-4",
-            metric === 'profit' ? 'text-emerald-600' : metric === 'omset' ? 'text-blue-700' : 'text-indigo-700'
-          )}>
-            {metric === 'qty' ? `${totalValue.toLocaleString('id-ID')} Pcs` : formatCurrency(totalValue)}
+      <main className="flex-1 px-4 py-4 space-y-4 pb-8">
+
+        {/* Summary Card */}
+        <section className={cn(
+          "bg-white p-5 rounded-2xl shadow-sm border-2 relative overflow-hidden",
+          metricColor === 'emerald' ? 'border-emerald-100' : metricColor === 'blue' ? 'border-blue-100' : 'border-indigo-100'
+        )}>
+          <div className={cn('absolute top-0 left-0 w-full h-1.5 rounded-t-2xl',
+            metricColor === 'emerald' ? 'bg-emerald-500' : metricColor === 'blue' ? 'bg-blue-500' : 'bg-indigo-500')} />
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider mt-1 mb-1">
+            Total {metricLabel} {selectedYear}
           </p>
-          {totalValue > 0 && (
-            <div className="inline-flex items-center gap-2 bg-emerald-50 px-4 py-2 rounded-full border border-emerald-100">
-              <TrendingUp className="h-5 w-5 text-emerald-600" />
-              <span className="text-emerald-800 font-bold text-sm">
-                {metric === 'profit' ? 'Keuntungan bersih' : metric === 'omset' ? 'Total omset' : 'Unit terjual'} tahun ini
-              </span>
-            </div>
-          )}
+          <div className="flex items-end justify-between gap-2">
+            <p className={cn(
+              "text-3xl font-black tracking-tight leading-none",
+              metricColor === 'emerald' ? 'text-emerald-600' : metricColor === 'blue' ? 'text-blue-700' : 'text-indigo-700'
+            )}>
+              {metric === 'qty'
+                ? `${totalValue.toLocaleString('id-ID')} Pcs`
+                : metric === 'profit' && totalValue > 1_000_000
+                  ? `Rp ${(totalValue / 1_000_000).toFixed(1)}jt`
+                  : formatCurrency(totalValue)
+              }
+            </p>
+            {growthPct !== null && (
+              <div className={cn(
+                "flex items-center gap-1 px-2 py-1 rounded-full text-xs font-black border",
+                growthPct >= 0
+                  ? "bg-emerald-50 text-emerald-700 border-emerald-100"
+                  : "bg-red-50 text-red-600 border-red-100"
+              )}>
+                <TrendingUp className="h-3 w-3" />
+                <span>{growthPct >= 0 ? '+' : ''}{growthPct}% vs Tahun {selectedYear - 1}</span>
+              </div>
+            )}
+          </div>
           {totalValue === 0 && (
-            <p className="text-slate-400 font-medium text-sm">Belum ada data untuk tahun ini</p>
+            <p className="text-slate-400 font-medium text-sm mt-2">Belum ada data untuk tahun ini</p>
           )}
         </section>
 
         {/* Bar Chart */}
         <section>
-          <div className="flex items-center justify-between mb-4 px-1">
-            <h2 className="text-xl font-bold text-slate-800">Grafik Bulanan</h2>
-            <button className="text-emerald-600 font-bold text-sm bg-emerald-50 px-3 py-1.5 rounded-lg flex items-center gap-1">
-              <Download className="h-4 w-4" />
+          <div className="flex items-center justify-between mb-3 px-1">
+            <h2 className="text-base font-bold text-slate-800">
+              Grafik {metric === 'qty' ? 'Unit Terjual' : 'Bulanan'}
+            </h2>
+            <button className={cn(
+              "font-bold text-xs px-2.5 py-1 rounded-lg flex items-center gap-1",
+              metricColor === 'emerald' ? "text-emerald-600 bg-emerald-50"
+                : metricColor === 'blue' ? "text-blue-600 bg-blue-50"
+                  : "text-indigo-600 bg-indigo-50"
+            )}>
+              <Download className="h-3 w-3" />
               Simpan
             </button>
           </div>
 
-          <div className="bg-white p-5 rounded-3xl shadow-sm border border-slate-100">
-            {/* Bar chart */}
-            <div className="flex items-end justify-between h-52 w-full gap-1">
+          <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
+            <div className="flex items-end justify-between h-44 w-full gap-0.5">
               {values.map((val, idx) => {
                 const heightPct = maxVal > 0 ? (val / maxVal) * 100 : 0;
-                const isTop = top3.some(t => t.idx === idx);
-                const isHighest = top3[0]?.idx === idx;
-                const colorClass =
-                  metric === 'profit'
-                    ? isHighest ? 'bg-emerald-700' : isTop ? 'bg-emerald-500' : heightPct > 60 ? 'bg-emerald-400' : 'bg-emerald-200'
-                    : metric === 'omset'
-                      ? isHighest ? 'bg-blue-700' : isTop ? 'bg-blue-500' : heightPct > 60 ? 'bg-blue-400' : 'bg-blue-200'
-                      : isHighest ? 'bg-indigo-700' : isTop ? 'bg-indigo-500' : heightPct > 60 ? 'bg-indigo-400' : 'bg-indigo-200';
                 return (
                   <div key={idx} className="flex flex-col items-center flex-1 h-full justify-end">
                     <div
-                      className={cn('w-full rounded-t-md transition-all duration-500 min-h-[4px]', colorClass)}
-                      style={{ height: `${Math.max(heightPct, val > 0 ? 4 : 0)}%` }}
+                      className={cn('w-full rounded-t-sm transition-all duration-500 min-h-[3px]', barColorClass(val, idx))}
+                      style={{ height: `${Math.max(heightPct, val > 0 ? 3 : 0)}%` }}
                     />
-                    <span className="text-[9px] font-bold mt-1.5 text-slate-500 uppercase">{MONTHS[idx]}</span>
+                    <span className="text-[8px] font-bold mt-1 text-slate-400 uppercase">{MONTHS[idx]}</span>
                   </div>
                 );
               })}
@@ -241,30 +251,34 @@ export function PerformaPage({ onBack }: PerformaPageProps) {
           </div>
         </section>
 
-        {/* Top 3 Months */}
+        {/* Top 3 Bulan */}
         {top3.length > 0 && (
           <section className="pb-6">
-            <h2 className="text-xl font-bold text-slate-800 mb-4 px-1">
-              {top3.length >= 3 ? '3' : top3.length} Bulan Terbaik
+            <h2 className="text-base font-bold text-slate-800 mb-3 px-1">
+              {top3.length >= 3 ? '3' : top3.length} Bulan Terbaik{metric === 'qty' ? ' (Pcs)' : ''}
             </h2>
-            <div className="space-y-4">
+            <div className="space-y-2">
               {top3.map((item, rank) => {
                 const borderColors = ['border-yellow-400', 'border-slate-300', 'border-orange-300'];
-                const bgColors = ['bg-yellow-50 border-yellow-100', 'bg-slate-50 border-slate-200', 'bg-orange-50 border-orange-100'];
                 return (
-                  <div key={item.idx} className={cn("bg-white p-5 rounded-2xl shadow-sm border-l-8 flex items-center gap-4", borderColors[rank])}>
-                    <div className={cn("w-16 h-16 rounded-full flex items-center justify-center shrink-0 border-2", bgColors[rank])}>
-                      <span className="text-3xl">{TROPHIES[rank]}</span>
-                    </div>
+                  <div key={item.idx} className={cn(
+                    "bg-white px-4 py-3.5 rounded-2xl shadow-sm border-l-4 flex items-center gap-4",
+                    borderColors[rank]
+                  )}>
+                    <span className="text-2xl">{TROPHIES[rank]}</span>
                     <div className="flex-1">
-                      <div className="flex justify-between items-center">
-                        <h3 className="font-black text-xl text-slate-900">{MONTHS_FULL[item.idx]}</h3>
+                      <div className="flex items-center justify-between">
+                        <h3 className="font-black text-base text-slate-900">{MONTHS_FULL[item.idx]}</h3>
                         {rank === 0 && (
-                          <span className="text-xs font-bold bg-yellow-100 text-yellow-700 px-2 py-1 rounded-md">TERTINGGI</span>
+                          <span className="text-[10px] font-black bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-md">TERTINGGI</span>
                         )}
                       </div>
-                      <p className={cn("font-bold text-2xl mt-1",
-                        metric === 'profit' ? 'text-emerald-600' : metric === 'omset' ? 'text-blue-700' : 'text-indigo-700')}>
+                      <p className={cn(
+                        "font-bold text-lg mt-0.5",
+                        metricColor === 'emerald' ? 'text-emerald-600'
+                          : metricColor === 'blue' ? 'text-blue-700'
+                            : 'text-indigo-700'
+                      )}>
                         {metric === 'qty' ? `${item.value.toLocaleString('id-ID')} Pcs` : formatCurrency(item.value)}
                       </p>
                     </div>

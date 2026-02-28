@@ -13,29 +13,48 @@
         rel="stylesheet" />
     <style type="text/tailwindcss">
         :root {
-            --primary: #FF3D00;
-            --secondary: #4F46E5;
-            --success: #10B981;
-            --accent: #F59E0B;
-            --bg-glass: rgba(255, 255, 255, 0.9);
+            --primary: #00C853;--primary-dark: #009624;
+            --dark-bg: #1A1F2C;--dark-card: #252B3B;
+            --light-bg: #F5F7FA;
+            --off-white: #F8FAFC;
         }
         body {
             font-family: 'Plus Jakarta Sans', sans-serif;
-            background-color: #F8FAFC;
+            background-color: var(--off-white);
+        }
+        .bg-primary {
+            background-color: var(--primary);
+        }
+        .text-primary {
+            color: var(--primary);
+        }
+        .bg-dark-card {
+            background-color: var(--dark-card);
+        }
+        .bg-dark-bg {
+            background-color: var(--dark-bg);
         }
         .glass-card {
             background: white;
             border: 1px solid rgba(226, 232, 240, 0.8);
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.04), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
         }
-        .level-path-gradient {
-            background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%);
-        }
-        .progress-bar-glow {
-            box-shadow: 0 0 15px rgba(16, 185, 129, 0.3);
+        .dark-section {
+            background-color: var(--dark-bg);
+            color: white;
         }
         .material-symbols-outlined {
-            font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            font-variation-settings: 'FILL' 1, 'wght' 500, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+    <style>
+        body {
+            min-height: max(884px, 100dvh);
+        }
+    </style>
+    <style>
+        body {
+            min-height: max(884px, 100dvh);
         }
     </style>
     <style>
@@ -45,45 +64,51 @@
     </style>
 </head>
 
-<body class="text-slate-900 pb-24">
-    <header class="relative overflow-hidden pt-8 pb-12 px-6 level-path-gradient text-white rounded-b-[3rem] shadow-2xl">
-        <div class="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 bg-white opacity-10 rounded-full blur-3xl"></div>
-        <div class="absolute bottom-0 left-0 -ml-16 -mb-16 w-48 h-48 bg-primary opacity-20 rounded-full blur-2xl"></div>
+<body class="text-slate-900 pb-28">
+    <header class="relative pt-12 pb-8 px-6 bg-white rounded-b-[2.5rem] shadow-sm mb-6">
         <div class="relative z-10 flex flex-col items-center text-center">
-            <span class="text-xs font-extrabold uppercase tracking-[0.2em] mb-2 opacity-80">Dashboard Pencapaian</span>
-            <h1 class="text-2xl font-extrabold mb-6 leading-tight">Halo, Wirausahawan Hebat!</h1>
-            <div class="relative group">
-                <div class="absolute inset-0 bg-white/20 blur-2xl rounded-full scale-110"></div>
+            <span class="text-xs font-extrabold uppercase tracking-[0.2em] mb-2 text-slate-500">Dashboard
+                Pencapaian</span>
+            <h1 class="text-2xl font-extrabold mb-8 leading-tight text-slate-900">Halo, Wirausahawan!</h1>
+            <div class="relative w-full">
                 <div
-                    class="relative w-40 h-40 bg-white rounded-full flex flex-col items-center justify-center border-8 border-indigo-400/30 shadow-[0_20px_50px_rgba(0,0,0,0.2)]">
-                    <span class="text-primary font-black text-5xl tracking-tighter">SE</span>
-                    <span class="text-[10px] font-bold text-slate-500 uppercase mt-1 tracking-widest">Level Anda</span>
+                    class="bg-white border-2 border-slate-100 rounded-[2rem] p-6 shadow-xl shadow-slate-200/50 flex flex-col items-center relative overflow-hidden">
+                    <div class="absolute top-0 left-0 w-full h-2 bg-[var(--primary)]"></div>
+                    <div
+                        class="w-24 h-24 bg-[var(--primary)]/10 rounded-full flex items-center justify-center mb-4 ring-4 ring-white shadow-lg">
+                        <span class="text-[var(--primary-dark)] font-black text-4xl tracking-tighter">SE</span>
+                    </div>
+                    <div
+                        class="bg-[var(--primary)] text-white px-5 py-2 rounded-full text-sm font-black shadow-md shadow-green-500/30 flex items-center gap-2 mb-2">
+                        <span class="material-symbols-outlined text-lg">verified</span>
+                        SPECIAL ENTREPRENEUR
+                    </div>
+                    <span class="text-[11px] font-bold text-slate-400 uppercase tracking-widest mt-1">Status
+                        Kemitraan</span>
+                    <div class="mt-8 w-full">
+                        <div class="flex justify-between text-[11px] font-bold mb-2 uppercase tracking-wider">
+                            <span class="text-slate-500">Target Omzet</span>
+                            <span class="text-[var(--primary-dark)]">Next: National Leader</span>
+                        </div>
+                        <div class="w-full h-4 bg-slate-100 rounded-full overflow-hidden border border-slate-200">
+                            <div class="w-[75%] h-full bg-[var(--primary)] rounded-full relative">
+                                <div class="absolute inset-0 bg-white/20 animate-pulse"></div>
+                            </div>
+                        </div>
+                        <p class="mt-3 text-sm font-medium text-slate-600">Satu langkah lagi menuju <span
+                                class="font-bold text-[var(--primary-dark)] underline decoration-2">Margin
+                                Ekstra!</span></p>
+                    </div>
                 </div>
-                <div
-                    class="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-amber-400 text-slate-900 px-4 py-1.5 rounded-full text-xs font-black shadow-lg flex items-center gap-1">
-                    <span class="material-symbols-outlined text-sm leading-none">stars</span>
-                    SPECIAL ENTREPRENEUR
-                </div>
-            </div>
-            <div class="mt-10 w-full max-w-xs">
-                <div class="flex justify-between text-[11px] font-bold mb-2 uppercase tracking-wider">
-                    <span class="opacity-80">Target Omzet</span>
-                    <span class="text-amber-300">Next: National Leader</span>
-                </div>
-                <div class="w-full h-3 bg-white/20 rounded-full overflow-hidden">
-                    <div class="w-[75%] h-full bg-amber-400 rounded-full progress-bar-glow"></div>
-                </div>
-                <p class="mt-3 text-sm font-medium opacity-90">Satu langkah lagi menuju <span
-                        class="font-bold underline">Margin Ekstra!</span></p>
             </div>
         </div>
     </header>
-    <main class="px-5 -mt-6 space-y-6">
+    <main class="px-5 space-y-6">
         <section class="glass-card rounded-[2rem] p-6">
             <div class="flex items-center justify-between mb-6">
                 <div class="flex items-center gap-3">
-                    <div class="w-12 h-12 rounded-2xl bg-orange-100 flex items-center justify-center">
-                        <span class="material-symbols-outlined text-orange-600 text-3xl">inventory_2</span>
+                    <div class="w-12 h-12 rounded-2xl bg-green-50 flex items-center justify-center">
+                        <span class="material-symbols-outlined text-[var(--primary)] text-3xl">inventory_2</span>
                     </div>
                     <div>
                         <h2 class="text-lg font-extrabold text-slate-800">Etalase Produk</h2>
@@ -91,112 +116,121 @@
                     </div>
                 </div>
                 <div class="text-right">
-                    <span class="text-3xl font-black text-orange-600 leading-none">0</span>
+                    <span class="text-3xl font-black text-[var(--primary)] leading-none">0</span>
                     <p class="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Item Aktif</p>
                 </div>
             </div>
             <div
-                class="relative bg-slate-50 border-2 border-dashed border-slate-200 rounded-2xl p-8 flex flex-col items-center justify-center group active:scale-95 transition-transform">
+                class="relative bg-slate-50 border-2 border-dashed border-slate-200 rounded-2xl p-8 flex flex-col items-center justify-center">
                 <div
-                    class="w-16 h-16 bg-white shadow-md rounded-full flex items-center justify-center mb-4 text-orange-500">
+                    class="w-16 h-16 bg-white shadow-md rounded-full flex items-center justify-center mb-4 text-[var(--primary)]">
                     <span class="material-symbols-outlined text-4xl font-bold">add_business</span>
                 </div>
-                <p class="text-slate-500 font-bold mb-1">Mulai Isi Toko Anda</p>
-                <p class="text-[11px] text-slate-400 text-center max-w-[180px] mb-4 font-medium">Tambah produk pertama
-                    untuk mulai memantau keuntungan otomatis.</p>
+                <p class="text-slate-600 font-bold mb-1 text-lg">Mulai Isi Toko Anda</p>
+                <p class="text-sm text-slate-500 text-center max-w-[200px] mb-6 font-medium leading-snug">Tambah produk
+                    pertama untuk memantau keuntungan.</p>
                 <button
-                    class="bg-orange-500 text-white px-8 py-3 rounded-xl font-bold text-sm shadow-lg shadow-orange-500/20 hover:bg-orange-600">
+                    class="bg-[var(--primary)] text-white w-full py-4 rounded-xl font-bold text-base shadow-lg shadow-green-500/20 hover:bg-green-600 active:scale-95 transition-all">
                     TAMBAH PRODUK BARU
                 </button>
             </div>
         </section>
-        <section class="glass-card rounded-[2rem] p-6 overflow-hidden">
-            <div class="flex items-center gap-3 mb-8">
-                <div class="w-12 h-12 rounded-2xl bg-emerald-100 flex items-center justify-center">
-                    <span class="material-symbols-outlined text-emerald-600 text-3xl">trending_up</span>
+        <section class="bg-dark-bg rounded-[2rem] p-6 overflow-hidden relative shadow-2xl shadow-slate-900/10">
+            <div
+                class="absolute top-0 right-0 -mr-16 -mt-16 w-48 h-48 bg-[var(--primary)] opacity-5 rounded-full blur-3xl">
+            </div>
+            <div class="flex items-center gap-3 mb-8 relative z-10">
+                <div
+                    class="w-12 h-12 rounded-2xl bg-[var(--dark-card)] flex items-center justify-center border border-white/10">
+                    <span class="material-symbols-outlined text-[var(--primary)] text-3xl">trending_up</span>
                 </div>
                 <div>
-                    <h2 class="text-lg font-extrabold text-slate-800">Potensi Profit</h2>
-                    <p class="text-xs text-slate-500 font-medium">Bandingkan margin &amp; keuntungan</p>
+                    <h2 class="text-lg font-extrabold text-white">Potensi Profit</h2>
+                    <p class="text-xs text-slate-400 font-medium">Bandingkan margin &amp; keuntungan</p>
                 </div>
             </div>
-            <div class="space-y-6">
-                <div class="relative bg-emerald-50 rounded-2xl p-5 border border-emerald-100 overflow-hidden">
-                    <div class="absolute -right-4 -top-4 opacity-10">
-                        <span class="material-symbols-outlined text-8xl text-emerald-600">check_circle</span>
-                    </div>
-                    <div class="flex justify-between items-end mb-4">
-                        <div class="z-10">
+            <div class="space-y-4 relative z-10">
+                <div class="relative bg-[var(--dark-card)] rounded-2xl p-5 border border-white/5 overflow-hidden">
+                    <div class="absolute right-0 top-0 h-full w-1 bg-[var(--primary)]"></div>
+                    <div class="flex justify-between items-start mb-2">
+                        <div>
                             <span
-                                class="bg-emerald-600 text-white text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest mb-2 block w-fit">Status
+                                class="bg-[var(--primary)] text-white text-[10px] font-bold px-2 py-1 rounded-md uppercase tracking-widest mb-3 inline-block">Status
                                 Sekarang</span>
-                            <h3 class="text-xl font-black text-slate-800">Rp 100.000 <span
-                                    class="text-xs font-bold text-slate-500">/ btl</span></h3>
-                            <p class="text-xs font-bold text-emerald-700">Margin SE (Special Entrepreneur)</p>
+                            <p class="text-xs text-slate-400 mb-1">Keuntungan per Item</p>
+                            <h3 class="text-2xl font-black text-white">Rp 100.000</h3>
                         </div>
-                        <div class="h-16 w-3 bg-emerald-200 rounded-full overflow-hidden relative">
-                            <div class="absolute bottom-0 left-0 w-full h-[70%] bg-emerald-600"></div>
+                        <div class="w-10 h-10 rounded-full bg-[var(--primary)]/20 flex items-center justify-center">
+                            <span class="material-symbols-outlined text-[var(--primary)]">check</span>
                         </div>
                     </div>
-                    <div class="w-full h-1.5 bg-emerald-200/50 rounded-full"></div>
+                    <div class="mt-2 pt-3 border-t border-white/10 flex items-center justify-between">
+                        <span class="text-xs font-bold text-[var(--primary)]">Margin SE (Special Entrepreneur)</span>
+                    </div>
                 </div>
                 <div class="grid grid-cols-2 gap-3">
-                    <div class="p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Margin Reseller
+                    <div class="p-4 bg-[var(--dark-card)] rounded-2xl border border-white/5 opacity-60">
+                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Margin Reseller
                         </p>
-                        <h4 class="text-lg font-bold text-slate-700">Rp 33.000</h4>
-                        <div class="mt-2 h-1 w-full bg-slate-200 rounded-full">
-                            <div class="w-[30%] h-full bg-slate-400 rounded-full"></div>
+                        <h4 class="text-lg font-bold text-slate-200">Rp 33.000</h4>
+                        <div class="mt-3 h-1.5 w-full bg-slate-700 rounded-full">
+                            <div class="w-[30%] h-full bg-slate-500 rounded-full"></div>
                         </div>
                     </div>
-                    <div class="p-4 bg-indigo-50 rounded-2xl border border-indigo-100">
-                        <p class="text-[10px] font-bold text-indigo-400 uppercase tracking-wider mb-1">Margin Agen Plus
+                    <div class="p-4 bg-[var(--dark-card)] rounded-2xl border border-white/5 opacity-80">
+                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Margin Agen Plus
                         </p>
-                        <h4 class="text-lg font-bold text-indigo-700">Rp 70.000</h4>
-                        <div class="mt-2 h-1 w-full bg-indigo-200 rounded-full">
-                            <div class="w-[60%] h-full bg-indigo-500 rounded-full"></div>
+                        <h4 class="text-lg font-bold text-slate-200">Rp 70.000</h4>
+                        <div class="mt-3 h-1.5 w-full bg-slate-700 rounded-full">
+                            <div class="w-[60%] h-full bg-slate-400 rounded-full"></div>
                         </div>
                     </div>
                 </div>
                 <div
-                    class="bg-gradient-to-r from-amber-500 to-orange-500 p-4 rounded-2xl text-white shadow-lg shadow-amber-500/20">
-                    <div class="flex items-center gap-3">
-                        <span class="material-symbols-outlined text-3xl">rocket_launch</span>
+                    class="bg-gradient-to-r from-[var(--primary-dark)] to-[var(--primary)] p-5 rounded-2xl text-white shadow-lg mt-2">
+                    <div class="flex items-center gap-4">
+                        <div class="bg-white/20 p-2 rounded-full">
+                            <span class="material-symbols-outlined text-2xl">rocket_launch</span>
+                        </div>
                         <div class="flex-1">
-                            <p class="text-xs font-bold uppercase tracking-tight opacity-90">Mau Profit Lebih Gede?</p>
-                            <p class="text-sm font-black leading-tight">Ambil Paket 40 Botol untuk Margin Lebih Besar!
+                            <p class="text-xs font-bold uppercase tracking-tight opacity-90 mb-1">Target Berikutnya</p>
+                            <p class="text-sm font-black leading-snug">Ambil Paket 40 Botol untuk Margin Lebih Besar!
                             </p>
                         </div>
+                        <span class="material-symbols-outlined">chevron_right</span>
                     </div>
                 </div>
             </div>
         </section>
-        <section class="glass-card rounded-[2rem] p-6 space-y-4">
-            <div class="flex items-center gap-4 border-b border-slate-100 pb-4">
+        <section class="bg-dark-bg rounded-[2rem] p-6 space-y-6 shadow-xl">
+            <div class="flex items-center gap-4 border-b border-white/10 pb-6">
                 <div
-                    class="w-14 h-14 rounded-full bg-slate-100 flex items-center justify-center border-2 border-white shadow-sm overflow-hidden">
-                    <span class="material-symbols-outlined text-3xl text-slate-400">account_circle</span>
+                    class="w-16 h-16 rounded-full bg-slate-700 flex items-center justify-center border-2 border-[var(--primary)] shadow-sm overflow-hidden">
+                    <span class="material-symbols-outlined text-4xl text-slate-400">person</span>
                 </div>
                 <div>
-                    <h3 class="font-extrabold text-slate-800">satu1gram@gmail.com</h3>
-                    <p class="text-xs text-slate-500 font-medium">📍 Malang, Indonesia</p>
+                    <h3 class="font-extrabold text-white text-lg">satu1gram@gmail.com</h3>
+                    <div class="flex items-center gap-1 mt-1">
+                        <span class="material-symbols-outlined text-[var(--primary)] text-sm">location_on</span>
+                        <p class="text-sm text-slate-400 font-medium">Malang, Indonesia</p>
+                    </div>
                 </div>
             </div>
             <button
-                class="w-full group flex items-center justify-between bg-rose-50 hover:bg-rose-100 p-5 rounded-2xl transition-colors">
-                <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 bg-rose-200/50 rounded-xl flex items-center justify-center text-rose-600">
+                class="w-full group flex items-center justify-between bg-[var(--dark-card)] hover:bg-slate-800 p-5 rounded-2xl transition-colors border border-white/5">
+                <div class="flex items-center gap-4">
+                    <div class="w-10 h-10 bg-red-500/10 rounded-xl flex items-center justify-center text-red-500">
                         <span class="material-symbols-outlined font-bold">logout</span>
                     </div>
-                    <span class="font-extrabold text-rose-600">Keluar Aplikasi</span>
+                    <span class="font-extrabold text-red-400 text-base">Keluar Aplikasi</span>
                 </div>
                 <span
-                    class="material-symbols-outlined text-rose-300 group-hover:translate-x-1 transition-transform">chevron_right</span>
+                    class="material-symbols-outlined text-slate-500 group-hover:translate-x-1 transition-transform">chevron_right</span>
             </button>
         </section>
         <footer class="text-center py-8">
-            <p class="text-sm font-black text-slate-300 tracking-[0.2em] uppercase">BP Community Manager</p>
-            <div class="flex justify-center items-center gap-2 mt-2 opacity-40 grayscale">
+            <p class="text-sm font-black text-slate-400 tracking-[0.2em] uppercase">BP Community Manager</p>
+            <div class="flex justify-center items-center gap-2 mt-3 opacity-60 grayscale">
                 <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Version 1.1.0</span>
                 <span class="w-1 h-1 bg-slate-400 rounded-full"></span>
                 <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Made in Malang 🇮🇩</span>
@@ -204,37 +238,33 @@
         </footer>
     </main>
     <nav
-        class="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-xl border-t border-slate-200 pt-3 pb-8 px-8 z-[50]">
-        <div class="max-w-md mx-auto flex justify-between items-center">
+        class="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 pt-3 pb-8 px-8 z-[50] shadow-[0_-5px_20px_rgba(0,0,0,0.05)]">
+        <div class="max-w-md mx-auto grid grid-cols-4 items-center">
             <a class="flex flex-col items-center gap-1 group" href="#">
                 <span
-                    class="material-symbols-outlined text-slate-400 group-hover:text-indigo-600 transition-colors">grid_view</span>
-                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Utama</span>
-            </a>
-            <a class="flex flex-col items-center gap-1 group" href="#">
+                    class="material-symbols-outlined text-slate-400 group-hover:text-[var(--primary)] transition-colors text-3xl">grid_view</span>
                 <span
-                    class="material-symbols-outlined text-slate-400 group-hover:text-indigo-600 transition-colors">history</span>
-                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Catatan</span>
-            </a>
-            <a class="flex flex-col items-center gap-1 group relative" href="#">
-                <div
-                    class="absolute -top-12 bg-indigo-600 w-14 h-14 rounded-full flex items-center justify-center shadow-xl shadow-indigo-200 border-4 border-white text-white">
-                    <span class="material-symbols-outlined text-3xl font-bold">add</span>
-                </div>
-                <span class="mt-4 text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Order</span>
+                    class="text-[10px] font-extrabold text-slate-400 group-hover:text-[var(--primary)] uppercase tracking-wide">Beranda</span>
             </a>
             <a class="flex flex-col items-center gap-1 group" href="#">
                 <span
-                    class="material-symbols-outlined text-slate-400 group-hover:text-indigo-600 transition-colors">shopping_bag</span>
-                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Produk</span>
+                    class="material-symbols-outlined text-slate-400 group-hover:text-[var(--primary)] transition-colors text-3xl">receipt_long</span>
+                <span
+                    class="text-[10px] font-extrabold text-slate-400 group-hover:text-[var(--primary)] uppercase tracking-wide">Riwayat</span>
             </a>
-            <a class="flex flex-col items-center gap-1" href="#">
-                <span class="material-symbols-outlined text-indigo-600">person</span>
-                <span class="text-[10px] font-black text-indigo-600 uppercase tracking-tighter">Akun</span>
+            <a class="flex flex-col items-center gap-1 group" href="#">
+                <span
+                    class="material-symbols-outlined text-slate-400 group-hover:text-[var(--primary)] transition-colors text-3xl">assignment</span>
+                <span
+                    class="text-[10px] font-extrabold text-slate-400 group-hover:text-[var(--primary)] uppercase tracking-wide">Produk</span>
+            </a>
+            <a class="flex flex-col items-center gap-1 group" href="#">
+                <span
+                    class="material-symbols-outlined text-[var(--primary)] transition-colors text-3xl filled">settings</span>
+                <span class="text-[10px] font-extrabold text-[var(--primary)] uppercase tracking-wide">Akun</span>
             </a>
         </div>
     </nav>
-
 </body>
 
 </html>

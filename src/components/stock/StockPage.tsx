@@ -8,6 +8,7 @@ import {
   Minus, Plus, Package, AlertTriangle, Upload, X, Loader2, History,
   ChevronDown, Check, Edit, Trash2, ArrowDown, ArrowUp, Settings2
 } from 'lucide-react';
+import { LoadingScreen } from '@/components/ui/LoadingScreen';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import type { Tables } from '@/integrations/supabase/types';
@@ -146,11 +147,7 @@ export function StockPage() {
   };
 
   if (loading) {
-    return (
-      <div className="flex min-h-[50vh] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-emerald-600" />
-      </div>
-    );
+    return <LoadingScreen />;
   }
 
   /* ─── RESTOK FORM ─── */

@@ -4,7 +4,7 @@
 <head>
     <meta charset="utf-8" />
     <meta content="width=device-width, initial-scale=1.0" name="viewport" />
-    <title>Beranda SimpleBiz 2026 Compact</title>
+    <title>Dashboard Target Terintegrasi 2026</title>
     <script src="https://cdn.tailwindcss.com?plugins=forms,typography,container-queries"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;display=swap"
         rel="stylesheet" />
@@ -39,6 +39,34 @@
             display: grid;
             grid-template-columns: repeat(2, 1fr);
             gap: 0.75rem;
+        }.keypad-btn:active {
+            transform: scale(0.95);
+            background-color: #f1f5f9;
+        }
+    </style>
+    <style>
+        body {
+            min-height: max(884px, 100dvh);
+        }
+
+        #targetModal {
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+
+        #targetModal:target {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        #targetModal:target .modal-content {
+            transform: translateY(0);
+        }
+
+        .modal-content {
+            transform: translateY(100%);
+            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
         }
     </style>
     <style>
@@ -65,61 +93,124 @@
             </div>
         </header>
         <main class="flex-1 px-4 py-4 space-y-3">
-            <section
-                class="bg-slate-900 rounded-[2rem] p-6 text-white shadow-2xl relative overflow-hidden ring-1 ring-white/10">
-                <div class="absolute -top-12 -right-12 w-40 h-40 bg-emerald-500/20 rounded-full blur-3xl"></div>
-                <div class="relative z-10 flex flex-col">
-                    <div class="flex items-center justify-between mb-2">
-                        <span class="text-xs font-bold text-slate-400 uppercase tracking-widest">Total Keuntungan</span>
-                        <div class="bg-emerald-500/20 px-2 py-1 rounded-md flex items-center gap-1">
-                            <span
-                                class="material-symbols-outlined text-xs text-emerald-400 font-bold">trending_up</span>
-                            <span class="text-[10px] font-black text-emerald-400">+12%</span>
+            <a class="block" href="#targetModal">
+                <section
+                    class="bg-slate-900 rounded-[2rem] p-6 text-white shadow-2xl relative overflow-hidden ring-1 ring-white/10 active:scale-[0.98] transition-transform">
+                    <div class="absolute -top-12 -right-12 w-40 h-40 bg-emerald-500/20 rounded-full blur-3xl"></div>
+                    <div class="relative z-10 flex flex-col h-full justify-between">
+                        <div>
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-xs font-bold text-slate-400 uppercase tracking-widest">Total
+                                    Keuntungan</span>
+                                <div class="bg-emerald-500/20 px-2 py-1 rounded-md flex items-center gap-1">
+                                    <span
+                                        class="material-symbols-outlined text-xs text-emerald-400 font-bold">trending_up</span>
+                                    <span class="text-[10px] font-black text-emerald-400">+12%</span>
+                                </div>
+                            </div>
+                            <div class="flex items-baseline gap-1 mb-4">
+                                <span class="text-emerald-400 text-2xl font-black">Rp</span>
+                                <span class="text-5xl font-black tracking-tighter text-emerald-400">8.450.000</span>
+                            </div>
+                        </div>
+                        <div class="mt-2">
+                            <div class="flex justify-between items-end mb-1">
+                                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Target:
+                                    10jt</span>
+                                <span class="text-[10px] font-bold text-white">84.5%</span>
+                            </div>
+                            <div class="h-2 w-full bg-slate-700 rounded-full overflow-hidden">
+                                <div class="h-full bg-emerald-400 rounded-full w-[84.5%]"></div>
+                            </div>
                         </div>
                     </div>
-                    <div class="flex items-baseline gap-1">
-                        <span class="text-emerald-400 text-2xl font-black">Rp</span>
-                        <span class="text-5xl font-black tracking-tighter text-emerald-400">8.450.000</span>
-                    </div>
-                </div>
-            </section>
+                </section>
+            </a>
             <div class="compact-grid">
-                <div class="bg-white p-5 rounded-[1.75rem] border-2 border-slate-100 shadow-sm flex flex-col gap-2">
-                    <div class="flex items-center gap-2">
-                        <div class="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
-                            <span class="material-symbols-outlined text-blue-600 text-xl font-bold">payments</span>
+                <div
+                    class="bg-white p-5 rounded-[1.75rem] border-2 border-slate-100 shadow-sm flex flex-col gap-2 relative overflow-hidden">
+                    <div class="flex items-center justify-between relative z-10">
+                        <div class="flex items-center gap-2">
+                            <div class="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
+                                <span class="material-symbols-outlined text-blue-600 text-xl font-bold">payments</span>
+                            </div>
+                            <span class="text-[10px] font-black text-slate-400 uppercase tracking-wider">Omset</span>
                         </div>
-                        <span class="text-[10px] font-black text-slate-400 uppercase tracking-wider">Omset</span>
+                        <div class="relative w-6 h-6 flex items-center justify-center">
+                            <svg class="w-full h-full transform -rotate-90">
+                                <circle cx="12" cy="12" fill="none" r="10" stroke="#f1f5f9" stroke-width="3"></circle>
+                                <circle cx="12" cy="12" fill="none" r="10" stroke="#2563eb" stroke-dasharray="62.8"
+                                    stroke-dashoffset="10" stroke-width="3"></circle>
+                            </svg>
+                        </div>
                     </div>
-                    <p class="text-3xl font-black text-slate-900 tracking-tighter">14.2jt</p>
+                    <p class="text-3xl font-black text-slate-900 tracking-tighter relative z-10">14.2jt</p>
                 </div>
-                <div class="bg-white p-5 rounded-[1.75rem] border-2 border-slate-100 shadow-sm flex flex-col gap-2">
-                    <div class="flex items-center gap-2">
-                        <div class="w-8 h-8 rounded-lg bg-orange-50 flex items-center justify-center">
-                            <span
-                                class="material-symbols-outlined text-orange-600 text-xl font-bold">shopping_bag</span>
+                <a class="block" href="#targetModal">
+                    <div
+                        class="bg-white p-5 rounded-[1.75rem] border-2 border-slate-100 shadow-sm flex flex-col gap-2 relative overflow-hidden h-full active:bg-slate-50 transition-colors">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <div class="w-8 h-8 rounded-lg bg-orange-50 flex items-center justify-center">
+                                    <span
+                                        class="material-symbols-outlined text-orange-600 text-xl font-bold">shopping_bag</span>
+                                </div>
+                                <span
+                                    class="text-[10px] font-black text-slate-400 uppercase tracking-wider">Terjual</span>
+                            </div>
+                            <div class="relative w-8 h-8">
+                                <svg class="w-full h-full transform -rotate-90">
+                                    <circle cx="16" cy="16" fill="none" r="13" stroke="#fff7ed" stroke-width="4">
+                                    </circle>
+                                    <circle cx="16" cy="16" fill="none" r="13" stroke="#ea580c" stroke-dasharray="81"
+                                        stroke-dashoffset="20" stroke-linecap="round" stroke-width="4"></circle>
+                                </svg>
+                                <span
+                                    class="absolute inset-0 flex items-center justify-center text-[8px] font-bold text-orange-600">75%</span>
+                            </div>
                         </div>
-                        <span class="text-[10px] font-black text-slate-400 uppercase tracking-wider">Terjual</span>
-                    </div>
-                    <div class="flex items-baseline gap-1">
-                        <span class="text-3xl font-black text-slate-900 tracking-tighter">124</span>
-                        <span class="text-xs font-bold text-slate-400">pcs</span>
-                    </div>
-                </div>
-                <button
-                    class="col-span-2 bg-white p-5 rounded-[1.75rem] border-2 border-slate-100 shadow-sm flex items-center justify-between active:bg-slate-50 transition-colors">
-                    <div class="flex items-center gap-4">
-                        <div class="w-12 h-12 rounded-2xl bg-red-50 flex items-center justify-center">
-                            <span class="material-symbols-outlined text-red-600 text-3xl font-bold">inventory_2</span>
-                        </div>
-                        <div class="flex flex-col text-left">
-                            <span class="text-[10px] font-black text-slate-400 uppercase tracking-wider">Stok
-                                Tersedia</span>
-                            <p class="text-4xl font-black text-slate-900 tracking-tighter leading-none">85 Item</p>
+                        <div class="flex flex-col">
+                            <div class="flex items-baseline gap-1">
+                                <span class="text-3xl font-black text-slate-900 tracking-tighter">124</span>
+                                <span class="text-xs font-bold text-slate-400">pcs</span>
+                            </div>
+                            <div class="w-full bg-slate-100 h-1.5 rounded-full mt-2 overflow-hidden">
+                                <div class="bg-orange-500 h-full rounded-full w-3/4"></div>
+                            </div>
+                            <span class="text-[10px] text-slate-400 mt-1 font-medium">Target: 165 pcs</span>
                         </div>
                     </div>
-                    <span class="material-symbols-outlined text-slate-300 text-3xl">chevron_right</span>
-                </button>
+                </a>
+                <a class="col-span-2 block" href="#targetModal">
+                    <div
+                        class="bg-white p-5 rounded-[1.75rem] border-2 border-slate-100 shadow-sm flex items-center justify-between active:bg-slate-50 transition-colors relative overflow-hidden">
+                        <div class="flex items-center gap-4 w-full">
+                            <div class="w-12 h-12 rounded-2xl bg-red-50 flex items-center justify-center shrink-0">
+                                <span
+                                    class="material-symbols-outlined text-red-600 text-3xl font-bold">inventory_2</span>
+                            </div>
+                            <div class="flex flex-col text-left flex-1">
+                                <div class="flex justify-between items-center w-full pr-2">
+                                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-wider">Stok
+                                        Tersedia</span>
+                                    <span
+                                        class="text-[10px] font-bold text-red-600 bg-red-50 px-2 py-0.5 rounded-full">Sisa
+                                        Sedikit</span>
+                                </div>
+                                <div class="flex justify-between items-end">
+                                    <p class="text-4xl font-black text-slate-900 tracking-tighter leading-none mt-1">85
+                                        Item</p>
+                                    <div class="w-24 flex flex-col items-end gap-1">
+                                        <div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                                            <div class="bg-red-500 h-full rounded-full w-[40%]"></div>
+                                        </div>
+                                        <span class="text-[10px] font-bold text-slate-400">Target: 200</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </a>
             </div>
         </main>
         <div class="fixed bottom-[6.5rem] left-0 right-0 px-4 z-40 pointer-events-none">
@@ -160,6 +251,62 @@
                 </button>
             </div>
         </nav>
+        <div class="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm" id="targetModal">
+            <a class="absolute inset-0 cursor-default" href="#"></a>
+            <div
+                class="modal-content bg-white w-full max-w-md rounded-t-[2.5rem] p-6 pb-12 shadow-2xl relative h-[85vh] flex flex-col">
+                <div class="w-16 h-1.5 bg-slate-200 rounded-full mx-auto mb-6"></div>
+                <div class="flex items-center justify-between mb-8">
+                    <h2 class="text-2xl font-black text-slate-900">Setel Target Bulanan</h2>
+                    <a class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 hover:bg-slate-200"
+                        href="#">
+                        <span class="material-symbols-outlined">close</span>
+                    </a>
+                </div>
+                <div
+                    class="bg-slate-50 rounded-2xl p-6 mb-6 border-2 border-slate-100 text-right flex flex-col justify-center h-32">
+                    <span class="text-sm font-bold text-slate-400 uppercase tracking-widest mb-1">Target Baru</span>
+                    <div class="flex items-baseline justify-end gap-2 text-emerald-600">
+                        <span class="text-2xl font-bold">Rp</span>
+                        <span class="text-5xl font-black tracking-tighter">10.000.000</span>
+                    </div>
+                </div>
+                <div class="grid grid-cols-3 gap-3 flex-1">
+                    <button
+                        class="keypad-btn text-2xl font-bold text-slate-900 bg-white border border-slate-100 rounded-xl p-4 shadow-sm">1</button>
+                    <button
+                        class="keypad-btn text-2xl font-bold text-slate-900 bg-white border border-slate-100 rounded-xl p-4 shadow-sm">2</button>
+                    <button
+                        class="keypad-btn text-2xl font-bold text-slate-900 bg-white border border-slate-100 rounded-xl p-4 shadow-sm">3</button>
+                    <button
+                        class="keypad-btn text-2xl font-bold text-slate-900 bg-white border border-slate-100 rounded-xl p-4 shadow-sm">4</button>
+                    <button
+                        class="keypad-btn text-2xl font-bold text-slate-900 bg-white border border-slate-100 rounded-xl p-4 shadow-sm">5</button>
+                    <button
+                        class="keypad-btn text-2xl font-bold text-slate-900 bg-white border border-slate-100 rounded-xl p-4 shadow-sm">6</button>
+                    <button
+                        class="keypad-btn text-2xl font-bold text-slate-900 bg-white border border-slate-100 rounded-xl p-4 shadow-sm">7</button>
+                    <button
+                        class="keypad-btn text-2xl font-bold text-slate-900 bg-white border border-slate-100 rounded-xl p-4 shadow-sm">8</button>
+                    <button
+                        class="keypad-btn text-2xl font-bold text-slate-900 bg-white border border-slate-100 rounded-xl p-4 shadow-sm">9</button>
+                    <button
+                        class="keypad-btn text-2xl font-bold text-slate-900 bg-slate-100 border border-slate-100 rounded-xl p-4 shadow-sm">.</button>
+                    <button
+                        class="keypad-btn text-2xl font-bold text-slate-900 bg-white border border-slate-100 rounded-xl p-4 shadow-sm">0</button>
+                    <button
+                        class="keypad-btn text-2xl font-bold text-slate-900 bg-slate-100 border border-slate-100 rounded-xl p-4 shadow-sm flex items-center justify-center">
+                        <span class="material-symbols-outlined">backspace</span>
+                    </button>
+                </div>
+                <div class="mt-6">
+                    <a class="flex items-center justify-center w-full bg-slate-900 text-white font-black text-lg py-5 rounded-2xl shadow-lg active:scale-[0.98] transition-transform"
+                        href="#">
+                        Simpan Target
+                    </a>
+                </div>
+            </div>
+        </div>
     </div>
 
 </body>
