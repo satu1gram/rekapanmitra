@@ -79,6 +79,9 @@ export function Dashboard({ onNavigate }: DashboardProps) {
   const stockPct = currentTarget && currentTarget.targetStock > 0
     ? Math.min(Math.round((currentStock / currentTarget.targetStock) * 100), 100)
     : 0;
+  const omsetPct = currentTarget && currentTarget.targetProfit > 0
+    ? Math.min(Math.round((monthRevenue / (currentTarget.targetProfit * 1.5)) * 100), 100)
+    : 0;
 
   const monthName = `${MONTH_NAMES[thisMonth]} ${thisYear}`;
 
@@ -294,14 +297,17 @@ export function Dashboard({ onNavigate }: DashboardProps) {
                     <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Omset</span>
                   </div>
                   {/* Mini circle indicator */}
-                  <div className="w-8 h-8 shrink-0">
+                  <div className="relative w-10 h-10 shrink-0">
                     <svg viewBox="0 0 36 36" className="w-full h-full -rotate-90">
-                      <circle cx="18" cy="18" r="15" fill="none" stroke="#e2e8f0" strokeWidth="4" />
-                      <circle cx="18" cy="18" r="15" fill="none" stroke="#3b82f6" strokeWidth="4"
+                      <circle cx="18" cy="18" r="15" fill="none" stroke="#e2e8f0" strokeWidth="3" />
+                      <circle cx="18" cy="18" r="15" fill="none" stroke="#3b82f6" strokeWidth="3"
                         strokeDasharray={`${2 * Math.PI * 15}`}
                         strokeDashoffset={`${2 * Math.PI * 15 * (1 - Math.min(monthRevenue / (currentTarget.targetProfit * 1.5), 1))}`}
                         strokeLinecap="round" />
                     </svg>
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <span className="text-[10px] font-black text-slate-700">{omsetPct}%</span>
+                    </div>
                   </div>
                 </div>
                 <p className="text-3xl font-black text-slate-900 tracking-tighter">{formatShortCurrency(monthRevenue)}</p>
@@ -317,14 +323,17 @@ export function Dashboard({ onNavigate }: DashboardProps) {
                     <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Terjual</span>
                   </div>
                   {/* Mini circle */}
-                  <div className="w-8 h-8 shrink-0">
+                  <div className="relative w-10 h-10 shrink-0">
                     <svg viewBox="0 0 36 36" className="w-full h-full -rotate-90">
-                      <circle cx="18" cy="18" r="15" fill="none" stroke="#e2e8f0" strokeWidth="4" />
-                      <circle cx="18" cy="18" r="15" fill="none" stroke={qtyPct >= 80 ? '#f97316' : '#fb923c'} strokeWidth="4"
+                      <circle cx="18" cy="18" r="15" fill="none" stroke="#e2e8f0" strokeWidth="3" />
+                      <circle cx="18" cy="18" r="15" fill="none" stroke={qtyPct >= 80 ? '#f97316' : '#fb923c'} strokeWidth="3"
                         strokeDasharray={`${2 * Math.PI * 15}`}
                         strokeDashoffset={`${2 * Math.PI * 15 * (1 - qtyPct / 100)}`}
                         strokeLinecap="round" />
                     </svg>
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <span className="text-[10px] font-black text-slate-700">{qtyPct}%</span>
+                    </div>
                   </div>
                 </div>
                 <div className="flex items-baseline gap-1">
@@ -388,28 +397,6 @@ export function Dashboard({ onNavigate }: DashboardProps) {
           </>
         )}
       </main>
-
-      {/* Floating Action Buttons — only shown when target exists */}
-      {currentTarget && (
-        <div className="fixed bottom-[6.5rem] left-0 right-0 px-4 z-20 pointer-events-none">
-          <div className="flex gap-3 pointer-events-auto max-w-lg mx-auto">
-            <button
-              onClick={() => onNavigate('orders', 'add')}
-              className="flex-1 bg-emerald-600 active:scale-95 active:bg-emerald-700 transition-all text-white py-5 px-4 rounded-[1.5rem] shadow-xl shadow-emerald-200/50 flex flex-col items-center justify-center border-b-4 border-emerald-800"
-            >
-              <Plus className="h-7 w-7 mb-1" />
-              <span className="font-black text-sm uppercase tracking-wide">Tambah Order</span>
-            </button>
-            <button
-              onClick={() => onNavigate('stock')}
-              className="flex-1 bg-slate-900 active:scale-95 active:bg-black transition-all text-white py-5 px-4 rounded-[1.5rem] shadow-xl shadow-slate-300/50 flex flex-col items-center justify-center border-b-4 border-slate-950"
-            >
-              <PackagePlus className="h-7 w-7 mb-1" />
-              <span className="font-black text-sm uppercase tracking-wide">Restok</span>
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

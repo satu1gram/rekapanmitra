@@ -29,6 +29,7 @@ import { OrderForm } from './OrderForm';
 import { OrderCard } from './OrderCard';
 import { PerformaPage } from './PerformaPage';
 import { OrderResultPage, OrderResult } from './OrderResultPage';
+import { EditCustomerPage } from '../customers/EditCustomerPage';
 import { formatCurrency } from '@/lib/formatters';
 import { cn } from '@/lib/utils';
 
@@ -55,10 +56,15 @@ interface OrdersPageProps { openAddForm?: boolean; onAddFormClose?: () => void; 
 
 export function OrdersPage({ openAddForm = false, onAddFormClose }: OrdersPageProps) {
   const now = new Date();
-  const [selectedYear, setSelectedYear] = useState(now.getFullYear());
-  const [selectedMonth, setSelectedMonth] = useState(now.getMonth());
+  const [startDate, setStartDate] = useState<string>(
+    new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0]
+  );
+  const [endDate, setEndDate] = useState<string>(
+    now.toISOString().split('T')[0]
+  );
   const [showMonthPicker, setShowMonthPicker] = useState(false);
-  const [expandedDay, setExpandedDay] = useState<string | null>(null);
+  const [pickerYear, setPickerYear] = useState(now.getFullYear());
+  const [expandedDays, setExpandedDays] = useState<Set<string>>(new Set());
   const [showAddModal, setShowAddModal] = useState(openAddForm);
   const [submitting, setSubmitting] = useState(false);
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
@@ -68,6 +74,8 @@ export function OrdersPage({ openAddForm = false, onAddFormClose }: OrdersPagePr
   const [showAllDays, setShowAllDays] = useState(false);
   const [showPerforma, setShowPerforma] = useState(false);
   const [orderResult, setOrderResult] = useState<OrderResult | null>(null);
+  const [includeCosts, setIncludeCosts] = useState(true);
+  const [editingCustomer, setEditingCustomer] = useState<Tables<'customers'> | null>(null);
 
   const {
     orders,
@@ -83,28 +91,36 @@ export function OrdersPage({ openAddForm = false, onAddFormClose }: OrdersPagePr
   const { currentStock, reduceStock } = useStock();
   const { customers, addOrUpdateCustomer } = useCustomers();
   const { mitraLevel } = useProfile();
-  const { getTotalExpenses, getMonthExpenses } = useGeneralExpenses();
-  const { getTotalIncome, getMonthIncome } = useGeneralIncome();
+  const { getTotalExpenses, getExpensesByDateRange } = useGeneralExpenses();
+  const { getTotalIncome, getIncomeByDateRange } = useGeneralIncome();
 
-  const monthOrders = useMemo(() => {
+  const filteredOrders = useMemo(() => {
+    const start = new Date(startDate);
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(endDate);
+    end.setHours(23, 59, 59, 999);
+
     return orders.filter(o => {
       const d = new Date(o.created_at);
-      return d.getFullYear() === selectedYear && d.getMonth() === selectedMonth;
+      return d >= start && d <= end;
     });
-  }, [orders, selectedYear, selectedMonth]);
+  }, [orders, startDate, endDate]);
 
-  const totalRevenue = monthOrders.reduce((sum, o) => sum + Number(o.total_price), 0);
-  const totalProfit = monthOrders.reduce((sum, o) => sum + Number(o.margin), 0);
-  const totalQty = monthOrders.reduce((sum, o) => sum + o.quantity, 0);
+  const totalRevenue = filteredOrders.reduce((sum, o) => sum + Number(o.total_price), 0);
+  const totalProfit = filteredOrders.reduce((sum, o) => sum + Number(o.margin), 0);
+  const totalQty = filteredOrders.reduce((sum, o) => sum + o.quantity, 0);
 
-  const isCurrentMonth = selectedMonth === now.getMonth() && selectedYear === now.getFullYear();
-  const expensesTotal = isCurrentMonth ? getTotalExpenses(getMonthExpenses()) : 0;
-  const incomeTotal = isCurrentMonth ? getTotalIncome(getMonthIncome()) : 0;
-  const netProfit = totalProfit - expensesTotal + incomeTotal;
+  const startObj = new Date(startDate); startObj.setHours(0, 0, 0, 0);
+  const endObj = new Date(endDate); endObj.setHours(23, 59, 59, 999);
+  const expensesTotal = getTotalExpenses(getExpensesByDateRange(startObj, endObj));
+  const incomeTotal = getTotalIncome(getIncomeByDateRange(startObj, endObj));
+  const netProfit = includeCosts
+    ? totalProfit - expensesTotal + incomeTotal
+    : totalProfit;
 
   const dailySummaries = useMemo((): DailySummary[] => {
     const map = new Map<string, DailySummary>();
-    for (const o of monthOrders) {
+    for (const o of filteredOrders) {
       const d = new Date(o.created_at);
       const key = d.toDateString();
       if (!map.has(key)) {
@@ -125,12 +141,12 @@ export function OrdersPage({ openAddForm = false, onAddFormClose }: OrdersPagePr
       entry.orders.push(o);
     }
     return Array.from(map.values()).sort((a, b) => b.date.getTime() - a.date.getTime());
-  }, [monthOrders]);
+  }, [filteredOrders]);
 
   const visibleDays = showAllDays ? dailySummaries : dailySummaries.slice(0, 5);
 
   const handleSubmit = async (data: {
-    customerName: string; customerPhone: string; tier: TierType;
+    customerName: string; customerPhone: string; customerAddress?: string; tier: TierType;
     items: OrderItem[]; transferProofUrl?: string; customerId?: string; createdAt?: string;
   }) => {
     const totalQuantity = data.items.reduce((sum, item) => sum + item.quantity, 0);
@@ -151,6 +167,12 @@ export function OrdersPage({ openAddForm = false, onAddFormClose }: OrdersPagePr
         estimatedProfit: totalPrice - totalBuy,
         customerName: data.customerName,
         customerPhone: data.customerPhone,
+        orderItems: data.items.map(i => ({
+          name: i.productName,
+          quantity: i.quantity,
+          price: i.pricePerBottle,
+          subtotal: i.subtotal,
+        })),
       });
       reduceStock(totalQuantity, order.id).catch(err =>
         console.error('reduceStock failed (order already saved):', err)
@@ -200,6 +222,18 @@ export function OrdersPage({ openAddForm = false, onAddFormClose }: OrdersPagePr
     finally { setSubmitting(false); }
   };
 
+  if (editingCustomer) {
+    return (
+      <div className="fixed inset-0 z-[100] bg-white">
+        <EditCustomerPage
+          customer={editingCustomer}
+          onBack={() => setEditingCustomer(null)}
+          onSaved={() => { setEditingCustomer(null); }}
+        />
+      </div>
+    );
+  }
+
   if (showAddModal) {
     return (
       <OrderForm
@@ -208,6 +242,7 @@ export function OrdersPage({ openAddForm = false, onAddFormClose }: OrdersPagePr
         submitting={submitting}
         onSubmit={handleSubmit}
         onCancel={() => setShowAddModal(false)}
+        onEditCustomer={(c) => { setEditingCustomer(c); }}
       />
     );
   }
@@ -234,59 +269,95 @@ export function OrdersPage({ openAddForm = false, onAddFormClose }: OrdersPagePr
     <div className="flex flex-col min-h-screen bg-gray-50">
       {/* Header */}
       <header className="px-5 pt-8 pb-4 bg-white shadow-sm z-10 sticky top-0">
-        <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 mb-3">Riwayat Bulanan</h1>
+        <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 mb-4">Riwayat Order</h1>
 
-        {/* Month picker row + Grafik button */}
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setShowMonthPicker(p => !p)}
-            className="flex-1 flex items-center gap-2.5 bg-slate-100 px-3.5 py-2.5 rounded-2xl border border-slate-200 active:bg-slate-200 transition-colors"
-          >
-            <div className="bg-white p-1.5 rounded-lg shadow-sm shrink-0">
-              <Calendar className="h-4 w-4 text-slate-600" />
+        {/* Ultra-Compact Date filter and Grafik button */}
+        <div className="flex items-center gap-2 mb-3">
+          <div className="flex-1 flex bg-slate-100 rounded-xl border border-slate-200 overflow-hidden focus-within:border-emerald-400 focus-within:ring-2 focus-within:ring-emerald-100 transition-all">
+            {/* Quick Month button */}
+            <button
+              onClick={() => setShowMonthPicker(p => !p)}
+              className="flex items-center justify-center px-3 border-r border-slate-200 bg-white hover:bg-slate-50 transition-colors shrink-0"
+            >
+              <Calendar className="h-4 w-4 text-emerald-600" />
+            </button>
+
+            {/* Date Inputs in one row */}
+            <div className="flex-1 flex items-center divide-x divide-slate-200">
+              <div className="flex-1 flex items-center px-2 py-2">
+                <span className="text-[10px] font-bold text-slate-400 mr-2 shrink-0">Dr</span>
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="w-full bg-transparent text-xs font-black text-slate-900 outline-none"
+                />
+              </div>
+              <div className="flex-1 flex items-center px-2 py-2">
+                <span className="text-[10px] font-bold text-slate-400 mr-2 shrink-0">Sp</span>
+                <input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  className="w-full bg-transparent text-xs font-black text-slate-900 outline-none"
+                />
+              </div>
             </div>
-            <div className="text-left">
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider leading-none">Bulan</p>
-              <p className="text-sm font-black text-slate-900 leading-tight mt-0.5">{MONTH_NAMES_ID[selectedMonth]} {selectedYear}</p>
-            </div>
-            <ChevronDown className={cn("h-4 w-4 text-slate-500 ml-auto transition-transform", showMonthPicker && "rotate-180")} />
-          </button>
+          </div>
+
           <button
             onClick={() => setShowPerforma(true)}
-            className="flex flex-col items-center justify-center bg-blue-50 border border-blue-200 rounded-2xl px-3 py-2 gap-0.5 shrink-0 active:bg-blue-100 transition-colors"
+            className="flex items-center justify-center bg-blue-50 border border-blue-200 text-blue-600 px-3 py-2 rounded-xl h-[42px] shrink-0 active:bg-blue-100 transition-colors"
           >
-            <BarChart3 className="h-5 w-5 text-blue-600" />
-            <span className="text-[10px] font-bold text-blue-600">Grafik</span>
+            <BarChart3 className="h-5 w-5" />
           </button>
         </div>
 
         {/* Month Picker dropdown */}
         {showMonthPicker && (
-          <div className="mt-2 bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-lg">
+          <div className="mt-3 bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-lg">
             <div className="flex items-center justify-between px-4 py-2.5 border-b border-slate-100">
-              <button onClick={() => setSelectedYear(y => y - 1)} className="p-1.5 rounded-xl hover:bg-slate-100">
+              <button onClick={() => setPickerYear(y => y - 1)} className="p-1.5 rounded-xl hover:bg-slate-100">
                 <ChevronLeft className="h-4 w-4 text-slate-600" />
               </button>
-              <span className="text-sm font-black text-slate-900">{selectedYear}</span>
-              <button onClick={() => setSelectedYear(y => y + 1)} className="p-1.5 rounded-xl hover:bg-slate-100">
+              <span className="text-sm font-black text-slate-900">{pickerYear}</span>
+              <button onClick={() => setPickerYear(y => y + 1)} className="p-1.5 rounded-xl hover:bg-slate-100">
                 <ChevronRight className="h-4 w-4 text-slate-600" />
               </button>
             </div>
             <div className="grid grid-cols-4 gap-1.5 p-2.5">
-              {MONTH_NAMES_ID.map((name, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => { setSelectedMonth(idx); setShowMonthPicker(false); }}
-                  className={cn(
-                    "py-2 rounded-xl text-xs font-bold transition-colors",
-                    selectedMonth === idx
-                      ? "bg-emerald-600 text-white"
-                      : "bg-slate-50 text-slate-700 hover:bg-slate-100"
-                  )}
-                >
-                  {name.slice(0, 3)}
-                </button>
-              ))}
+              {MONTH_NAMES_ID.map((name, idx) => {
+                const start = new Date(pickerYear, idx, 1);
+                const end = new Date(pickerYear, idx + 1, 0);
+                const fmt = (d: Date) => {
+                  const y = d.getFullYear();
+                  const m = String(d.getMonth() + 1).padStart(2, '0');
+                  const day = String(d.getDate()).padStart(2, '0');
+                  return `${y}-${m}-${day}`;
+                };
+                const startStr = fmt(start);
+                const endStr = fmt(end);
+                const isSelected = startDate === startStr && endDate === endStr;
+
+                return (
+                  <button
+                    key={idx}
+                    onClick={() => {
+                      setStartDate(startStr);
+                      setEndDate(endStr);
+                      setShowMonthPicker(false);
+                    }}
+                    className={cn(
+                      "py-2 rounded-xl text-xs font-bold transition-colors",
+                      isSelected
+                        ? "bg-emerald-600 text-white"
+                        : "bg-slate-50 text-slate-700 hover:bg-slate-100"
+                    )}
+                  >
+                    {name.slice(0, 3)}
+                  </button>
+                );
+              })}
             </div>
           </div>
         )}
@@ -295,9 +366,9 @@ export function OrdersPage({ openAddForm = false, onAddFormClose }: OrdersPagePr
       {/* Main Content */}
       <main className="flex-1 px-4 py-4 space-y-4 pb-8">
 
-        {/* Ringkasan Bulan Ini */}
+        {/* Ringkasan */}
         <div>
-          <h2 className="text-base font-bold text-slate-800 mb-2.5">Ringkasan Bulan Ini</h2>
+          <h2 className="text-base font-bold text-slate-800 mb-2.5">Ringkasan</h2>
           <div className="space-y-2">
 
             {/* Total Omset */}
@@ -314,17 +385,31 @@ export function OrdersPage({ openAddForm = false, onAddFormClose }: OrdersPagePr
             {/* Keuntungan Bersih */}
             <div className="bg-white px-4 py-3.5 rounded-2xl shadow-sm border-2 border-emerald-100 relative overflow-hidden">
               <div className="absolute top-0 right-0 w-20 h-20 bg-emerald-50 rounded-full -mr-6 -mt-6 opacity-60 pointer-events-none" />
-              <div className="flex items-center gap-2 mb-1.5 relative z-10">
-                <div className="w-7 h-7 rounded-lg bg-emerald-100 flex items-center justify-center shrink-0">
-                  <TrendingUp className="h-3.5 w-3.5 text-emerald-700" />
+              <div className="flex items-center justify-between mb-1.5 relative z-10">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-emerald-100 flex items-center justify-center shrink-0">
+                    <TrendingUp className="h-3.5 w-3.5 text-emerald-700" />
+                  </div>
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Keuntungan/Profit</span>
                 </div>
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Keuntungan Bersih</span>
+                {/* Toggle biaya */}
+                <button
+                  onClick={() => setIncludeCosts(v => !v)}
+                  className={cn(
+                    "flex items-center gap-1 px-2.5 py-1 rounded-full border text-[10px] font-bold transition-all",
+                    includeCosts
+                      ? "bg-orange-50 border-orange-200 text-orange-600"
+                      : "bg-slate-50 border-slate-200 text-slate-500"
+                  )}
+                >
+                  <span>{includeCosts ? 'Inkl. Biaya' : 'Eksl. Biaya'}</span>
+                </button>
               </div>
               <div className="flex items-center gap-3 relative z-10">
                 <p className={cn("text-2xl font-black tracking-tight", netProfit >= 0 ? "text-emerald-600" : "text-red-600")}>
                   {netProfit < 0 ? '-' : ''}{formatCurrency(Math.abs(netProfit))}
                 </p>
-                {isCurrentMonth && totalRevenue > 0 && netProfit !== 0 && (
+                {totalRevenue > 0 && netProfit !== 0 && (
                   <div className={cn(
                     "flex items-center gap-1 px-2 py-0.5 rounded-full border text-xs font-black",
                     netProfit >= 0
@@ -336,10 +421,15 @@ export function OrdersPage({ openAddForm = false, onAddFormClose }: OrdersPagePr
                   </div>
                 )}
               </div>
-              {isCurrentMonth && expensesTotal > 0 && (
+              {includeCosts && expensesTotal > 0 && (
                 <p className="text-[10px] text-slate-400 mt-1 relative z-10">
                   Margin: {formatCurrency(totalProfit)} · Biaya: -{formatCurrency(expensesTotal)}
                   {incomeTotal > 0 && ` · Lain: +${formatCurrency(incomeTotal)}`}
+                </p>
+              )}
+              {!includeCosts && (
+                <p className="text-[10px] text-slate-400 mt-1 relative z-10">
+                  Hanya margin dari penjualan, tanpa biaya & lainnya.
                 </p>
               )}
             </div>
@@ -363,30 +453,50 @@ export function OrdersPage({ openAddForm = false, onAddFormClose }: OrdersPagePr
         <div className="pb-6">
           <div className="flex items-center justify-between mb-2.5">
             <h2 className="text-base font-bold text-slate-800">Rincian Harian</h2>
-            {dailySummaries.length > 5 && (
-              <button
-                onClick={() => setShowAllDays(v => !v)}
-                className="text-emerald-600 font-bold text-xs bg-emerald-50 px-2.5 py-1 rounded-lg"
-              >
-                {showAllDays ? 'Lebih Sedikit' : 'Lihat Semua'}
-              </button>
-            )}
+            <div className="flex items-center gap-2">
+              {dailySummaries.length > 0 && (
+                <button
+                  onClick={() => {
+                    if (expandedDays.size === visibleDays.length) {
+                      setExpandedDays(new Set());
+                    } else {
+                      setExpandedDays(new Set(visibleDays.map(d => d.date.toDateString())));
+                    }
+                  }}
+                  className="text-slate-600 font-bold text-xs bg-slate-100 px-2.5 py-1 rounded-lg hover:bg-slate-200 transition-colors"
+                >
+                  {expandedDays.size === visibleDays.length ? 'Tutup Semua' : 'Buka Semua'}
+                </button>
+              )}
+              {dailySummaries.length > 5 && (
+                <button
+                  onClick={() => setShowAllDays(v => !v)}
+                  className="text-emerald-600 font-bold text-xs bg-emerald-50 px-2.5 py-1 rounded-lg"
+                >
+                  {showAllDays ? 'Lebih Sedikit' : 'Lihat Semua'}
+                </button>
+              )}
+            </div>
           </div>
 
           {dailySummaries.length === 0 ? (
             <div className="bg-white rounded-2xl p-8 text-center border border-slate-100 shadow-sm">
-              <p className="text-slate-400 font-medium text-sm">Belum ada order di bulan ini</p>
+              <p className="text-slate-400 font-medium text-sm">Belum ada order pada rentang tanggal ini</p>
             </div>
           ) : (
             <div className="space-y-2">
               {visibleDays.map(day => {
                 const dayKey = day.date.toDateString();
-                const isExpanded = expandedDay === dayKey;
+                const isExpanded = expandedDays.has(dayKey);
                 return (
                   <div key={dayKey} className="rounded-2xl overflow-hidden shadow-sm border border-slate-100">
                     <button
                       className="w-full bg-white px-4 py-3 flex items-center justify-between text-left active:bg-slate-50 transition-colors"
-                      onClick={() => setExpandedDay(isExpanded ? null : dayKey)}
+                      onClick={() => setExpandedDays(prev => {
+                        const next = new Set(prev);
+                        if (next.has(dayKey)) next.delete(dayKey); else next.add(dayKey);
+                        return next;
+                      })}
                     >
                       <div className="flex items-center gap-3">
                         <div className={cn(
@@ -437,21 +547,7 @@ export function OrdersPage({ openAddForm = false, onAddFormClose }: OrdersPagePr
         </div>
       </main>
 
-      {/* Add Order Modal */}
-      <Dialog open={showAddModal} onOpenChange={setShowAddModal}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Tambah Order</DialogTitle>
-          </DialogHeader>
-          <OrderForm
-            customers={customers}
-            currentStock={currentStock}
-            submitting={submitting}
-            onSubmit={handleSubmit}
-            onCancel={() => setShowAddModal(false)}
-          />
-        </DialogContent>
-      </Dialog>
+
 
       {/* Edit Order Dialog */}
       <Dialog open={showEditDialog} onOpenChange={(open) => { if (!open) { setShowEditDialog(false); setEditingOrder(null); } }}>
@@ -474,6 +570,7 @@ export function OrdersPage({ openAddForm = false, onAddFormClose }: OrdersPagePr
                 transferProofUrl: editingOrder.transfer_proof_url,
                 orderDate: new Date(editingOrder.created_at).toISOString().split('T')[0],
               }}
+              onEditCustomer={(c) => { setEditingCustomer(c); }}
             />
           )}
         </DialogContent>

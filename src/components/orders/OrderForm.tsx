@@ -1,29 +1,14 @@
-import { useState, useRef, useMemo, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useFileUpload } from '@/hooks/useFileUpload';
 import { useProfile } from '@/hooks/useProfile';
 import { useProducts } from '@/hooks/useProducts';
 import { TierType, TIER_PRICING, MITRA_LEVELS, OrderItem } from '@/types';
-import { formatCurrency, formatShortCurrency } from '@/lib/formatters';
-import {
-  Plus,
-  Minus,
-  Upload,
-  X,
-  Loader2,
-  Calendar,
-  SlidersHorizontal,
-  Search,
-  Zap,
-  Users,
-  Package,
-  ChevronDown,
-  ChevronUp,
-  Pencil,
-  ArrowRight,
-} from 'lucide-react';
+import { formatCurrency } from '@/lib/formatters';
+import { Plus, Minus, X, Search, Package, Pencil, ArrowRight, Loader2, Calendar } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Tables } from '@/integrations/supabase/types';
 import { cn } from '@/lib/utils';
+import { ReviewOrderPage } from './ReviewOrderPage';
 
 type Customer = Tables<'customers'>;
 
@@ -42,6 +27,7 @@ interface OrderFormProps {
     createdAt?: string;
   }) => void;
   onCancel: () => void;
+  onEditCustomer?: (customer: Customer) => void;
   initialData?: {
     customerName: string;
     customerPhone: string;
@@ -53,21 +39,10 @@ interface OrderFormProps {
   };
 }
 
-function createEmptyItem(products: { id: string; name: string; default_sell_price: number }[]): OrderItem {
-  if (products.length > 0) {
-    const p = products[0];
-    return { productId: p.id, productName: p.name, quantity: 0, pricePerBottle: p.default_sell_price, subtotal: 0 };
-  }
-  return { productName: '', quantity: 0, pricePerBottle: 250000, subtotal: 0 };
-}
-
-
-// Price from customer tier (primary rule)
 function getPriceByTier(tier: TierType): number {
   return TIER_PRICING[tier]?.pricePerBottle ?? 250000;
 }
 
-// Fallback: auto-price by total quantity (used only for 'satuan')
 const TIER_BRACKETS: { minQty: number; price: number }[] = [
   { minQty: 200, price: 150000 },
   { minQty: 40, price: 170000 },
@@ -84,18 +59,20 @@ function getPriceByQty(totalQty: number): number {
   return 250000;
 }
 
-export function OrderForm({ customers, currentStock, submitting, onSubmit, onCancel, initialData }: OrderFormProps) {
-  const { uploadTransferProof } = useFileUpload();
+const formatDateCompact = (dateStr: string) => {
+  const d = new Date(dateStr);
+  return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+};
+
+export function OrderForm({ customers, currentStock, submitting, onSubmit, onCancel, onEditCustomer, initialData }: OrderFormProps) {
   const { mitraLevel } = useProfile();
   const { products } = useProducts();
-
   const mitraInfo = MITRA_LEVELS[mitraLevel];
 
-  // Build default items keyed by product index
   const buildDefaultItems = (): OrderItem[] => {
     if (initialData?.items && initialData.items.length > 0) return initialData.items;
     if (products.length > 0) return products.map(p => ({ productId: p.id, productName: p.name, quantity: 0, pricePerBottle: p.default_sell_price, subtotal: 0 }));
-    return [createEmptyItem(products)];
+    return [{ productName: 'Produk', quantity: 0, pricePerBottle: 250000, subtotal: 0 }];
   };
 
   const [customerName, setCustomerName] = useState(initialData?.customerName || '');
@@ -104,55 +81,36 @@ export function OrderForm({ customers, currentStock, submitting, onSubmit, onCan
   const [selectedCustomerId, setSelectedCustomerId] = useState('');
   const [selectedTier, setSelectedTier] = useState<TierType>(initialData?.tier || 'satuan');
   const [items, setItems] = useState<OrderItem[]>(buildDefaultItems());
-  const [transferProofUrl, setTransferProofUrl] = useState<string | null>(initialData?.transferProofUrl || null);
-  const [transferProofPreview, setTransferProofPreview] = useState<string | null>(initialData?.transferProofUrl || null);
   const [orderDate, setOrderDate] = useState(initialData?.orderDate || new Date().toISOString().split('T')[0]);
   const [showAdvanced, setShowAdvanced] = useState(false);
-  const [uploading, setUploading] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
+  const [showSearch, setShowSearch] = useState(false);
+  const [showNewCustomer, setShowNewCustomer] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const [customPriceSet, setCustomPriceSet] = useState<Set<number>>(new Set());
+  const [customPriceProductIdx, setCustomPriceProductIdx] = useState<number | null>(null);
+  const [customPriceInput, setCustomPriceInput] = useState('');
+  const [showReview, setShowReview] = useState(false);
 
-  // Sync items with Etalase Produk when products load (async) — only for new orders
   useEffect(() => {
-    if (initialData?.items && initialData.items.length > 0) return; // skip edits
+    if (initialData?.items && initialData.items.length > 0) return;
     if (products.length === 0) return;
-    setItems(products.map(p => ({
-      productId: p.id,
-      productName: p.name,
-      quantity: 0,
-      pricePerBottle: p.default_sell_price,
-      subtotal: 0,
-    })));
+    setItems(products.map(p => ({ productId: p.id, productName: p.name, quantity: 0, pricePerBottle: p.default_sell_price, subtotal: 0 })));
     setCustomPriceSet(new Set());
   }, [products, initialData]);
 
-  // Sync item prices when tier changes (e.g. manual tier switch in advanced panel)
   useEffect(() => {
-    if (selectedTier === 'satuan') return; // satuan uses qty-based brackets, not synced here
+    if (selectedTier === 'satuan') return;
     const tierPrice = getPriceByTier(selectedTier);
     setItems(prev => prev.map((item, i) => {
-      if (customPriceSet.has(i)) return item; // keep custom overrides
+      if (customPriceSet.has(i)) return item;
       return { ...item, pricePerBottle: tierPrice, subtotal: item.quantity * tierPrice };
     }));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedTier]);
 
-  // Custom price modal state
-  const [customPriceProductIdx, setCustomPriceProductIdx] = useState<number | null>(null);
-  const [customPriceInput, setCustomPriceInput] = useState('');
-
-  // Search customers
-  const [searchQuery, setSearchQuery] = useState('');
-  const [showSearch, setShowSearch] = useState(false);
-
-  // Totals
   const totalQuantity = items.reduce((s, i) => s + i.quantity, 0);
   const totalSellPrice = items.reduce((s, i) => s + i.subtotal, 0);
-  const totalBuyPrice = mitraInfo.buyPricePerBottle * totalQuantity;
-  const estimatedMargin = totalSellPrice - totalBuyPrice;
+  const estimatedMargin = totalSellPrice - (mitraInfo.buyPricePerBottle * totalQuantity);
 
-  // Recent + favorite customers
   const recentCustomer = customers[0] || null;
   const favoriteCustomers = customers.slice(1, 3);
 
@@ -169,25 +127,16 @@ export function OrderForm({ customers, currentStock, submitting, onSubmit, onCan
     setCustomerAddress((c as any).address || '');
     const tier = (c.tier && TIER_PRICING[c.tier as TierType]) ? c.tier as TierType : 'satuan';
     setSelectedTier(tier);
-    // Apply customer tier price to all items immediately
     const tierPrice = getPriceByTier(tier);
-    setItems(prev => prev.map(item => ({
-      ...item,
-      pricePerBottle: tierPrice,
-      subtotal: item.quantity * tierPrice,
-    })));
-    setCustomPriceSet(new Set()); // reset any custom overrides
+    setItems(prev => prev.map(item => ({ ...item, pricePerBottle: tierPrice, subtotal: item.quantity * tierPrice })));
+    setCustomPriceSet(new Set());
     setShowSearch(false);
+    setShowNewCustomer(false);
   };
 
   const incrementItem = (idx: number) => {
     setItems(prev => {
-      const newItems = prev.map((item, i) => {
-        if (i !== idx) return item;
-        const newQty = item.quantity + 1;
-        return { ...item, quantity: newQty };
-      });
-      // Price rule: tier-first, qty-bracket only for satuan
+      const newItems = prev.map((item, i) => i !== idx ? item : { ...item, quantity: item.quantity + 1 });
       const newTotal = newItems.reduce((s, it) => s + it.quantity, 0);
       const basePrice = selectedTier === 'satuan' ? getPriceByQty(newTotal) : getPriceByTier(selectedTier);
       return newItems.map((item, i) => {
@@ -199,12 +148,7 @@ export function OrderForm({ customers, currentStock, submitting, onSubmit, onCan
 
   const decrementItem = (idx: number) => {
     setItems(prev => {
-      const newItems = prev.map((item, i) => {
-        if (i !== idx) return item;
-        const newQty = Math.max(0, item.quantity - 1);
-        return { ...item, quantity: newQty };
-      });
-      // Price rule: tier-first, qty-bracket only for satuan
+      const newItems = prev.map((item, i) => i !== idx ? item : { ...item, quantity: Math.max(0, item.quantity - 1) });
       const newTotal = newItems.reduce((s, it) => s + it.quantity, 0);
       const basePrice = selectedTier === 'satuan' ? getPriceByQty(newTotal) : getPriceByTier(selectedTier);
       return newItems.map((item, i) => {
@@ -214,19 +158,24 @@ export function OrderForm({ customers, currentStock, submitting, onSubmit, onCan
     });
   };
 
-  const openCustomPrice = (idx: number) => {
-    setCustomPriceProductIdx(idx);
-    setCustomPriceInput(String(items[idx].pricePerBottle));
+  const setItemQuantity = (idx: number, qty: number) => {
+    const safeQty = Math.max(0, isNaN(qty) ? 0 : qty);
+    setItems(prev => {
+      const newItems = prev.map((item, i) => i !== idx ? item : { ...item, quantity: safeQty });
+      const newTotal = newItems.reduce((s, it) => s + it.quantity, 0);
+      const basePrice = selectedTier === 'satuan' ? getPriceByQty(newTotal) : getPriceByTier(selectedTier);
+      return newItems.map((item, i) => {
+        if (customPriceSet.has(i)) return { ...item, subtotal: item.quantity * item.pricePerBottle };
+        return { ...item, pricePerBottle: basePrice, subtotal: item.quantity * basePrice };
+      });
+    });
   };
 
   const applyCustomPrice = () => {
     if (customPriceProductIdx === null) return;
     const price = parseInt(customPriceInput.replace(/\D/g, ''), 10) || 0;
     setCustomPriceSet(prev => new Set([...prev, customPriceProductIdx]));
-    setItems(prev => prev.map((item, i) => {
-      if (i !== customPriceProductIdx) return item;
-      return { ...item, pricePerBottle: price, subtotal: item.quantity * price };
-    }));
+    setItems(prev => prev.map((item, i) => i !== customPriceProductIdx ? item : { ...item, pricePerBottle: price, subtotal: item.quantity * price }));
     setCustomPriceProductIdx(null);
   };
 
@@ -236,24 +185,12 @@ export function OrderForm({ customers, currentStock, submitting, onSubmit, onCan
     setCustomPriceInput(p => p + key);
   };
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onloadend = () => setTransferProofPreview(reader.result as string);
-    reader.readAsDataURL(file);
-    setUploading(true);
-    try {
-      const url = await uploadTransferProof(file);
-      setTransferProofUrl(url);
-      toast.success('Bukti transfer berhasil diupload');
-    } catch {
-      toast.error('Gagal upload bukti transfer');
-      setTransferProofPreview(null);
-    } finally { setUploading(false); }
-  };
+  const hasCustomPrice = items.some((item, idx) => {
+    if (!products[idx]) return false;
+    return item.pricePerBottle !== products[idx].default_sell_price;
+  });
 
-  const handleSubmit = () => {
+  const handleGoToReview = () => {
     const activeItems = items.filter(i => i.quantity > 0);
     if (!customerName.trim() || !customerPhone.trim()) {
       toast.error('Pilih atau isi data pelanggan terlebih dahulu');
@@ -267,252 +204,392 @@ export function OrderForm({ customers, currentStock, submitting, onSubmit, onCan
       toast.error(`Stok tidak cukup. Tersisa ${currentStock} pcs`);
       return;
     }
+    setShowReview(true);
+  };
+
+  const handleSubmit = () => {
+    const activeItems = items.filter(i => i.quantity > 0);
     onSubmit({
       customerName: customerName.trim(),
       customerPhone: customerPhone.trim(),
       customerAddress: customerAddress.trim() || undefined,
       tier: selectedTier,
       items: activeItems,
-      transferProofUrl: transferProofUrl || undefined,
       customerId: selectedCustomerId || undefined,
       createdAt: orderDate ? new Date(orderDate).toISOString() : undefined,
     });
   };
 
-  const hasCustomPrice = items.some((item, idx) => {
-    if (!products[idx]) return false;
-    return item.pricePerBottle !== products[idx].default_sell_price;
-  });
+  if (showReview) {
+    return (
+      <ReviewOrderPage
+        customerName={customerName}
+        customerPhone={customerPhone}
+        customerAddress={customerAddress}
+        tier={selectedTier}
+        items={items}
+        orderDate={orderDate}
+        hasCustomPrice={hasCustomPrice}
+        submitting={submitting}
+        onBack={() => setShowReview(false)}
+        onConfirm={handleSubmit}
+      />
+    );
+  }
 
   return (
-    <div className="flex flex-col min-h-screen bg-gray-50">
+    <div className="flex flex-col min-h-screen bg-slate-50">
       {/* Header */}
-      <header className="px-6 pt-8 pb-4 bg-white relative z-10">
-        <div className="flex justify-between items-start">
-          <div>
-            <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">Express Order</h1>
-            <p className="text-emerald-600 font-semibold flex items-center gap-1 mt-1">
-              <Zap className="h-4 w-4" />
-              Mode Cepat Aktif
-            </p>
-          </div>
+      <header className="px-4 pt-4 pb-2 bg-white z-10 sticky top-0 shadow-sm border-b border-slate-100">
+        <div className="flex justify-between items-center">
+          <h1 className="text-xl font-extrabold tracking-tight text-slate-900">Order</h1>
           <button
             onClick={onCancel}
-            className="w-10 h-10 flex items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 transition-colors"
+            className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 text-slate-500 active:bg-slate-200"
           >
-            <X className="h-5 w-5" />
+            <X className="h-4 w-4" />
           </button>
         </div>
       </header>
 
-      <main className="flex-1 space-y-8 py-4 pb-44 relative z-0">
-
+      <main className="flex-1 space-y-3 py-3 relative z-0 pb-44">
         {/* ── PILIH PELANGGAN ── */}
-        <section className="px-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-bold flex items-center gap-2">
-              <Users className="h-5 w-5 text-emerald-600" />
+        <section className="px-4">
+          <div className="flex items-center justify-between mb-2">
+            <h2 className="text-base font-bold flex items-center gap-1.5 text-slate-800">
+              <Search className="h-4 w-4 text-emerald-600" />
               Pilih Pelanggan
             </h2>
-            <button
-              className="text-emerald-600 text-sm font-bold"
-              onClick={() => setShowSearch(v => !v)}
-            >
-              + Baru
-            </button>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            {/* Recent */}
+          {/* Quick tiles: Terakhir + Favorit */}
+          <div className="grid grid-cols-2 gap-2 mb-2">
             {recentCustomer && (
               <button
                 onClick={() => selectCustomer(recentCustomer)}
                 className={cn(
-                  "flex flex-col items-start p-4 rounded-2xl shadow-md border-2 transition-all text-left active:scale-95",
+                  "flex flex-col items-start p-2.5 rounded-lg border transition-all text-left active:scale-[0.97]",
                   customerName === recentCustomer.name
-                    ? "bg-emerald-600 text-white border-emerald-600"
-                    : "bg-white border-slate-100 text-slate-800 hover:border-emerald-200"
+                    ? "bg-emerald-600 text-white border-emerald-600 shadow-sm"
+                    : "bg-white border-slate-200 shadow-sm"
                 )}
               >
-                <span className={cn("text-[10px] uppercase tracking-widest font-black mb-1",
-                  customerName === recentCustomer.name ? "opacity-80" : "text-slate-400")}>Terakhir</span>
-                <span className="text-lg font-bold leading-tight">{recentCustomer.name}</span>
-                <span className={cn("text-xs mt-1", customerName === recentCustomer.name ? "opacity-90" : "text-slate-500")}>
-                  {TIER_PRICING[recentCustomer.tier as TierType]?.label || recentCustomer.tier} • {(recentCustomer as any).address?.split(',')[0] || '–'}
+                <div className="flex w-full justify-between items-start">
+                  <span className={cn("text-[9px] uppercase tracking-widest font-black",
+                    customerName === recentCustomer.name ? "opacity-80" : "text-slate-400")}>
+                    Terakhir
+                  </span>
+                  {customerName === recentCustomer.name && (
+                    <div className="flex items-center gap-1.5">
+                      {onEditCustomer && (
+                        <button
+                          onClick={e => { e.stopPropagation(); onEditCustomer(recentCustomer); }}
+                          className="text-[9px] font-black bg-white/20 text-white px-1.5 py-0.5 rounded"
+                        >✏ Ubah</button>
+                      )}
+                      <span className="text-white opacity-80 text-xs">✓</span>
+                    </div>
+                  )}
+                </div>
+                <span className={cn("text-sm font-bold leading-tight mt-0.5",
+                  customerName !== recentCustomer.name && "text-slate-800")}>
+                  {recentCustomer.name}
+                </span>
+                <span className={cn("text-[10px] truncate w-full",
+                  customerName === recentCustomer.name ? "opacity-90" : "text-slate-500")}>
+                  {TIER_PRICING[recentCustomer.tier as TierType]?.label || recentCustomer.tier}
                 </span>
               </button>
             )}
 
-            {/* Favorites */}
             {favoriteCustomers.map(c => (
               <button
                 key={c.id}
                 onClick={() => selectCustomer(c)}
                 className={cn(
-                  "flex flex-col items-start p-4 rounded-2xl border-2 shadow-sm transition-all text-left active:scale-95",
+                  "flex flex-col items-start p-2.5 rounded-lg border transition-all text-left active:scale-[0.97]",
                   customerName === c.name
-                    ? "bg-emerald-600 text-white border-emerald-600"
-                    : "bg-white border-slate-100 text-slate-800 hover:border-emerald-200"
+                    ? "bg-emerald-600 text-white border-emerald-600 shadow-sm"
+                    : "bg-white border-slate-200 shadow-sm"
                 )}
               >
-                <span className={cn("text-[10px] uppercase tracking-widest font-black mb-1",
-                  customerName === c.name ? "opacity-80" : "text-slate-400")}>Favorit</span>
-                <span className="text-lg font-bold leading-tight">{c.name}</span>
-                <span className={cn("text-xs mt-1", customerName === c.name ? "opacity-90" : "text-slate-500")}>
-                  {TIER_PRICING[c.tier as TierType]?.label || c.tier} • {(c as any).address?.split(',')[0] || '–'}
+                <div className="flex w-full justify-between items-start">
+                  <span className={cn("text-[9px] uppercase tracking-widest font-black mb-0.5",
+                    customerName === c.name ? "opacity-80" : "text-slate-400")}>
+                    Favorit
+                  </span>
+                  {customerName === c.name && onEditCustomer && (
+                    <button
+                      onClick={e => { e.stopPropagation(); onEditCustomer(c); }}
+                      className="text-[9px] font-black bg-white/20 text-white px-1.5 py-0.5 rounded"
+                    >✏ Ubah</button>
+                  )}
+                </div>
+                <span className={cn("text-sm font-bold leading-tight",
+                  customerName !== c.name && "text-slate-800")}>
+                  {c.name}
+                </span>
+                <span className={cn("text-[10px] truncate w-full",
+                  customerName === c.name ? "opacity-90" : "text-slate-500")}>
+                  {TIER_PRICING[c.tier as TierType]?.label || c.tier}
                 </span>
               </button>
             ))}
+          </div>
 
-            {/* Search tile */}
+          {/* Two distinct action buttons */}
+          <div className="grid grid-cols-2 gap-2">
             <button
-              onClick={() => setShowSearch(v => !v)}
-              className="flex items-center justify-center p-4 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-300 transition-all text-slate-500 hover:bg-slate-100 active:scale-95"
+              onClick={() => { setShowSearch(v => !v); setShowNewCustomer(false); }}
+              className={cn(
+                "flex items-center justify-center gap-1.5 py-2.5 rounded-lg border font-bold text-xs transition-all active:scale-[0.97]",
+                showSearch
+                  ? "bg-emerald-600 text-white border-emerald-600"
+                  : "bg-white border-slate-200 text-slate-700 shadow-sm"
+              )}
             >
-              <Search className="h-5 w-5 mr-2" />
-              <span className="font-bold">Cari Lainnya</span>
+              <Search className="h-3.5 w-3.5" />
+              Cari Pelanggan
+            </button>
+            <button
+              onClick={() => { setShowNewCustomer(v => !v); setShowSearch(false); }}
+              className={cn(
+                "flex items-center justify-center gap-1.5 py-2.5 rounded-lg border font-bold text-xs transition-all active:scale-[0.97]",
+                showNewCustomer
+                  ? "bg-slate-800 text-white border-slate-800"
+                  : "bg-white border-slate-200 text-slate-700 shadow-sm"
+              )}
+            >
+              <span className="text-base leading-none">+</span>
+              Pelanggan Baru
             </button>
           </div>
 
-          {/* Search / New Customer panel */}
+          {/* Cari Pelanggan panel */}
           {showSearch && (
-            <div className="mt-4 bg-white rounded-2xl border-2 border-slate-200 overflow-hidden shadow-lg">
-              <div className="p-3 border-b border-slate-100">
+            <div className="mt-2 bg-white rounded-xl border border-slate-200 overflow-hidden shadow-md">
+              <div className="p-2.5 border-b border-slate-100">
                 <input
                   autoFocus
                   placeholder="Cari nama atau nomor..."
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
-                  className="w-full bg-slate-50 rounded-xl px-4 py-2.5 text-base font-medium outline-none border border-slate-200 focus:border-emerald-400"
+                  className="w-full bg-slate-50 rounded-lg px-3 py-2 text-sm font-medium outline-none border border-slate-200 focus:border-emerald-400"
                 />
               </div>
-
-              {/* Manual entry if no match */}
-              <div className="p-3 border-b border-slate-100 space-y-2">
-                <input
-                  placeholder="Nama pelanggan *"
-                  value={customerName}
-                  onChange={e => setCustomerName(e.target.value)}
-                  className="w-full bg-slate-50 rounded-xl px-4 py-2.5 text-base font-medium outline-none border border-slate-200 focus:border-emerald-400"
-                />
-                <input
-                  placeholder="No. WhatsApp *"
-                  value={customerPhone}
-                  onChange={e => setCustomerPhone(e.target.value)}
-                  className="w-full bg-slate-50 rounded-xl px-4 py-2.5 text-base font-medium outline-none border border-slate-200 focus:border-emerald-400"
-                />
-                <input
-                  placeholder="Alamat (opsional)"
-                  value={customerAddress}
-                  onChange={e => setCustomerAddress(e.target.value)}
-                  className="w-full bg-slate-50 rounded-xl px-4 py-2.5 text-base font-medium outline-none border border-slate-200 focus:border-emerald-400"
-                />
-              </div>
-
-              {/* Search results */}
-              {filteredCustomers.length > 0 && (
+              {filteredCustomers.length > 0 ? (
                 <div className="max-h-48 overflow-y-auto divide-y divide-slate-50">
                   {filteredCustomers.map(c => (
-                    <button
+                    <div
                       key={c.id}
-                      onClick={() => selectCustomer(c)}
-                      className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-emerald-50 transition-colors"
+                      className="flex w-full items-center gap-2 px-3 py-2.5"
                     >
-                      <div className="flex-1">
-                        <p className="font-bold text-slate-900">{c.name}</p>
-                        <p className="text-sm text-slate-500">{c.phone} · {TIER_PRICING[c.tier as TierType]?.label || c.tier}</p>
-                      </div>
-                    </button>
+                      <button
+                        onClick={() => selectCustomer(c)}
+                        className="flex-1 text-left hover:bg-emerald-50 active:bg-emerald-100 transition-colors rounded-lg px-1"
+                      >
+                        <p className="text-sm font-bold text-slate-900">{c.name}</p>
+                        <p className="text-xs text-slate-500">{c.phone} · {TIER_PRICING[c.tier as TierType]?.label || c.tier}</p>
+                      </button>
+                      {onEditCustomer && (
+                        <button
+                          onClick={() => onEditCustomer(c)}
+                          className="shrink-0 text-[10px] font-bold text-slate-500 border border-slate-200 rounded px-1.5 py-1 bg-white hover:bg-slate-50"
+                        >✏ Ubah</button>
+                      )}
+                      <button
+                        onClick={() => selectCustomer(c)}
+                        className="shrink-0 text-emerald-600 text-xs font-bold"
+                      >Pilih</button>
+                    </div>
                   ))}
                 </div>
+              ) : (
+                <p className="text-center text-sm text-slate-400 py-4">Pelanggan tidak ditemukan</p>
               )}
-
-              <div className="p-3">
+              <div className="p-2.5 border-t border-slate-100">
                 <button
                   onClick={() => setShowSearch(false)}
-                  className="w-full py-2.5 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-700 transition-colors"
+                  className="w-full py-2 bg-slate-100 text-slate-600 text-sm font-bold rounded-lg"
                 >
-                  Konfirmasi Pelanggan
+                  Tutup
                 </button>
               </div>
             </div>
           )}
 
-          {/* Selected customer indicator */}
-          {customerName && !showSearch && (
-            <div className="mt-3 flex items-center gap-2 bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-2">
-              <Users className="h-4 w-4 text-emerald-600 shrink-0" />
-              <span className="text-emerald-800 font-bold text-sm truncate">{customerName}</span>
-              <span className="text-emerald-600 text-sm">{customerPhone}</span>
+          {/* + Pelanggan Baru panel */}
+          {showNewCustomer && (
+            <div className="mt-2 bg-white rounded-xl border border-slate-200 overflow-hidden shadow-md">
+              <div className="p-2.5 space-y-2">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Data Pelanggan Baru</p>
+                <input
+                  autoFocus
+                  placeholder="Nama pelanggan *"
+                  value={customerName}
+                  onChange={e => setCustomerName(e.target.value)}
+                  className="w-full bg-slate-50 rounded-lg px-3 py-2 text-sm font-medium outline-none border border-slate-200 focus:border-emerald-400"
+                />
+                <input
+                  placeholder="No. WhatsApp *"
+                  value={customerPhone}
+                  onChange={e => setCustomerPhone(e.target.value)}
+                  className="w-full bg-slate-50 rounded-lg px-3 py-2 text-sm font-medium outline-none border border-slate-200 focus:border-emerald-400"
+                />
+                <input
+                  placeholder="Alamat (opsional)"
+                  value={customerAddress}
+                  onChange={e => setCustomerAddress(e.target.value)}
+                  className="w-full bg-slate-50 rounded-lg px-3 py-2 text-sm font-medium outline-none border border-slate-200 focus:border-emerald-400"
+                />
+              </div>
+              <div className="p-2.5 border-t border-slate-100">
+                <button
+                  onClick={() => setShowNewCustomer(false)}
+                  disabled={!customerName.trim() || !customerPhone.trim()}
+                  className={cn(
+                    "w-full py-2.5 text-sm font-bold rounded-lg transition-colors",
+                    customerName.trim() && customerPhone.trim()
+                      ? "bg-emerald-600 text-white hover:bg-emerald-700"
+                      : "bg-slate-100 text-slate-400"
+                  )}
+                >
+                  Konfirmasi Pelanggan Baru
+                </button>
+              </div>
             </div>
           )}
-        </section>
+
+          {/* Selected customer chip — always show when customer selected */}
+          {customerName && !showNewCustomer && (() => {
+            const chipEditableCustomer = selectedCustomerId
+              ? customers.find(x => x.id === selectedCustomerId) ?? null
+              : null;
+            return (
+              <div className="mt-2 flex items-center justify-between bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2">
+                <div>
+                  <span className="text-emerald-800 font-bold text-xs">✓ {customerName}</span>
+                  {customerPhone && <span className="text-emerald-600 text-xs ml-2">{customerPhone}</span>}
+                </div>
+                <div className="flex items-center gap-2">
+                  {chipEditableCustomer && onEditCustomer && (
+                    <button
+                      onClick={() => onEditCustomer(chipEditableCustomer)}
+                      className="text-[10px] text-slate-600 font-bold border border-slate-200 rounded px-1.5 py-0.5 bg-white"
+                    >✏ Ubah</button>
+                  )}
+                  <button
+                    onClick={() => { setShowSearch(true); setShowNewCustomer(false); }}
+                    className="text-[10px] text-emerald-600 font-bold underline"
+                  >Ganti</button>
+                </div>
+              </div>
+            );
+          })()}
+        </section >
+
+        {/* ── TANGGAL ── */}
+        <section className="px-4">
+          <button
+            onClick={() => setShowAdvanced(v => !v)}
+            className="w-full bg-white px-3 py-2.5 rounded-lg border border-slate-200 shadow-sm flex items-center justify-between active:bg-emerald-50 active:border-emerald-500 transition-colors group"
+          >
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0">
+                <Calendar className="h-4 w-4" />
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wide">Tanggal:</span>
+                <span className="text-sm font-bold text-slate-900">
+                  {formatDateCompact(orderDate)}
+                </span>
+              </div>
+            </div>
+            <Pencil className="h-4 w-4 text-slate-400 group-active:text-emerald-600" />
+          </button>
+
+          {
+            showAdvanced && (
+              <div className="mt-2 bg-white rounded-xl border border-slate-200 shadow-sm p-3">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Tanggal Order</p>
+                <input
+                  type="date"
+                  value={orderDate}
+                  onChange={e => setOrderDate(e.target.value)}
+                  className="w-full bg-slate-50 rounded-lg px-3 py-2 text-sm font-medium outline-none border border-slate-200 focus:border-emerald-400"
+                />
+              </div>
+            )
+          }
+        </section >
 
         {/* ── PRODUK ── */}
-        <section>
-          <div className="px-6 flex items-center justify-between mb-4">
-            <h2 className="text-lg font-bold flex items-center gap-2">
-              <Package className="h-5 w-5 text-emerald-600" />
+        < section >
+          <div className="px-4 flex items-center justify-between mb-2">
+            <h2 className="text-base font-bold flex items-center gap-1.5 text-slate-800">
+              <Package className="h-4 w-4 text-emerald-600" />
               Produk Terlaris
             </h2>
-            <span className="text-sm text-slate-500 font-medium">Stok: {currentStock}</span>
+            <span className="text-xs text-slate-500 font-medium">Stok: {currentStock}</span>
           </div>
 
-          <div className="flex overflow-x-auto gap-4 px-6 pb-4 hide-scrollbar" style={{ scrollbarWidth: 'none' }}>
+          <div className="flex overflow-x-auto gap-2.5 px-4 pb-2 hide-scrollbar" style={{ scrollbarWidth: 'none' }}>
             {items.map((item, idx) => {
-              const product = products[idx];
-              const isCustomPrice = product && item.pricePerBottle !== product.default_sell_price;
+              const isCustomPrice = products[idx] && item.pricePerBottle !== products[idx].default_sell_price;
+              const isActive = item.quantity > 0;
               return (
                 <div
                   key={idx}
-                  className="flex-shrink-0 w-64 bg-white rounded-3xl shadow-xl border border-slate-100 overflow-hidden relative"
+                  className={cn(
+                    "flex-shrink-0 w-48 bg-white rounded-xl border overflow-hidden shadow-sm transition-all",
+                    isActive ? "border-emerald-300 shadow-emerald-100" : "border-slate-100 opacity-80"
+                  )}
                 >
-                  {/* Product image / placeholder */}
-                  <div className="h-40 bg-gradient-to-br from-emerald-50 to-slate-100 relative overflow-hidden flex items-center justify-center">
-                    <Package className="h-16 w-16 text-emerald-200" />
-                    <div className="absolute top-3 left-3 bg-white/90 backdrop-blur px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter text-emerald-700">
+                  <div className="h-24 bg-gradient-to-br from-emerald-50 to-slate-100 relative overflow-hidden flex items-center justify-center">
+                    <Package className="h-10 w-10 text-emerald-200" />
+                    <div className="absolute top-1.5 left-1.5 bg-white/95 backdrop-blur px-1.5 py-0.5 rounded-md text-[9px] font-black uppercase tracking-tighter text-emerald-700 shadow-sm">
                       STOK {currentStock}
                     </div>
+                    {isCustomPrice && (
+                      <div className="absolute top-1.5 right-1.5 bg-amber-400 text-slate-900 text-[9px] font-black px-1.5 py-0.5 rounded-md uppercase">
+                        Custom
+                      </div>
+                    )}
                   </div>
-
-                  <div className="p-5">
-                    <h3 className="text-xl font-bold text-slate-800 leading-tight">{item.productName || 'Produk'}</h3>
-
-                    {/* Price with edit */}
+                  <div className="p-2.5">
+                    <h3 className="text-sm font-bold text-slate-800 leading-tight truncate">{item.productName || 'Produk'}</h3>
                     <button
                       type="button"
-                      onClick={() => openCustomPrice(idx)}
-                      className="mt-2 flex items-center gap-2 px-3 py-1 -ml-3 rounded-lg hover:bg-slate-50 active:bg-emerald-50 transition-colors w-full text-left"
+                      onClick={() => { setCustomPriceProductIdx(idx); setCustomPriceInput(String(item.pricePerBottle)); }}
+                      className="mt-0.5 flex items-center gap-1 text-left hover:bg-slate-50 rounded px-0.5 -ml-0.5 transition-colors"
                     >
-                      <span className={cn("font-bold text-lg", isCustomPrice ? "text-amber-500" : "text-emerald-600")}>
+                      <span className={cn("font-bold text-sm", isCustomPrice ? "text-amber-500" : "text-emerald-600")}>
                         {formatCurrency(item.pricePerBottle)}
                       </span>
-                      <span className="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center text-slate-400">
-                        <Pencil className="h-3.5 w-3.5" />
-                      </span>
-                      {isCustomPrice && (
-                        <span className="text-[10px] bg-amber-100 text-amber-700 font-bold px-1.5 py-0.5 rounded">CUSTOM</span>
-                      )}
+                      <Pencil className="h-2.5 w-2.5 text-slate-400" />
                     </button>
-
-                    {/* Quantity control */}
-                    <div className="mt-4 flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <button
-                          type="button"
-                          onClick={() => decrementItem(idx)}
-                          className="w-10 h-10 rounded-full border border-slate-200 flex items-center justify-center text-slate-400 active:bg-slate-50 transition-colors"
-                        >
-                          <Minus className="h-4 w-4" />
-                        </button>
-                        <span className="text-2xl font-black w-8 text-center">{item.quantity}</span>
-                      </div>
+                    <div className="mt-2 flex items-center justify-between gap-1">
+                      <button
+                        type="button"
+                        onClick={() => decrementItem(idx)}
+                        className="w-10 h-10 rounded-lg border border-slate-200 bg-slate-50 flex items-center justify-center text-slate-600 active:bg-slate-100 touch-manipulation"
+                      >
+                        <Minus className="h-4 w-4" />
+                      </button>
+                      <input
+                        type="number"
+                        inputMode="numeric"
+                        min={0}
+                        value={item.quantity}
+                        onChange={e => setItemQuantity(idx, parseInt(e.target.value, 10))}
+                        className="text-lg font-black text-slate-900 w-10 text-center bg-transparent outline-none border-b-2 border-slate-200 focus:border-emerald-500 transition-colors"
+                      />
                       <button
                         type="button"
                         onClick={() => incrementItem(idx)}
-                        className="w-16 h-16 rounded-2xl bg-emerald-600 text-white shadow-lg shadow-emerald-200 flex items-center justify-center active:scale-90 transition-transform hover:bg-emerald-700"
+                        className="w-10 h-10 rounded-lg bg-emerald-600 text-white shadow-sm shadow-emerald-100 flex items-center justify-center active:bg-emerald-700 active:scale-95 transition-all touch-manipulation"
                       >
-                        <Plus className="h-8 w-8" />
+                        <Plus className="h-5 w-5" />
                       </button>
                     </div>
                   </div>
@@ -520,187 +597,100 @@ export function OrderForm({ customers, currentStock, submitting, onSubmit, onCan
               );
             })}
           </div>
-        </section>
+        </section >
 
         {/* ── RINGKASAN ── */}
-        <section className="px-6">
-          <div className="bg-slate-900 text-white rounded-3xl p-6 shadow-2xl relative overflow-hidden">
-            {hasCustomPrice && (
-              <div className="absolute top-0 right-0 bg-amber-400 text-slate-900 text-[10px] font-black px-3 py-1 rounded-bl-xl uppercase tracking-wider flex items-center gap-1">
-                <Pencil className="h-3 w-3" />
-                Harga Custom Aktif
-              </div>
-            )}
-            <div className="flex justify-between items-center mb-4">
-              <span className="text-slate-400 font-medium">Ringkasan Pesanan</span>
-              <span className="bg-emerald-500 text-[10px] font-bold px-2 py-0.5 rounded uppercase">
+        < section className="px-4" >
+          <div className="bg-slate-800 text-white rounded-xl p-3 shadow-lg overflow-hidden">
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-slate-400 font-medium text-[10px] uppercase tracking-wide">Ringkasan</span>
+              <span className="bg-emerald-500 text-[9px] font-bold px-1.5 py-0.5 rounded uppercase">
                 {totalQuantity > 0 ? `${totalQuantity} pcs` : 'Baru'}
               </span>
             </div>
-            <div className="space-y-2 mb-5">
-              <div className="flex justify-between items-end">
-                <span className="text-slate-300">Total Harga</span>
-                <span className="text-2xl font-black">{formatCurrency(totalSellPrice)}</span>
+            <div className="flex justify-between items-end">
+              <div>
+                <div className="text-[10px] text-slate-400">Total Harga</div>
+                <div className="text-lg font-black leading-none mt-0.5">{formatCurrency(totalSellPrice)}</div>
               </div>
-              <div className="flex justify-between items-end">
-                <span className="text-emerald-400 font-bold">Estimasi Profit</span>
-                <span className={cn("text-xl font-black", estimatedMargin >= 0 ? "text-emerald-400" : "text-red-400")}>
-                  {formatCurrency(estimatedMargin)}
-                </span>
+              <div className="text-right">
+                <div className="text-[10px] text-emerald-400/80">Profit</div>
+                <div className={cn("text-sm font-bold leading-none mt-0.5", estimatedMargin >= 0 ? "text-emerald-400" : "text-red-400")}>
+                  {estimatedMargin >= 0 ? '+' : ''}{formatCurrency(estimatedMargin)}
+                </div>
               </div>
             </div>
-
-            {/* Advanced toggle */}
-            <button
-              type="button"
-              onClick={() => setShowAdvanced(v => !v)}
-              className="w-full py-4 bg-white/10 rounded-2xl border border-white/20 text-slate-300 font-bold flex items-center justify-center gap-2 hover:bg-white/20 transition-colors"
-            >
-              <SlidersHorizontal className="h-4 w-4" />
-              Opsi Pengiriman &amp; Lainnya
-              {showAdvanced ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-            </button>
-
-            {/* Advanced section */}
-            {showAdvanced && (
-              <div className="mt-4 space-y-3">
-                <div className="bg-white/5 rounded-2xl p-4 space-y-3">
-                  <p className="text-slate-400 text-xs font-bold uppercase tracking-wider">Tanggal Order</p>
-                  <input
-                    type="date"
-                    value={orderDate}
-                    onChange={e => setOrderDate(e.target.value)}
-                    className="w-full bg-white/10 rounded-xl px-4 py-3 text-white font-medium outline-none border border-white/20 focus:border-emerald-400"
-                  />
-                  <p className="text-slate-400 text-xs font-bold uppercase tracking-wider pt-1">Tier Pelanggan</p>
-                  <div className="grid grid-cols-2 gap-2">
-                    {Object.values(TIER_PRICING).map(tier => (
-                      <button
-                        key={tier.tier}
-                        type="button"
-                        onClick={() => setSelectedTier(tier.tier)}
-                        className={cn(
-                          "py-2.5 rounded-xl text-sm font-bold transition-colors",
-                          selectedTier === tier.tier
-                            ? "bg-emerald-500 text-white"
-                            : "bg-white/10 text-slate-300 hover:bg-white/20"
-                        )}
-                      >
-                        {tier.label}
-                      </button>
-                    ))}
-                  </div>
-                  <p className="text-slate-400 text-xs font-bold uppercase tracking-wider pt-1">Bukti Transfer</p>
-                  <input type="file" accept="image/*" onChange={handleFileUpload} ref={fileInputRef} className="hidden" />
-                  {transferProofPreview ? (
-                    <div className="relative">
-                      {uploading && (
-                        <div className="absolute inset-0 z-10 flex items-center justify-center rounded-xl bg-black/50">
-                          <Loader2 className="h-6 w-6 animate-spin text-white" />
-                        </div>
-                      )}
-                      <img src={transferProofPreview} alt="Bukti transfer" className="h-32 w-full rounded-xl object-cover" />
-                      <button
-                        type="button"
-                        onClick={() => { setTransferProofUrl(null); setTransferProofPreview(null); }}
-                        className="absolute right-2 top-2 w-8 h-8 bg-red-500 rounded-full flex items-center justify-center text-white"
-                      >
-                        <X className="h-4 w-4" />
-                      </button>
-                    </div>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => fileInputRef.current?.click()}
-                      className="w-full py-3 bg-white/10 rounded-xl border border-dashed border-white/30 text-slate-300 font-bold flex items-center justify-center gap-2 hover:bg-white/20 transition-colors"
-                    >
-                      <Upload className="h-4 w-4" />
-                      Upload Bukti Transfer
-                    </button>
-                  )}
-                </div>
-              </div>
-            )}
           </div>
-        </section>
-      </main>
+        </section >
+      </main >
 
-      {/* ── FIXED SAVE BUTTON ── */}
-      <div className="fixed bottom-[5rem] left-0 right-0 max-w-lg mx-auto p-6 bg-gradient-to-t from-white via-white/90 to-transparent pointer-events-none z-20">
-        <div className="pointer-events-auto">
-          <button
-            onClick={handleSubmit}
-            disabled={submitting || totalQuantity === 0 || totalQuantity > currentStock}
-            className={cn(
-              "w-full h-20 rounded-[2rem] shadow-2xl flex items-center justify-center gap-4 active:scale-95 transition-all font-black text-2xl tracking-tight",
-              submitting || totalQuantity === 0 || totalQuantity > currentStock
-                ? "bg-slate-300 text-slate-500 shadow-none"
-                : "bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-200"
-            )}
-          >
-            {submitting ? (
-              <><Loader2 className="h-6 w-6 animate-spin" /> Menyimpan...</>
-            ) : (
-              <>
-                SIMPAN ORDER
-                <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
-                  <ArrowRight className="h-5 w-5" />
-                </div>
-              </>
-            )}
-          </button>
-        </div>
-      </div>
+      {/* ── REVIEW Button ── */}
+      < div className="fixed bottom-16 left-0 right-0 max-w-md mx-auto p-4 bg-white/95 backdrop-blur-sm border-t border-slate-100 z-20" >
+        <button
+          onClick={handleGoToReview}
+          disabled={totalQuantity === 0}
+          className={cn(
+            "w-full h-12 rounded-xl shadow-lg flex items-center justify-center gap-2 active:scale-[0.98] transition-all font-bold text-base tracking-tight",
+            totalQuantity === 0
+              ? "bg-slate-200 text-slate-400"
+              : "bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-100"
+          )}
+        >
+          <span>REVIEW ORDER</span>
+          <ArrowRight className="h-4 w-4" />
+        </button>
+      </div >
 
       {/* ── CUSTOM PRICE MODAL ── */}
-      {customPriceProductIdx !== null && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center bg-slate-900/60 backdrop-blur-sm p-4">
-          <div className="bg-white w-full max-w-sm rounded-[2rem] shadow-2xl overflow-hidden p-6 relative">
-            <button
-              onClick={() => setCustomPriceProductIdx(null)}
-              className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 text-slate-500"
-            >
-              <X className="h-4 w-4" />
-            </button>
-            <div className="text-center mb-6">
-              <h3 className="text-slate-500 text-sm font-bold uppercase tracking-wide">Ubah Harga Satuan</h3>
-              <p className="text-slate-800 font-bold text-lg leading-tight mt-1">
-                {items[customPriceProductIdx]?.productName}
-              </p>
-            </div>
-            <div className="relative mb-6">
-              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                <span className="text-slate-400 font-bold text-2xl">Rp</span>
-              </div>
-              <div className="w-full pl-14 pr-4 py-4 text-4xl font-black text-emerald-600 bg-slate-50 border-2 border-emerald-500 rounded-2xl text-center shadow-inner">
-                {customPriceInput ? parseInt(customPriceInput).toLocaleString('id-ID') : '0'}
-              </div>
-            </div>
-            {/* Keypad */}
-            <div className="grid grid-cols-3 gap-3 mb-6">
-              {['1', '2', '3', '4', '5', '6', '7', '8', '9', 'C', '0', '⌫'].map(k => (
-                <button
-                  key={k}
-                  onClick={() => handleKeypad(k)}
-                  className="flex items-center justify-center text-2xl font-bold bg-white rounded-xl shadow-sm border border-slate-200 active:bg-emerald-50 active:border-emerald-500 transition-colors h-14"
-                >
-                  {k}
-                </button>
-              ))}
-            </div>
-            <div className="flex gap-3">
+      {
+        customPriceProductIdx !== null && (
+          <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center bg-slate-900/60 backdrop-blur-sm p-4">
+            <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden p-5 relative mb-4 sm:mb-0">
               <button
                 onClick={() => setCustomPriceProductIdx(null)}
-                className="flex-1 py-4 bg-slate-100 text-slate-700 font-bold rounded-2xl"
-              >Batal</button>
-              <button
-                onClick={applyCustomPrice}
-                className="flex-1 py-4 bg-emerald-600 text-white font-bold rounded-2xl shadow-lg shadow-emerald-200"
-              >Simpan</button>
+                className="absolute top-3 right-3 w-8 h-8 flex items-center justify-center rounded-full bg-slate-50 text-slate-400 active:bg-slate-100"
+              >
+                <X className="h-4 w-4" />
+              </button>
+              <div className="text-center mb-4">
+                <h3 className="text-slate-500 text-xs font-bold uppercase tracking-wide">Ubah Harga Satuan</h3>
+                <p className="text-slate-800 font-bold text-base leading-tight mt-1">
+                  {items[customPriceProductIdx]?.productName}
+                </p>
+              </div>
+              <div className="relative mb-4">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <span className="text-slate-400 font-bold text-xl">Rp</span>
+                </div>
+                <div className="w-full pl-10 pr-3 py-3 text-3xl font-black text-emerald-600 bg-slate-50 border-2 border-emerald-500 rounded-xl text-center shadow-inner">
+                  {customPriceInput ? parseInt(customPriceInput).toLocaleString('id-ID') : '0'}
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-2 mb-4">
+                {['1', '2', '3', '4', '5', '6', '7', '8', '9', 'C', '0', '⌫'].map(k => (
+                  <button
+                    key={k}
+                    onClick={() => handleKeypad(k)}
+                    className="flex items-center justify-center text-2xl font-bold bg-white rounded-lg shadow-sm border border-slate-200 active:bg-emerald-50 active:border-emerald-500 transition-colors h-14"
+                  >
+                    {k}
+                  </button>
+                ))}
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setCustomPriceProductIdx(null)}
+                  className="flex-1 py-3 bg-slate-100 text-slate-700 font-bold rounded-xl text-sm"
+                >Batal</button>
+                <button
+                  onClick={applyCustomPrice}
+                  className="flex-1 py-3 bg-emerald-600 text-white font-bold rounded-xl shadow-lg shadow-emerald-200 text-sm"
+                >Simpan</button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
-    </div>
+        )
+      }
+    </div >
   );
 }

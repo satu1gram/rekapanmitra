@@ -35,7 +35,22 @@ const App = () => (
     <AuthProvider>
       <TooltipProvider>
         <Toaster />
-        <Sonner />
+        <Sonner
+          position="top-center"
+          duration={4000}
+          richColors
+          expand
+          toastOptions={{
+            classNames: {
+              error: 'bg-red-600 text-white border-red-700 shadow-2xl shadow-red-300 font-bold text-sm',
+              success: 'bg-emerald-600 text-white border-emerald-700 font-bold text-sm',
+              warning: 'bg-amber-500 text-white border-amber-600 font-bold text-sm',
+              info: 'bg-slate-800 text-white border-slate-700 font-bold text-sm',
+              title: 'font-extrabold text-base',
+              description: 'font-medium opacity-90',
+            },
+          }}
+        />
         <BrowserRouter
           future={{
             v7_startTransition: true,

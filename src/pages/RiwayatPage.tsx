@@ -4,15 +4,15 @@ import { OrdersPage } from '@/components/orders/OrdersPage';
 
 export default function RiwayatPage() {
     const location = useLocation();
-    // Terima state openAdd yang dikirim dari DashboardPage
     const [openAddForm, setOpenAddForm] = useState(location.state?.openAdd === true);
 
-    // Reset state di history agar refresh tidak buka form lagi
+    // Watch for location state changes — handles FAB navigation from same page
     useEffect(() => {
         if (location.state?.openAdd) {
+            setOpenAddForm(true);
             window.history.replaceState({}, '');
         }
-    }, []);
+    }, [location.state]);
 
     return (
         <OrdersPage
