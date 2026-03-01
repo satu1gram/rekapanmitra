@@ -12,6 +12,7 @@ import { LoadingScreen } from '@/components/ui/LoadingScreen';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import type { Tables } from '@/integrations/supabase/types';
+import { useOrders } from '@/hooks/useOrdersDb';
 
 type StockEntry = Tables<'stock_entries'>;
 
@@ -20,9 +21,10 @@ type View = 'main' | 'restok' | 'initial' | 'history';
 export function StockPage() {
   const { currentStock, stockEntries, loading, addStock, updateStockEntry, deleteStockEntry, isLowStock } = useStock();
   const { uploadTransferProof } = useFileUpload();
-  const { mitraLevel } = useProfile();
+  const { mitraLevel, currentMitraInfo } = useProfile();
+  const { orders } = useOrders();
 
-  const mitraInfo = MITRA_LEVELS[mitraLevel];
+  const mitraInfo = currentMitraInfo;
 
   const [view, setView] = useState<View>('main');
   const [quantity, setQuantity] = useState(1);
@@ -38,13 +40,20 @@ export function StockPage() {
   const [editingEntry, setEditingEntry] = useState<StockEntry | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const now = new Date();
+  const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+  const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
+  const [historyStartDate, setHistoryStartDate] = useState(firstDay.toISOString().split('T')[0]);
+  const [historyEndDate, setHistoryEndDate] = useState(lastDay.toISOString().split('T')[0]);
+
   useEffect(() => {
-    setBuyPrice(MITRA_LEVELS[mitraLevel].buyPricePerBottle);
-  }, [mitraLevel]);
+    setBuyPrice(currentMitraInfo.buyPricePerBottle);
+  }, [currentMitraInfo]);
 
   const resetForm = () => {
     setQuantity(1);
-    setBuyPrice(MITRA_LEVELS[mitraLevel].buyPricePerBottle);
+    setBuyPrice(currentMitraInfo.buyPricePerBottle);
     setNotes('');
     setStockDate(new Date().toISOString().split('T')[0]);
     setShowAdvanced(false);
@@ -133,7 +142,7 @@ export function StockPage() {
   const openEdit = (entry: StockEntry) => {
     setEditingEntry(entry);
     setQuantity(entry.quantity);
-    setBuyPrice(entry.buy_price_per_bottle || MITRA_LEVELS[mitraLevel].buyPricePerBottle);
+    setBuyPrice(entry.buy_price_per_bottle || currentMitraInfo.buyPricePerBottle);
     setNotes(entry.notes || '');
     setTransferProofUrl(entry.transfer_proof_url);
     setTransferProofPreview(entry.transfer_proof_url);
@@ -155,10 +164,10 @@ export function StockPage() {
     return (
       <div className="flex flex-col min-h-screen bg-background">
         {/* Header */}
-        <header className="flex items-center justify-between px-5 py-5 sticky top-0 bg-background/95 backdrop-blur-sm z-10 border-b border-border/50">
+        <header className="flex items-center justify-between px-4 py-3 sticky top-0 bg-background/95 backdrop-blur-sm z-10 border-b border-border/50">
           <div>
-            <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">Stok</h1>
-            <p className="text-base text-gray-600 font-medium mt-0.5">Kelola persediaan produk</p>
+            <h1 className="text-xl font-extrabold text-gray-900 tracking-tight">Stok</h1>
+            <p className="text-sm text-gray-600 font-medium mt-0.5">Kelola persediaan produk</p>
           </div>
           <div className="flex gap-3">
             <button
@@ -170,7 +179,7 @@ export function StockPage() {
             </button>
             <button
               onClick={() => { resetForm(); setView('main'); }}
-              className="w-11 h-11 rounded-xl bg-red-50 text-red-600 border border-red-100 hover:bg-red-100 flex items-center justify-center font-bold transition-colors"
+              className="w-11 h-11 rounded-xl bg-red-50 text-primary border border-red-100 hover:bg-red-100 flex items-center justify-center font-bold transition-colors"
             >
               <X className="h-5 w-5" />
             </button>
@@ -178,97 +187,97 @@ export function StockPage() {
         </header>
 
         {/* Stock info bar */}
-        <div className="mx-5 mt-4 bg-white rounded-3xl p-5 shadow-sm border border-gray-100 flex items-center gap-5">
-          <div className="w-14 h-14 rounded-full bg-emerald-50 border border-emerald-100 flex items-center justify-center shrink-0">
-            <Package className="h-7 w-7 text-emerald-600" />
+        <div className="mx-4 mt-3 bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex items-center gap-4">
+          <div className="w-12 h-12 rounded-full bg-emerald-50 border border-emerald-100 flex items-center justify-center shrink-0">
+            <Package className="h-6 w-6 text-emerald-600" />
           </div>
           <div>
-            <p className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Stok Saat Ini</p>
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Stok Saat Ini</p>
             <div className="flex items-baseline gap-2">
-              <span className="text-5xl font-extrabold text-gray-900 tracking-tight">{currentStock}</span>
-              <span className="text-xl font-semibold text-gray-600">botol</span>
+              <span className="text-3xl font-extrabold text-gray-900 tracking-tight">{currentStock}</span>
+              <span className="text-sm font-semibold text-gray-600">botol</span>
             </div>
           </div>
         </div>
 
         {/* Form */}
-        <form onSubmit={handleRestok} className="flex-1 mx-5 mt-5 mb-6 bg-white rounded-3xl p-6 shadow-sm border border-gray-100 space-y-8">
-          <h3 className="text-xl font-bold text-gray-900 flex items-center">
-            <span className="w-1.5 h-6 bg-emerald-500 rounded-full mr-3" />
+        <form onSubmit={handleRestok} className="flex-1 mx-4 mt-3 mb-6 bg-white rounded-2xl p-4 shadow-sm border border-gray-100 space-y-5">
+          <h3 className="text-lg font-bold text-gray-900 flex items-center">
+            <span className="w-1.5 h-5 bg-success rounded-full mr-2.5" />
             {editingEntry ? 'Edit Restok' : 'Restok dari Distributor'}
           </h3>
 
           {/* Quantity */}
           <div>
-            <label className="block text-lg font-bold text-gray-800 mb-3">Jumlah Botol</label>
-            <div className="flex items-center gap-4">
+            <label className="block text-sm font-bold text-gray-800 mb-2">Jumlah Botol</label>
+            <div className="flex items-center gap-3">
               <button type="button"
-                className="w-16 h-16 rounded-2xl bg-white border-2 border-gray-200 flex items-center justify-center text-gray-500 hover:text-emerald-600 hover:border-emerald-500 active:bg-gray-50 transition-all shadow-sm"
+                className="w-12 h-12 rounded-xl bg-white border border-gray-200 flex items-center justify-center text-gray-500 hover:text-emerald-600 hover:border-emerald-500 active:bg-gray-50 transition-all shadow-sm"
                 onClick={() => setQuantity(Math.max(1, quantity - 1))} disabled={quantity <= 1}>
-                <Minus className="h-7 w-7" />
+                <Minus className="h-5 w-5" />
               </button>
-              <div className="flex-1 h-16 bg-white border-2 border-gray-200 rounded-2xl flex items-center justify-center shadow-inner">
+              <div className="flex-1 h-12 bg-white border border-gray-200 rounded-xl flex items-center justify-center shadow-inner">
                 <input
                   type="number" inputMode="numeric" min={1} value={quantity}
                   onChange={e => setQuantity(parseInt(e.target.value.replace(/^0+/, '')) || 1)}
-                  className="w-full h-full bg-transparent text-center text-3xl font-bold text-gray-900 border-none focus:ring-0 p-0"
+                  className="w-full h-full bg-transparent text-center text-xl font-bold text-gray-900 border-none focus:ring-0 p-0"
                 />
               </div>
               <button type="button"
-                className="w-16 h-16 rounded-2xl bg-white border-2 border-gray-200 flex items-center justify-center text-emerald-600 hover:bg-emerald-50 hover:border-emerald-500 active:bg-emerald-100 transition-all shadow-sm"
+                className="w-12 h-12 rounded-xl bg-white border border-gray-200 flex items-center justify-center text-emerald-600 hover:bg-emerald-50 hover:border-emerald-500 active:bg-emerald-100 transition-all shadow-sm"
                 onClick={() => setQuantity(quantity + 1)}>
-                <Plus className="h-7 w-7" />
+                <Plus className="h-5 w-5" />
               </button>
             </div>
           </div>
 
           {/* Buy price */}
           <div>
-            <label className="block text-lg font-bold text-gray-800 mb-3">Harga Beli per Botol</label>
-            <div className="bg-gray-50 rounded-2xl p-5 border border-gray-200">
-              <p className="text-2xl font-bold text-gray-900">{formatCurrency(buyPrice)}</p>
-              <p className="text-sm font-medium text-gray-600 flex items-center gap-1 mt-1">
-                <Check className="h-4 w-4 text-emerald-600" />
+            <label className="block text-sm font-bold text-gray-800 mb-2">Harga Beli per Botol</label>
+            <div className="bg-gray-50 rounded-xl p-3 border border-gray-200">
+              <p className="text-lg font-bold text-gray-900">{formatCurrency(buyPrice)}</p>
+              <p className="text-xs font-medium text-gray-600 flex items-center gap-1 mt-0.5">
+                <Check className="h-3.5 w-3.5 text-emerald-600" />
                 Level: {mitraInfo.label}
               </p>
             </div>
           </div>
 
           {/* Total summary */}
-          <div className="bg-gray-100 rounded-2xl p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border border-gray-200">
+          <div className="bg-gray-100 rounded-xl p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border border-gray-200">
             <div>
-              <p className="text-base font-bold text-gray-600 uppercase tracking-wide">Total Pembelian</p>
-              <p className="text-sm text-gray-500 font-medium mt-0.5">{quantity} botol × {formatCurrency(buyPrice)}</p>
+              <p className="text-xs font-bold text-gray-600 uppercase tracking-wide">Total Pembelian</p>
+              <p className="text-xs text-gray-500 font-medium">{quantity} botol × {formatCurrency(buyPrice)}</p>
             </div>
-            <span className="text-3xl font-extrabold text-emerald-600">{formatCurrency(quantity * buyPrice)}</span>
+            <span className="text-xl font-extrabold text-emerald-600">{formatCurrency(quantity * buyPrice)}</span>
           </div>
 
           {/* Advanced options */}
-          <div className="border-t border-gray-100 pt-4">
+          <div className="border-t border-gray-100 pt-3">
             <button
               type="button"
               onClick={() => setShowAdvanced(!showAdvanced)}
-              className="w-full flex items-center justify-between py-3 px-2 rounded-xl hover:bg-gray-50 transition-colors"
+              className="w-full flex items-center justify-between py-2 px-1 rounded-lg hover:bg-gray-50 transition-colors"
             >
-              <div className="flex items-center gap-3 text-lg font-bold text-gray-700">
-                <Settings2 className="h-6 w-6 text-gray-500" />
+              <div className="flex items-center gap-2 text-sm font-bold text-gray-700">
+                <Settings2 className="h-5 w-5 text-gray-500" />
                 Opsi Lainnya
               </div>
-              <ChevronDown className={cn('h-7 w-7 text-gray-400 transition-transform duration-300', showAdvanced && 'rotate-180')} />
+              <ChevronDown className={cn('h-5 w-5 text-gray-400 transition-transform duration-300', showAdvanced && 'rotate-180')} />
             </button>
 
             {showAdvanced && (
-              <div className="mt-2 space-y-6 px-1">
+              <div className="mt-2 space-y-4 px-1">
                 {/* Date */}
                 <div>
-                  <label className="block text-lg font-bold text-gray-800 mb-3">Pilih Tanggal</label>
+                  <label className="block text-sm font-bold text-gray-800 mb-2">Pilih Tanggal</label>
                   <input
                     type="date" value={stockDate}
                     onChange={e => setStockDate(e.target.value)}
-                    className="w-full rounded-2xl border-2 border-gray-200 bg-white py-4 px-5 text-xl font-bold text-gray-900 shadow-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+                    className="w-full rounded-xl border border-gray-200 bg-white py-2.5 px-3 text-sm font-medium text-gray-900 shadow-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
                   />
                   {stockDate && (
-                    <p className="mt-1.5 text-base text-gray-600 font-medium pl-1">
+                    <p className="mt-1 text-xs text-gray-500 font-medium pl-1">
                       {formattedDate(stockDate)}
                     </p>
                   )}
@@ -276,38 +285,38 @@ export function StockPage() {
 
                 {/* Notes */}
                 <div>
-                  <label className="block text-lg font-bold text-gray-800 mb-3">Catatan (Opsional)</label>
+                  <label className="block text-sm font-bold text-gray-800 mb-2">Catatan (Opsional)</label>
                   <textarea
-                    rows={3}
+                    rows={2}
                     placeholder="Tulis catatan disini..."
                     value={notes}
                     onChange={e => setNotes(e.target.value)}
-                    className="w-full rounded-2xl border-2 border-gray-200 bg-white text-gray-900 text-lg font-medium focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 p-4 placeholder-gray-400 shadow-sm resize-none"
+                    className="w-full rounded-xl border border-gray-200 bg-white text-gray-900 text-sm font-medium focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 p-3 placeholder-gray-400 shadow-sm resize-none"
                   />
                 </div>
 
                 {/* Upload proof */}
                 <div>
-                  <label className="block text-lg font-bold text-gray-800 mb-3">Bukti Pembayaran</label>
+                  <label className="block text-sm font-bold text-gray-800 mb-2">Bukti Pembayaran</label>
                   <input type="file" accept="image/*" ref={fileInputRef} onChange={handleFileUpload} className="hidden" />
                   {transferProofPreview ? (
-                    <div className="relative rounded-2xl overflow-hidden">
+                    <div className="relative rounded-xl overflow-hidden">
                       {uploading && (
                         <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/70">
-                          <Loader2 className="h-6 w-6 animate-spin text-emerald-600" />
+                          <Loader2 className="h-5 w-5 animate-spin text-emerald-600" />
                         </div>
                       )}
-                      <img src={transferProofPreview} alt="Bukti" className="w-full h-36 object-cover" />
+                      <img src={transferProofPreview} alt="Bukti" className="w-full h-32 object-cover" />
                       <button type="button" onClick={() => { setTransferProofUrl(null); setTransferProofPreview(null); if (fileInputRef.current) fileInputRef.current.value = ''; }}
-                        className="absolute top-2 right-2 w-8 h-8 bg-red-500 text-white rounded-full flex items-center justify-center">
-                        <X className="h-4 w-4" />
+                        className="absolute top-2 right-2 w-7 h-7 bg-destructive text-white rounded-full flex items-center justify-center">
+                        <X className="h-3.5 w-3.5" />
                       </button>
                     </div>
                   ) : (
                     <button type="button" onClick={() => fileInputRef.current?.click()}
                       disabled={uploading}
-                      className="w-full h-16 rounded-2xl border-2 border-dashed border-gray-300 bg-gray-50 text-gray-600 font-bold text-lg flex items-center justify-center gap-3 hover:bg-white hover:border-emerald-500 hover:text-emerald-600 transition-all active:scale-[0.99]">
-                      <Upload className="h-6 w-6" />
+                      className="w-full h-12 rounded-xl border border-dashed border-gray-300 bg-gray-50 text-gray-600 font-bold text-sm flex items-center justify-center gap-2 hover:bg-white hover:border-emerald-500 hover:text-emerald-600 transition-all active:scale-[0.99]">
+                      <Upload className="h-4 w-4" />
                       Unggah Foto Bukti
                     </button>
                   )}
@@ -320,9 +329,9 @@ export function StockPage() {
           <button
             type="submit"
             disabled={submitting}
-            className="w-full bg-primary text-primary-foreground py-5 rounded-2xl font-bold text-xl shadow-lg hover:bg-primary/90 active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-60"
+            className="w-full bg-primary text-primary-foreground py-3.5 rounded-xl font-bold text-base shadow-md hover:bg-primary/90 active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-60"
           >
-            {submitting ? <Loader2 className="h-6 w-6 animate-spin" /> : <Plus className="h-7 w-7" />}
+            {submitting ? <Loader2 className="h-5 w-5 animate-spin" /> : <Plus className="h-5 w-5" />}
             {editingEntry ? 'Simpan Perubahan' : 'Tambah ke Stok'}
           </button>
         </form>
@@ -334,45 +343,46 @@ export function StockPage() {
   if (view === 'initial') {
     return (
       <div className="flex flex-col min-h-screen bg-background">
-        <header className="flex items-center justify-between px-5 py-5 sticky top-0 bg-background/95 backdrop-blur-sm z-10 border-b border-border/50">
+        {/* Header */}
+        <header className="flex items-center justify-between px-4 py-3 sticky top-0 bg-background/95 backdrop-blur-sm z-10 border-b border-border/50">
           <div>
-            <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">Stok Awal</h1>
-            <p className="text-base text-gray-600 font-medium mt-0.5">Inisiasi stok toko tanpa harga beli</p>
+            <h1 className="text-xl font-extrabold text-gray-900 tracking-tight">Stok Awal</h1>
+            <p className="text-sm text-gray-600 font-medium mt-0.5">Inisiasi stok tanpa harga</p>
           </div>
           <button onClick={() => setView('main')}
-            className="w-11 h-11 rounded-xl bg-red-50 text-red-600 border border-red-100 hover:bg-red-100 flex items-center justify-center transition-colors">
-            <X className="h-5 w-5" />
+            className="w-9 h-9 rounded-lg bg-red-50 text-primary border border-red-100 hover:bg-red-100 flex items-center justify-center transition-colors">
+            <X className="h-4 w-4" />
           </button>
         </header>
 
-        <form onSubmit={handleInitialStock} className="flex-1 mx-5 mt-6 mb-6 bg-white rounded-3xl p-6 shadow-sm border border-gray-100 space-y-8">
-          <h3 className="text-xl font-bold text-gray-900 flex items-center">
-            <span className="w-1.5 h-6 bg-emerald-500 rounded-full mr-3" />
+        <form onSubmit={handleInitialStock} className="flex-1 mx-4 mt-4 mb-6 bg-white rounded-2xl p-4 shadow-sm border border-gray-100 space-y-6">
+          <h3 className="text-lg font-bold text-gray-900 flex items-center">
+            <span className="w-1.5 h-5 bg-success rounded-full mr-2.5" />
             Jumlah Botol Awal
           </h3>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             <button type="button"
-              className="w-16 h-16 rounded-2xl bg-white border-2 border-gray-200 flex items-center justify-center text-gray-500 hover:text-emerald-600 hover:border-emerald-500 transition-all shadow-sm"
+              className="w-12 h-12 rounded-xl bg-white border border-gray-200 flex items-center justify-center text-gray-500 hover:text-emerald-600 hover:border-emerald-500 transition-all shadow-sm"
               onClick={() => setInitialQty(Math.max(1, initialQty - 1))} disabled={initialQty <= 1}>
-              <Minus className="h-7 w-7" />
+              <Minus className="h-5 w-5" />
             </button>
-            <div className="flex-1 h-16 bg-white border-2 border-gray-200 rounded-2xl flex items-center justify-center shadow-inner">
+            <div className="flex-1 h-12 bg-white border border-gray-200 rounded-xl flex items-center justify-center shadow-inner">
               <input type="number" inputMode="numeric" min={1} value={initialQty}
                 onChange={e => setInitialQty(parseInt(e.target.value.replace(/^0+/, '')) || 1)}
-                className="w-full h-full bg-transparent text-center text-3xl font-bold text-gray-900 border-none focus:ring-0 p-0" />
+                className="w-full h-full bg-transparent text-center text-xl font-bold text-gray-900 border-none focus:ring-0 p-0" />
             </div>
             <button type="button"
-              className="w-16 h-16 rounded-2xl bg-white border-2 border-gray-200 flex items-center justify-center text-emerald-600 hover:bg-emerald-50 hover:border-emerald-500 transition-all shadow-sm"
+              className="w-12 h-12 rounded-xl bg-white border border-gray-200 flex items-center justify-center text-emerald-600 hover:bg-emerald-50 hover:border-emerald-500 transition-all shadow-sm"
               onClick={() => setInitialQty(initialQty + 1)}>
-              <Plus className="h-7 w-7" />
+              <Plus className="h-5 w-5" />
             </button>
           </div>
 
           <button type="submit" disabled={submitting}
-            className="w-full bg-primary text-primary-foreground py-5 rounded-2xl font-bold text-xl shadow-lg hover:bg-primary/90 active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-60">
-            {submitting ? <Loader2 className="h-6 w-6 animate-spin" /> : <Package className="h-7 w-7" />}
-            Tambah Stok Awal
+            className="w-full bg-primary text-primary-foreground py-3.5 rounded-xl font-bold text-base shadow-md hover:bg-primary/90 active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-60">
+            {submitting ? <Loader2 className="h-5 w-5 animate-spin" /> : <Package className="h-5 w-5" />}
+            Tambah Stok
           </button>
         </form>
       </div>
@@ -383,91 +393,143 @@ export function StockPage() {
     return (
       <div className="flex flex-col min-h-screen bg-background">
         {/* Header */}
-        <header className="flex items-center space-x-4 px-5 py-5 sticky top-0 bg-background/95 backdrop-blur-sm z-30 border-b border-border/50">
+        <header className="flex items-center space-x-3 px-4 py-3 sticky top-0 bg-background/95 backdrop-blur-sm z-30 border-b border-border/50">
           <button
             onClick={() => setView('main')}
-            className="flex items-center justify-center w-11 h-11 rounded-xl bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 active:scale-95 transition-all shadow-sm"
+            className="flex items-center justify-center w-9 h-9 rounded-lg bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 active:scale-95 transition-all shadow-sm"
           >
-            <ChevronDown className="h-5 w-5 rotate-90" />
+            <ChevronDown className="h-4 w-4 rotate-90" />
           </button>
           <div>
-            <h1 className="text-2xl font-black text-gray-900 tracking-tight">Riwayat Aktivitas</h1>
-            <p className="text-sm text-gray-500 font-medium">Transaksi &amp; Stok</p>
+            <h1 className="text-xl font-extrabold text-gray-900 tracking-tight">Riwayat Stok</h1>
+            <p className="text-xs text-gray-500 font-medium">Transaksi stok barang</p>
           </div>
         </header>
 
-        <div className="px-5 py-4 space-y-4">
-          {stockEntries.length === 0 ? (
-            <div className="text-center py-16 text-gray-400">
-              <Package className="h-12 w-12 mx-auto mb-3 opacity-30" />
-              <p className="font-bold text-sm">Belum ada riwayat stok</p>
-            </div>
-          ) : stockEntries.map(entry => {
-            const isIn = entry.type === 'in';
-            const label = entry.notes === 'Stok awal'
-              ? 'Stok Awal'
-              : isIn ? 'Barang Masuk' : 'Barang Keluar';
-            const totalValue = Number(mitraInfo.buyPricePerBottle) * entry.quantity;
-            return (
-              <div key={entry.id} className="bg-white rounded-3xl p-5 shadow-[0_2px_8px_-2px_rgba(0,0,0,0.05)] border border-gray-100 flex flex-col gap-4">
-                {/* Top row: icon + badge + name + date */}
-                <div className="flex items-start gap-4">
-                  <div className={cn(
-                    'w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0 border',
-                    isIn ? 'bg-blue-50 border-blue-100' : 'bg-green-50 border-green-100'
-                  )}>
-                    {isIn
-                      ? <ArrowDown className="h-7 w-7 text-blue-600" />
-                      : <ArrowUp className="h-7 w-7 text-emerald-600" />}
-                  </div>
-                  <div className="flex-1">
-                    <span className={cn(
-                      'text-xs font-black px-2.5 py-0.5 rounded-full uppercase tracking-wide',
-                      isIn ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'
-                    )}>
-                      {label}
-                    </span>
-                    <h3 className="text-lg font-black text-gray-900 leading-tight mt-1">
-                      {mitraInfo.label}
-                    </h3>
-                    <p className="text-sm text-gray-500 font-medium mt-0.5">
-                      {formatDateTime(entry.created_at)}
-                    </p>
-                  </div>
-                  {/* Edit/Delete for restok entries */}
-                  {entry.type !== 'out' && (
-                    <div className="flex gap-1">
-                      <button onClick={() => openEdit(entry)}
-                        className="w-8 h-8 rounded-lg bg-gray-50 text-gray-500 hover:bg-gray-100 flex items-center justify-center border border-gray-100">
-                        <Edit className="h-3.5 w-3.5" />
-                      </button>
-                      <button onClick={() => handleDelete(entry)}
-                        className="w-8 h-8 rounded-lg bg-red-50 text-red-400 hover:bg-red-100 flex items-center justify-center">
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
-                  )}
-                </div>
+        {/* Date Filter */}
+        <div className="px-3 py-2 flex items-center gap-2 bg-white border-b border-gray-100 shadow-sm z-20 sticky top-[60px]">
+          <input
+            type="date"
+            value={historyStartDate}
+            onChange={e => setHistoryStartDate(e.target.value)}
+            className="flex-1 rounded-lg border border-gray-200 text-[11px] font-semibold px-2 py-1.5"
+          />
+          <span className="text-gray-400 font-bold text-[10px]">s/d</span>
+          <input
+            type="date"
+            value={historyEndDate}
+            onChange={e => setHistoryEndDate(e.target.value)}
+            className="flex-1 rounded-lg border border-gray-200 text-[11px] font-semibold px-2 py-1.5"
+          />
+        </div>
 
-                {/* Bottom row: Jumlah | Total */}
-                <div className="flex justify-between items-end border-t border-gray-100 pt-3">
-                  <div>
-                    <p className="text-xs text-gray-500 font-bold mb-0.5">Jumlah</p>
-                    <p className="text-2xl font-black text-gray-800">
-                      {isIn ? '+' : '-'}{entry.quantity}{' '}
-                      <span className="text-sm font-bold text-gray-500">btl</span>
-                    </p>
+        <div className="px-3 py-2 space-y-1.5">
+          {(() => {
+            const filteredHistory = stockEntries.filter(entry => {
+              const d = new Date(entry.created_at);
+              d.setHours(0, 0, 0, 0);
+              const start = new Date(historyStartDate); start.setHours(0, 0, 0, 0);
+              const end = new Date(historyEndDate); end.setHours(23, 59, 59, 999);
+              return d.getTime() >= start.getTime() && d.getTime() <= end.getTime();
+            });
+
+            if (filteredHistory.length === 0) {
+              return (
+                <div className="text-center py-10 text-gray-400">
+                  <Package className="h-10 w-10 mx-auto mb-2 opacity-30" />
+                  <p className="font-bold text-xs">Belum ada riwayat stok</p>
+                </div>
+              );
+            }
+
+            return filteredHistory.map(entry => {
+              const isIn = entry.type === 'in';
+              const orderRef = entry.order_id ? orders.find(o => o.id === entry.order_id) : null;
+              let displayTitle = '';
+              let badgeText = '';
+
+              if (entry.notes === 'Stok awal') {
+                displayTitle = 'Stok Awal';
+                badgeText = 'AWAL';
+              } else if (isIn) {
+                displayTitle = 'Dari: Gudang Pusat';
+                badgeText = 'RESTOK';
+              } else if (!isIn && orderRef) {
+                displayTitle = `Ke: ${orderRef.customer_name}`;
+                badgeText = 'ORDER';
+              } else {
+                displayTitle = 'Barang Keluar';
+                badgeText = 'KELUAR';
+              }
+
+              const totalValue = isIn
+                ? (entry.buy_price_per_bottle || mitraInfo.buyPricePerBottle) * entry.quantity
+                : (orderRef ? Number(orderRef.total_price) : 0);
+
+              return (
+                <div key={entry.id} className="bg-white rounded-xl p-2.5 shadow-sm border border-gray-100 flex flex-col gap-1.5">
+                  <div className="flex items-start gap-2">
+                    <div className={cn(
+                      'w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0',
+                      isIn ? 'bg-blue-100' : 'bg-emerald-100'
+                    )}>
+                      {isIn
+                        ? <ArrowDown className="h-4 w-4 text-blue-600" />
+                        : <ArrowUp className="h-4 w-4 text-emerald-600" />}
+                    </div>
+
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <h3 className="text-sm font-bold text-gray-900 leading-none truncate">
+                          {displayTitle}
+                        </h3>
+                        <span className={cn(
+                          'text-[8px] font-bold px-1 py-0.5 rounded uppercase tracking-wider leading-none shrink-0',
+                          isIn ? 'bg-blue-100 text-blue-700' : 'bg-emerald-100 text-emerald-700'
+                        )}>
+                          {badgeText}
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-gray-400 mt-0.5">
+                        {formatDateTime(entry.created_at)}
+                      </p>
+                    </div>
+
+                    {entry.type !== 'out' && (
+                      <div className="flex gap-1 shrink-0">
+                        <button onClick={() => openEdit(entry)}
+                          className="w-6 h-6 rounded-md bg-gray-50 text-gray-400 hover:text-gray-600 hover:bg-gray-100 flex items-center justify-center">
+                          <Edit className="h-3 w-3" />
+                        </button>
+                        <button onClick={() => handleDelete(entry)}
+                          className="w-6 h-6 rounded-md bg-red-50 text-red-400 hover:bg-red-100 flex items-center justify-center">
+                          <Trash2 className="h-3 w-3" />
+                        </button>
+                      </div>
+                    )}
                   </div>
-                  <div className="text-right">
-                    <p className="text-xs text-gray-500 font-bold mb-0.5">Total</p>
-                    <p className={cn('text-2xl font-black', isIn ? 'text-blue-600' : 'text-emerald-600')}>
-                      {formatCurrency(isIn ? totalValue : totalValue)}
-                    </p>
+
+                  <div className="flex justify-between items-end border-t border-gray-50 pt-1.5">
+                    <div>
+                      <p className="text-[8px] text-gray-500 font-bold uppercase tracking-wider mb-0.5">Jumlah</p>
+                      <p className={cn("text-sm font-black leading-none", isIn ? "text-blue-600" : "text-red-500")}>
+                        {isIn ? '+' : '-'}{entry.quantity}{' '}
+                        <span className="text-[9px] font-bold text-gray-500">btl</span>
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-[8px] text-gray-500 font-bold uppercase tracking-wider mb-0.5">
+                        {isIn ? 'Nilai Masuk' : 'Nilai Total'}
+                      </p>
+                      <p className="text-sm font-black text-emerald-600 leading-none">
+                        {formatCurrency(totalValue)}
+                      </p>
+                    </div>
                   </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            });
+          })()}
         </div>
       </div>
     );
@@ -477,62 +539,60 @@ export function StockPage() {
   return (
     <div className="flex flex-col min-h-screen bg-background">
       {/* Header */}
-      <header className="flex items-center justify-between px-5 py-5 sticky top-0 bg-background/95 backdrop-blur-sm z-10 border-b border-border/50">
+      <header className="flex items-center justify-between px-4 py-3 sticky top-0 bg-background/95 backdrop-blur-sm z-10 border-b border-border/50">
         <div>
-          <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">Stok</h1>
-          <p className="text-base text-gray-600 font-medium mt-0.5">Kelola persediaan produk</p>
+          <h1 className="text-xl font-extrabold text-gray-900 tracking-tight">Stok Produksi</h1>
+          <p className="text-sm text-gray-600 font-medium mt-0.5">Kelola persediaan barang</p>
         </div>
         <button onClick={() => setView('history')}
-          className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl border-2 border-gray-200 bg-white text-gray-700 font-semibold hover:bg-gray-50 shadow-sm transition-colors">
-          <History className="h-5 w-5" />
+          className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-200 bg-white text-gray-700 font-semibold hover:bg-gray-50 shadow-sm transition-colors text-sm">
+          <History className="h-4 w-4" />
           <span>Riwayat</span>
         </button>
       </header>
 
-      <main className="px-5 pt-4 pb-6 space-y-5">
+      <main className="px-4 pt-3 pb-6 space-y-4">
         {/* Stock card */}
-        <section className={cn('bg-white rounded-3xl p-6 shadow-sm border flex items-center gap-5',
+        <section className={cn('bg-white rounded-2xl p-4 shadow-sm border flex items-center gap-4',
           isLowStock ? 'border-red-200 bg-red-50' : 'border-gray-100')}>
-          <div className={cn('w-16 h-16 rounded-full flex items-center justify-center shrink-0',
+          <div className={cn('w-12 h-12 rounded-xl flex items-center justify-center shrink-0',
             isLowStock ? 'bg-red-100' : 'bg-emerald-50 border border-emerald-100')}>
             {isLowStock
-              ? <AlertTriangle className="h-8 w-8 text-red-500" />
-              : <Package className="h-8 w-8 text-emerald-600" />}
+              ? <AlertTriangle className="h-6 w-6 text-red-500" />
+              : <Package className="h-6 w-6 text-emerald-600" />}
           </div>
           <div>
-            <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Stok Saat Ini</h2>
-            <div className="flex items-baseline gap-2">
-              <span className="text-5xl font-extrabold text-gray-900 tracking-tight">{currentStock}</span>
-              <span className="text-xl font-semibold text-gray-600">botol</span>
+            <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Stok Saat Ini</h2>
+            <div className="flex items-baseline gap-1.5">
+              <span className="text-3xl font-extrabold text-gray-900 tracking-tight">{currentStock}</span>
+              <span className="text-sm font-semibold text-gray-600">botol</span>
             </div>
-            {isLowStock && <p className="text-sm font-bold text-red-500 mt-1">⚠ Stok Rendah!</p>}
+            {isLowStock && <p className="text-xs font-bold text-red-500 mt-0.5">⚠ Stok Rendah!</p>}
           </div>
         </section>
 
         {/* Action buttons */}
-        <section className="grid grid-cols-2 gap-4">
+        <section className="grid grid-cols-2 gap-3">
           <button
             onClick={() => { resetForm(); setView('restok'); }}
-            className="bg-primary text-primary-foreground rounded-3xl p-6 flex flex-col items-start gap-3 shadow-lg hover:bg-primary/90 active:scale-[0.98] transition-all"
+            className="bg-primary text-primary-foreground rounded-2xl p-4 flex flex-col items-start gap-2.5 shadow-md hover:bg-primary/90 active:scale-[0.98] transition-all"
           >
-            <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center">
-              <Plus className="h-7 w-7" />
+            <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
+              <Plus className="h-5 w-5" />
             </div>
             <div>
-              <p className="font-black text-lg leading-tight">Restok</p>
-              <p className="text-primary-foreground/70 text-sm font-medium">Tambah dari distributor</p>
+              <p className="font-bold text-sm leading-tight">Restok Barang</p>
             </div>
           </button>
           <button
             onClick={() => setView('initial')}
-            className="bg-card border-2 border-border text-foreground rounded-3xl p-6 flex flex-col items-start gap-3 shadow-sm hover:bg-accent active:scale-[0.98] transition-all"
+            className="bg-card border border-border text-foreground rounded-2xl p-4 flex flex-col items-start gap-2.5 shadow-sm hover:bg-accent active:scale-[0.98] transition-all"
           >
-            <div className="w-12 h-12 bg-gray-100 rounded-2xl flex items-center justify-center">
-              <Package className="h-7 w-7 text-gray-600" />
+            <div className="w-10 h-10 bg-gray-100 rounded-xl flex items-center justify-center">
+              <Package className="h-5 w-5 text-gray-600" />
             </div>
             <div>
-              <p className="font-black text-lg leading-tight">Stok Awal</p>
-              <p className="text-gray-500 text-sm font-medium">Inisiasi tanpa harga</p>
+              <p className="font-bold text-sm leading-tight">Stok Awal</p>
             </div>
           </button>
         </section>
@@ -546,48 +606,72 @@ export function StockPage() {
                 Lihat semua →
               </button>
             </div>
-            <div className="space-y-3">
+            <div className="space-y-1.5">
               {stockEntries.slice(0, 3).map(entry => {
                 const isIn = entry.type === 'in';
-                const label = entry.notes === 'Stok awal'
-                  ? 'Stok Awal'
-                  : isIn ? 'Barang Masuk' : 'Barang Keluar';
-                const totalValue = Number(mitraInfo.buyPricePerBottle) * entry.quantity;
+                const orderRef = entry.order_id ? orders.find(o => o.id === entry.order_id) : null;
+                let displayTitle = '';
+                let badgeText = '';
+
+                if (entry.notes === 'Stok awal') {
+                  displayTitle = 'Stok Awal';
+                  badgeText = 'AWAL';
+                } else if (isIn) {
+                  displayTitle = 'Dari: Gudang Pusat';
+                  badgeText = 'RESTOK';
+                } else if (!isIn && orderRef) {
+                  displayTitle = `Ke: ${orderRef.customer_name}`;
+                  badgeText = 'ORDER';
+                } else {
+                  displayTitle = 'Barang Keluar';
+                  badgeText = 'KELUAR';
+                }
+
+                const totalValue = isIn
+                  ? (entry.buy_price_per_bottle || mitraInfo.buyPricePerBottle) * entry.quantity
+                  : (orderRef ? Number(orderRef.total_price) : 0);
+
                 return (
-                  <div key={entry.id} className="bg-white rounded-3xl p-5 shadow-[0_2px_8px_-2px_rgba(0,0,0,0.05)] border border-gray-100 flex flex-col gap-3">
-                    {/* Icon + badge + name + time */}
-                    <div className="flex items-start gap-3">
+                  <div key={entry.id} className="bg-white rounded-xl p-2.5 shadow-sm border border-gray-100 flex flex-col gap-1.5">
+                    <div className="flex items-start gap-2">
                       <div className={cn(
-                        'w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 border',
-                        isIn ? 'bg-blue-50 border-blue-100' : 'bg-green-50 border-green-100'
+                        'w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0',
+                        isIn ? 'bg-blue-100' : 'bg-emerald-100'
                       )}>
                         {isIn
-                          ? <ArrowDown className="h-5 w-5 text-blue-600" />
-                          : <ArrowUp className="h-5 w-5 text-emerald-600" />}
+                          ? <ArrowDown className="h-4 w-4 text-blue-600" />
+                          : <ArrowUp className="h-4 w-4 text-emerald-600" />}
                       </div>
-                      <div>
-                        <span className={cn(
-                          'text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wide',
-                          isIn ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'
-                        )}>
-                          {label}
-                        </span>
-                        <p className="font-black text-gray-900 text-sm leading-tight mt-0.5">{mitraInfo.label}</p>
-                        <p className="text-xs text-gray-500 mt-0.5">{formatDateTime(entry.created_at)}</p>
+
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <h3 className="text-sm font-bold text-gray-900 leading-none truncate">
+                            {displayTitle}
+                          </h3>
+                          <span className={cn(
+                            'text-[8px] font-bold px-1 py-0.5 rounded uppercase tracking-wider leading-none shrink-0',
+                            isIn ? 'bg-blue-100 text-blue-700' : 'bg-emerald-100 text-emerald-700'
+                          )}>
+                            {badgeText}
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-gray-400 mt-0.5">{formatDateTime(entry.created_at)}</p>
                       </div>
                     </div>
-                    {/* Jumlah | Total */}
-                    <div className="flex justify-between items-end border-t border-gray-100 pt-2">
+
+                    <div className="flex justify-between items-end border-t border-gray-50 pt-1.5">
                       <div>
-                        <p className="text-[10px] text-gray-500 font-black uppercase tracking-wider mb-0.5">Jumlah</p>
-                        <p className="text-xl font-black text-gray-800">
+                        <p className="text-[8px] text-gray-500 font-bold uppercase tracking-wider mb-0.5">Jumlah</p>
+                        <p className={cn("text-sm font-black leading-none", isIn ? "text-blue-600" : "text-red-500")}>
                           {isIn ? '+' : '-'}{entry.quantity}{' '}
-                          <span className="text-xs font-bold text-gray-500">btl</span>
+                          <span className="text-[9px] font-bold text-gray-500">btl</span>
                         </p>
                       </div>
                       <div className="text-right">
-                        <p className="text-[10px] text-gray-500 font-black uppercase tracking-wider mb-0.5">Total</p>
-                        <p className={cn('text-xl font-black', isIn ? 'text-blue-600' : 'text-emerald-600')}>
+                        <p className="text-[8px] text-gray-500 font-bold uppercase tracking-wider mb-0.5">
+                          {isIn ? 'Nilai Masuk' : 'Nilai Total'}
+                        </p>
+                        <p className="text-sm font-black text-emerald-600 leading-none">
                           {formatCurrency(totalValue)}
                         </p>
                       </div>
