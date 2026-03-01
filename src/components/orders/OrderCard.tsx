@@ -109,7 +109,7 @@ export function OrderCard({
   };
 
   return (
-    <div className="bg-white rounded-2xl overflow-hidden border border-slate-100 shadow-sm">
+    <div className="bg-card rounded-2xl overflow-hidden border border-border shadow-sm">
       {/* ─── COLLAPSED ROW ─── */}
       <div
         className="px-5 py-4 cursor-pointer hover:bg-slate-50/60 transition-colors"

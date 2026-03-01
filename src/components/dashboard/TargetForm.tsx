@@ -73,9 +73,9 @@ export function TargetForm({ year, month, previousTarget, onSave, onBack }: Targ
     ];
 
     return (
-        <div className="flex flex-col min-h-screen bg-slate-50">
+        <div className="flex flex-col min-h-screen bg-background">
             {/* Header */}
-            <header className="sticky top-0 z-30 bg-white border-b border-slate-100 px-5 py-4 flex items-center gap-4 shadow-sm">
+            <header className="sticky top-0 z-30 bg-card border-b border-border px-5 py-4 flex items-center gap-4 shadow-sm">
                 <button
                     onClick={onBack}
                     className="w-11 h-11 rounded-full bg-slate-100 flex items-center justify-center active:scale-95 transition-transform"
@@ -177,11 +177,11 @@ export function TargetForm({ year, month, previousTarget, onSave, onBack }: Targ
             </main>
 
             {/* Save Button */}
-            <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-100 p-5 pb-8 rounded-t-[2rem] shadow-[0_-8px_30px_rgba(0,0,0,0.06)] z-40 max-w-md mx-auto">
+            <div className="fixed bottom-0 left-0 right-0 bg-card border-t border-border p-5 pb-8 rounded-t-[2rem] shadow-[0_-8px_30px_rgba(0,0,0,0.06)] z-40 max-w-md mx-auto">
                 <button
                     onClick={() => onSave({ targetProfit: profit, targetQty: qty, targetStock: stock })}
                     disabled={!canSave}
-                    className="w-full bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] active:bg-emerald-800 disabled:opacity-40 transition-all text-white text-xl font-black py-5 px-6 rounded-2xl shadow-xl shadow-emerald-200 flex items-center justify-center gap-2"
+                    className="w-full bg-primary hover:bg-primary/90 active:scale-[0.98] disabled:opacity-40 transition-all text-primary-foreground text-xl font-black py-5 px-6 rounded-2xl shadow-xl flex items-center justify-center gap-2"
                 >
                     <span>SIMPAN TARGET</span>
                     <CheckCircle2 className="h-6 w-6" />

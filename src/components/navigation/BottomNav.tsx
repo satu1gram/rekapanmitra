@@ -12,7 +12,7 @@ const TAB_PATHS: Record<string, string> = {
 
 export function BottomNav() {
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-30 bg-white border-t border-slate-100 rounded-t-[2.5rem] shadow-[0_-10px_40px_rgba(0,0,0,0.06)]">
+    <nav className="fixed bottom-0 left-0 right-0 z-30 bg-card border-t border-border rounded-t-[2.5rem] shadow-[0_-10px_40px_rgba(0,0,0,0.06)]">
       <div className="mx-auto flex max-w-lg items-end justify-around h-[5rem] pb-4 px-2">
         {NAV_PRIMARY_ITEMS.map((item) => {
           const Icon = item.icon;
@@ -22,11 +22,11 @@ export function BottomNav() {
             <NavLink
               key={item.id}
               to={path}
-              end={path === '/'} // hanya aktif exact match untuk home
+              end={path === '/'}
               className={({ isActive }) =>
                 cn(
                   'flex flex-col items-center justify-center w-full gap-1 min-h-[48px] transition-colors',
-                  isActive ? 'text-emerald-700' : 'text-slate-400 hover:text-slate-600 active:text-slate-800'
+                  isActive ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
                 )
               }
             >

@@ -35,8 +35,8 @@ export function TargetList({ year, targets, achievements, onBack, onCreate }: Ta
     if (!targetYears.includes(thisYear)) targetYears.unshift(thisYear);
 
     return (
-        <div className="flex flex-col min-h-screen bg-slate-50">
-            <header className="sticky top-0 z-30 bg-white border-b border-slate-100 px-5 py-4 flex items-center gap-4">
+        <div className="flex flex-col min-h-screen bg-background">
+            <header className="sticky top-0 z-30 bg-card border-b border-border px-5 py-4 flex items-center gap-4">
                 <button
                     onClick={onBack}
                     className="w-11 h-11 rounded-full bg-slate-100 flex items-center justify-center active:scale-95 transition-transform"

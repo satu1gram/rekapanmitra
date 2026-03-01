@@ -153,9 +153,9 @@ export function StockPage() {
   /* ─── RESTOK FORM ─── */
   if (view === 'restok') {
     return (
-      <div className="flex flex-col min-h-screen bg-gray-50">
+      <div className="flex flex-col min-h-screen bg-background">
         {/* Header */}
-        <header className="flex items-center justify-between px-5 py-5 sticky top-0 bg-gray-50/95 backdrop-blur-sm z-10 border-b border-gray-200/50">
+        <header className="flex items-center justify-between px-5 py-5 sticky top-0 bg-background/95 backdrop-blur-sm z-10 border-b border-border/50">
           <div>
             <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">Stok</h1>
             <p className="text-base text-gray-600 font-medium mt-0.5">Kelola persediaan produk</p>
@@ -320,7 +320,7 @@ export function StockPage() {
           <button
             type="submit"
             disabled={submitting}
-            className="w-full bg-emerald-600 text-white py-5 rounded-2xl font-bold text-xl shadow-lg shadow-emerald-200 hover:bg-emerald-700 active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-60"
+            className="w-full bg-primary text-primary-foreground py-5 rounded-2xl font-bold text-xl shadow-lg hover:bg-primary/90 active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-60"
           >
             {submitting ? <Loader2 className="h-6 w-6 animate-spin" /> : <Plus className="h-7 w-7" />}
             {editingEntry ? 'Simpan Perubahan' : 'Tambah ke Stok'}
@@ -333,8 +333,8 @@ export function StockPage() {
   /* ─── INITIAL STOCK FORM ─── */
   if (view === 'initial') {
     return (
-      <div className="flex flex-col min-h-screen bg-gray-50">
-        <header className="flex items-center justify-between px-5 py-5 sticky top-0 bg-gray-50/95 backdrop-blur-sm z-10 border-b border-gray-200/50">
+      <div className="flex flex-col min-h-screen bg-background">
+        <header className="flex items-center justify-between px-5 py-5 sticky top-0 bg-background/95 backdrop-blur-sm z-10 border-b border-border/50">
           <div>
             <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">Stok Awal</h1>
             <p className="text-base text-gray-600 font-medium mt-0.5">Inisiasi stok toko tanpa harga beli</p>
@@ -370,7 +370,7 @@ export function StockPage() {
           </div>
 
           <button type="submit" disabled={submitting}
-            className="w-full bg-emerald-600 text-white py-5 rounded-2xl font-bold text-xl shadow-lg shadow-emerald-200 hover:bg-emerald-700 active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-60">
+            className="w-full bg-primary text-primary-foreground py-5 rounded-2xl font-bold text-xl shadow-lg hover:bg-primary/90 active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-60">
             {submitting ? <Loader2 className="h-6 w-6 animate-spin" /> : <Package className="h-7 w-7" />}
             Tambah Stok Awal
           </button>
@@ -381,9 +381,9 @@ export function StockPage() {
 
   if (view === 'history') {
     return (
-      <div className="flex flex-col min-h-screen bg-slate-50">
+      <div className="flex flex-col min-h-screen bg-background">
         {/* Header */}
-        <header className="flex items-center space-x-4 px-5 py-5 sticky top-0 bg-slate-50/95 backdrop-blur-sm z-30 border-b border-gray-200/50">
+        <header className="flex items-center space-x-4 px-5 py-5 sticky top-0 bg-background/95 backdrop-blur-sm z-30 border-b border-border/50">
           <button
             onClick={() => setView('main')}
             className="flex items-center justify-center w-11 h-11 rounded-xl bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 active:scale-95 transition-all shadow-sm"
@@ -475,9 +475,9 @@ export function StockPage() {
 
   /* ─── MAIN VIEW ─── */
   return (
-    <div className="flex flex-col min-h-screen bg-gray-50">
+    <div className="flex flex-col min-h-screen bg-background">
       {/* Header */}
-      <header className="flex items-center justify-between px-5 py-5 sticky top-0 bg-gray-50/95 backdrop-blur-sm z-10 border-b border-gray-200/50">
+      <header className="flex items-center justify-between px-5 py-5 sticky top-0 bg-background/95 backdrop-blur-sm z-10 border-b border-border/50">
         <div>
           <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">Stok</h1>
           <p className="text-base text-gray-600 font-medium mt-0.5">Kelola persediaan produk</p>
@@ -513,19 +513,19 @@ export function StockPage() {
         <section className="grid grid-cols-2 gap-4">
           <button
             onClick={() => { resetForm(); setView('restok'); }}
-            className="bg-emerald-600 text-white rounded-3xl p-6 flex flex-col items-start gap-3 shadow-lg shadow-emerald-200 hover:bg-emerald-700 active:scale-[0.98] transition-all"
+            className="bg-primary text-primary-foreground rounded-3xl p-6 flex flex-col items-start gap-3 shadow-lg hover:bg-primary/90 active:scale-[0.98] transition-all"
           >
             <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center">
               <Plus className="h-7 w-7" />
             </div>
             <div>
               <p className="font-black text-lg leading-tight">Restok</p>
-              <p className="text-emerald-100 text-sm font-medium">Tambah dari distributor</p>
+              <p className="text-primary-foreground/70 text-sm font-medium">Tambah dari distributor</p>
             </div>
           </button>
           <button
             onClick={() => setView('initial')}
-            className="bg-white border-2 border-gray-200 text-gray-800 rounded-3xl p-6 flex flex-col items-start gap-3 shadow-sm hover:bg-gray-50 hover:border-gray-300 active:scale-[0.98] transition-all"
+            className="bg-card border-2 border-border text-foreground rounded-3xl p-6 flex flex-col items-start gap-3 shadow-sm hover:bg-accent active:scale-[0.98] transition-all"
           >
             <div className="w-12 h-12 bg-gray-100 rounded-2xl flex items-center justify-center">
               <Package className="h-7 w-7 text-gray-600" />

@@ -137,9 +137,9 @@ export function Dashboard({ onNavigate }: DashboardProps) {
 
   // ── DASHBOARD MODE ──
   return (
-    <div className="flex flex-col min-h-screen bg-slate-50">
+    <div className="flex flex-col min-h-screen bg-background">
       {/* Header */}
-      <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-slate-200 px-5 py-4">
+      <header className="sticky top-0 z-30 bg-card/80 backdrop-blur-md border-b border-border px-5 py-4">
         <div className="flex items-center justify-between">
           <div className="flex flex-col">
             <span className="text-xs font-bold text-slate-400 uppercase tracking-widest leading-none mb-1">

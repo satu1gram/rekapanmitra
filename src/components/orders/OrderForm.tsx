@@ -238,9 +238,9 @@ export function OrderForm({ customers, currentStock, submitting, onSubmit, onCan
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-slate-50">
+    <div className="flex flex-col min-h-screen bg-background">
       {/* Header */}
-      <header className="px-4 pt-4 pb-2 bg-white z-10 sticky top-0 shadow-sm border-b border-slate-100">
+      <header className="px-4 pt-4 pb-2 bg-card z-10 sticky top-0 shadow-sm border-b border-border">
         <div className="flex justify-between items-center">
           <h1 className="text-xl font-extrabold tracking-tight text-slate-900">Order</h1>
           <button
@@ -625,7 +625,7 @@ export function OrderForm({ customers, currentStock, submitting, onSubmit, onCan
       </main >
 
       {/* ── REVIEW Button ── */}
-      < div className="fixed bottom-16 left-0 right-0 max-w-md mx-auto p-4 bg-white/95 backdrop-blur-sm border-t border-slate-100 z-20" >
+      < div className="fixed bottom-16 left-0 right-0 max-w-md mx-auto p-4 bg-card/95 backdrop-blur-sm border-t border-border z-20" >
         <button
           onClick={handleGoToReview}
           disabled={totalQuantity === 0}
@@ -633,7 +633,7 @@ export function OrderForm({ customers, currentStock, submitting, onSubmit, onCan
             "w-full h-12 rounded-xl shadow-lg flex items-center justify-center gap-2 active:scale-[0.98] transition-all font-bold text-base tracking-tight",
             totalQuantity === 0
               ? "bg-slate-200 text-slate-400"
-              : "bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-100"
+              : "bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg"
           )}
         >
           <span>REVIEW ORDER</span>
