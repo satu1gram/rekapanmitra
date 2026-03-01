@@ -66,8 +66,8 @@ export function ReviewOrderPage({
                 </div>
             </header>
 
-            {/* pb-36 so content is never hidden behind fixed footer + navbar */}
-            <main className="flex-1 px-4 py-4 space-y-3 pb-40">
+            {/* pb-6 since footer is now sticky and takes up space naturally */}
+            <main className="flex-1 px-4 py-4 space-y-3 pb-6">
                 {/* Customer + date */}
                 <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
                     <div className="grid grid-cols-2 divide-x divide-slate-100">
@@ -141,8 +141,8 @@ export function ReviewOrderPage({
                 </div>
             </main>
 
-            {/* Confirm button — bottom-16 to clear the navbar + some breathing room */}
-            <div className="fixed bottom-16 left-0 right-0 max-w-md mx-auto px-4 pb-3 pt-2 bg-card/95 backdrop-blur-sm border-t border-border z-20">
+            {/* Confirm button */}
+            <div className="sticky bottom-[5.5rem] mt-auto px-4 pb-3 pt-4 bg-card/95 backdrop-blur-sm border-t border-border z-20 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
                 <button
                     onClick={onConfirm}
                     disabled={submitting}

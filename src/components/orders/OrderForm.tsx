@@ -252,7 +252,7 @@ export function OrderForm({ customers, currentStock, submitting, onSubmit, onCan
         </div>
       </header>
 
-      <main className="flex-1 space-y-3 py-3 relative z-0 pb-44">
+      <main className="flex-1 space-y-3 py-3 relative z-0 pb-6">
         {/* ── PILIH PELANGGAN ── */}
         <section className="px-4">
           <div className="flex items-center justify-between mb-2">
@@ -265,10 +265,11 @@ export function OrderForm({ customers, currentStock, submitting, onSubmit, onCan
           {/* Quick tiles: Terakhir + Favorit */}
           <div className="grid grid-cols-2 gap-2 mb-2">
             {recentCustomer && (
-              <button
+              <div
+                role="button"
                 onClick={() => selectCustomer(recentCustomer)}
                 className={cn(
-                  "flex flex-col items-start p-2.5 rounded-lg border transition-all text-left active:scale-[0.97]",
+                  "cursor-pointer flex flex-col items-start p-2.5 rounded-lg border transition-all text-left active:scale-[0.97]",
                   customerName === recentCustomer.name
                     ? "bg-emerald-600 text-white border-emerald-600 shadow-sm"
                     : "bg-white border-slate-200 shadow-sm"
@@ -299,15 +300,16 @@ export function OrderForm({ customers, currentStock, submitting, onSubmit, onCan
                   customerName === recentCustomer.name ? "opacity-90" : "text-slate-500")}>
                   {TIER_PRICING[recentCustomer.tier as TierType]?.label || recentCustomer.tier}
                 </span>
-              </button>
+              </div>
             )}
 
             {favoriteCustomers.map(c => (
-              <button
+              <div
                 key={c.id}
+                role="button"
                 onClick={() => selectCustomer(c)}
                 className={cn(
-                  "flex flex-col items-start p-2.5 rounded-lg border transition-all text-left active:scale-[0.97]",
+                  "cursor-pointer flex flex-col items-start p-2.5 rounded-lg border transition-all text-left active:scale-[0.97]",
                   customerName === c.name
                     ? "bg-emerald-600 text-white border-emerald-600 shadow-sm"
                     : "bg-white border-slate-200 shadow-sm"
@@ -333,7 +335,7 @@ export function OrderForm({ customers, currentStock, submitting, onSubmit, onCan
                   customerName === c.name ? "opacity-90" : "text-slate-500")}>
                   {TIER_PRICING[c.tier as TierType]?.label || c.tier}
                 </span>
-              </button>
+              </div>
             ))}
           </div>
 
@@ -625,7 +627,7 @@ export function OrderForm({ customers, currentStock, submitting, onSubmit, onCan
       </main >
 
       {/* ── REVIEW Button ── */}
-      < div className="fixed bottom-16 left-0 right-0 max-w-md mx-auto p-4 bg-card/95 backdrop-blur-sm border-t border-border z-20" >
+      <div className="sticky bottom-[5.5rem] mt-auto p-4 bg-card/95 backdrop-blur-sm border-t border-border z-20 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
         <button
           onClick={handleGoToReview}
           disabled={totalQuantity === 0}

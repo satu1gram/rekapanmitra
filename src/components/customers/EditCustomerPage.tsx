@@ -112,7 +112,7 @@ export function EditCustomerPage({ customer, onBack, onSaved }: EditCustomerPage
                 </div>
             </header>
 
-            <main className="flex-1 space-y-6 py-6 px-4 pb-24">
+            <main className="flex-1 space-y-6 py-6 px-4 pb-6">
                 {/* Name, Phone, Address */}
                 <section className="space-y-3">
                     {/* Nama */}
@@ -255,7 +255,7 @@ export function EditCustomerPage({ customer, onBack, onSaved }: EditCustomerPage
             </main>
 
             {/* Save button */}
-            <div className="fixed bottom-0 left-0 right-0 max-w-md mx-auto p-4 bg-white border-t border-slate-100 z-20">
+            <div className="sticky bottom-[5.5rem] mt-auto max-w-md mx-auto p-4 bg-white/95 backdrop-blur-sm border-t border-slate-100 z-20 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
                 <button
                     onClick={handleSave}
                     disabled={saving}

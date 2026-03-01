@@ -125,7 +125,7 @@ export function OrderResultPage({ result, onAddNew, onGoHome }: OrderResultPageP
           </div>
         </main>
 
-        <div className="p-5 pb-9 bg-white space-y-3 border-t border-slate-100">
+        <div className="sticky bottom-[5.5rem] mt-auto p-5 pb-9 bg-card/95 backdrop-blur-sm space-y-3 border-t border-slate-200 z-20 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
           <button
             onClick={onAddNew}
             className="w-full h-14 bg-slate-800 hover:bg-slate-900 active:bg-slate-950 text-white rounded-xl shadow-lg flex items-center justify-center gap-2.5 active:scale-95 transition-all"
@@ -159,7 +159,7 @@ export function OrderResultPage({ result, onAddNew, onGoHome }: OrderResultPageP
           <p className="text-slate-500 font-medium">{result.errorMessage || 'Terjadi kesalahan. Silakan coba lagi.'}</p>
         </div>
       </main>
-      <div className="p-5 pb-9 space-y-3 bg-white border-t border-slate-100">
+      <div className="sticky bottom-[5.5rem] mt-auto p-5 pb-9 space-y-3 bg-card/95 backdrop-blur-sm border-t border-slate-200 z-20 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
         <button onClick={onAddNew} className="w-full h-14 bg-red-600 text-white rounded-xl shadow-lg shadow-red-200 flex items-center justify-center gap-2.5 active:scale-[0.98] transition-all font-bold text-lg">
           <RefreshCw className="h-5 w-5" /> Coba Lagi
         </button>
