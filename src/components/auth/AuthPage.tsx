@@ -40,27 +40,27 @@ export function AuthPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-slate-50">
+    <div className="min-h-screen flex items-center justify-center p-4 bg-background">
       <main className="w-full max-w-md">
 
         {/* Logo & Title */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-extrabold text-emerald-500 tracking-tight mb-2">
+          <h1 className="text-3xl font-extrabold text-primary tracking-tight mb-2">
             BP Community Manager
           </h1>
-          <p className="text-slate-500 text-lg font-medium">Mitra Bisnis Terpercaya</p>
+          <p className="text-muted-foreground text-lg font-medium">Mitra Bisnis Terpercaya</p>
         </div>
 
         {/* Card */}
-        <div className="bg-white rounded-3xl p-8 shadow-[0_10px_40px_-10px_rgba(0,0,0,0.08)] border border-slate-200 relative overflow-hidden">
+        <div className="bg-card rounded-3xl p-8 shadow-lg border border-border relative overflow-hidden">
           {/* Decorative blur */}
-          <div className="absolute -top-24 -right-24 w-48 h-48 bg-emerald-50 rounded-full blur-3xl opacity-50 pointer-events-none" />
+          <div className="absolute -top-24 -right-24 w-48 h-48 bg-accent rounded-full blur-3xl opacity-50 pointer-events-none" />
 
           <div className="relative z-10">
-            <h2 className="text-center text-2xl font-bold text-slate-800 mb-1">
+            <h2 className="text-center text-2xl font-bold text-foreground mb-1">
               {isLogin ? 'Selamat Datang Kembali' : 'Buat Akun Baru'}
             </h2>
-            <p className="text-center text-slate-500 mb-8 text-base">
+            <p className="text-center text-muted-foreground mb-8 text-base">
               {isLogin ? 'Masuk ke akun Anda' : 'Daftar sebagai mitra baru'}
             </p>
 
@@ -69,8 +69,8 @@ export function AuthPage() {
               {/* Nama (hanya saat daftar) */}
               {!isLogin && (
                 <div className="space-y-2">
-                  <label htmlFor="name" className="flex items-center gap-2 text-base font-bold text-slate-800">
-                    <User className="h-5 w-5 text-slate-500" />
+                  <label htmlFor="name" className="flex items-center gap-2 text-base font-bold text-foreground">
+                    <User className="h-5 w-5 text-muted-foreground" />
                     Nama Lengkap
                   </label>
                   <input
@@ -81,15 +81,15 @@ export function AuthPage() {
                     onChange={e => setName(e.target.value)}
                     required={!isLogin}
                     disabled={loading}
-                    className="w-full bg-blue-50 border-2 border-slate-200 focus:border-emerald-500 focus:outline-none rounded-2xl px-5 py-4 text-lg text-slate-900 placeholder-slate-400 transition-colors"
+                    className="w-full bg-accent border-2 border-border focus:border-primary focus:outline-none rounded-2xl px-5 py-4 text-lg text-foreground placeholder-muted-foreground transition-colors"
                   />
                 </div>
               )}
 
               {/* Email */}
               <div className="space-y-2">
-                <label htmlFor="email" className="flex items-center gap-2 text-base font-bold text-slate-800">
-                  <Mail className="h-5 w-5 text-slate-500" />
+                <label htmlFor="email" className="flex items-center gap-2 text-base font-bold text-foreground">
+                  <Mail className="h-5 w-5 text-muted-foreground" />
                   Email
                 </label>
                 <input
@@ -100,14 +100,14 @@ export function AuthPage() {
                   onChange={e => setEmail(e.target.value)}
                   required
                   disabled={loading}
-                  className="w-full bg-blue-50 border-2 border-slate-200 focus:border-emerald-500 focus:outline-none rounded-2xl px-5 py-4 text-lg text-slate-900 placeholder-slate-400 transition-colors"
+                  className="w-full bg-accent border-2 border-border focus:border-primary focus:outline-none rounded-2xl px-5 py-4 text-lg text-foreground placeholder-muted-foreground transition-colors"
                 />
               </div>
 
               {/* Password */}
               <div className="space-y-2">
-                <label htmlFor="password" className="flex items-center gap-2 text-base font-bold text-slate-800">
-                  <Lock className="h-5 w-5 text-slate-500" />
+                <label htmlFor="password" className="flex items-center gap-2 text-base font-bold text-foreground">
+                  <Lock className="h-5 w-5 text-muted-foreground" />
                   Kata Sandi
                 </label>
                 <input
@@ -119,7 +119,7 @@ export function AuthPage() {
                   required
                   minLength={6}
                   disabled={loading}
-                  className="w-full bg-blue-50 border-2 border-slate-200 focus:border-emerald-500 focus:outline-none rounded-2xl px-5 py-4 text-lg text-slate-900 placeholder-slate-400 tracking-widest transition-colors"
+                  className="w-full bg-accent border-2 border-border focus:border-primary focus:outline-none rounded-2xl px-5 py-4 text-lg text-foreground placeholder-muted-foreground tracking-widest transition-colors"
                 />
               </div>
 
@@ -127,7 +127,7 @@ export function AuthPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-emerald-500 hover:bg-emerald-600 disabled:opacity-70 active:scale-[0.98] text-white text-lg font-bold py-5 rounded-2xl shadow-lg shadow-emerald-500/30 flex items-center justify-center gap-3 transition-all mt-2"
+                className="w-full bg-primary hover:bg-primary/90 disabled:opacity-70 active:scale-[0.98] text-primary-foreground text-lg font-bold py-5 rounded-2xl shadow-lg flex items-center justify-center gap-3 transition-all mt-2"
               >
                 {loading ? (
                   <>
@@ -148,7 +148,7 @@ export function AuthPage() {
                   type="button"
                   onClick={() => { setIsLogin(!isLogin); setName(''); }}
                   disabled={loading}
-                  className="text-base font-bold text-emerald-500 hover:text-emerald-700 hover:underline py-2 px-4 rounded-lg transition-colors"
+                  className="text-base font-bold text-primary hover:text-primary/80 hover:underline py-2 px-4 rounded-lg transition-colors"
                 >
                   {isLogin ? 'Belum punya akun? Daftar' : 'Sudah punya akun? Masuk'}
                 </button>
@@ -159,11 +159,11 @@ export function AuthPage() {
 
         {/* Footer */}
         <div className="mt-8 text-center space-y-2">
-          <div className="flex justify-center items-center gap-2 text-slate-400">
+          <div className="flex justify-center items-center gap-2 text-muted-foreground">
             <ShieldCheck className="h-4 w-4" />
             <span className="text-sm font-medium">Aman & Terenkripsi</span>
           </div>
-          <p className="text-slate-400 text-sm">Versi 2.0.1 • 2026</p>
+          <p className="text-muted-foreground text-sm">Versi 2.0.1 • 2026</p>
         </div>
 
       </main>

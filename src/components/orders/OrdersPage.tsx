@@ -266,9 +266,9 @@ export function OrdersPage({ openAddForm = false, onAddFormClose }: OrdersPagePr
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-gray-50">
+    <div className="flex flex-col min-h-screen bg-background">
       {/* Header */}
-      <header className="px-5 pt-8 pb-4 bg-white shadow-sm z-10 sticky top-0">
+      <header className="px-5 pt-8 pb-4 bg-card shadow-sm z-10 sticky top-0">
         <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 mb-4">Riwayat Order</h1>
 
         {/* Ultra-Compact Date filter and Grafik button */}
@@ -522,7 +522,7 @@ export function OrdersPage({ openAddForm = false, onAddFormClose }: OrdersPagePr
                     </button>
 
                     {isExpanded && (
-                      <div className="border-t border-slate-100 bg-gray-50 p-3 space-y-2">
+                      <div className="border-t border-border bg-background p-3 space-y-2">
                         {day.orders.map(order => (
                           <OrderCard
                             key={order.id}

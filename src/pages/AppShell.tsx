@@ -25,7 +25,7 @@ function GlobalFAB() {
             {/* Backdrop */}
             {open && (
                 <div
-                    className="fixed inset-0 z-40 bg-slate-900/40 backdrop-blur-sm"
+                    className="fixed inset-0 z-40 bg-foreground/40 backdrop-blur-sm"
                     onClick={() => setOpen(false)}
                 />
             )}
@@ -37,14 +37,14 @@ function GlobalFAB() {
             )}>
                 <button
                     onClick={handleRestok}
-                    className="flex items-center gap-3 bg-slate-800 text-white pl-4 pr-5 py-3 rounded-full shadow-xl active:scale-95 transition-all"
+                    className="flex items-center gap-3 bg-secondary text-secondary-foreground pl-4 pr-5 py-3 rounded-full shadow-xl active:scale-95 transition-all"
                 >
                     <Package className="h-5 w-5" />
                     <span className="font-bold text-sm">Restok</span>
                 </button>
                 <button
                     onClick={handleTambahOrder}
-                    className="flex items-center gap-3 bg-emerald-600 text-white pl-4 pr-5 py-3 rounded-full shadow-xl shadow-emerald-200 active:scale-95 transition-all"
+                    className="flex items-center gap-3 bg-primary text-primary-foreground pl-4 pr-5 py-3 rounded-full shadow-xl active:scale-95 transition-all"
                 >
                     <ShoppingCart className="h-5 w-5" />
                     <span className="font-bold text-sm">Tambah Order</span>
@@ -57,14 +57,13 @@ function GlobalFAB() {
                 className={cn(
                     'fixed right-5 bottom-[5.5rem] z-50 w-12 h-12 rounded-full shadow-2xl flex items-center justify-center transition-all duration-300 active:scale-95',
                     open
-                        ? 'bg-slate-700 rotate-45 shadow-slate-300'
-                        : 'bg-emerald-600 shadow-emerald-300'
+                        ? 'bg-secondary rotate-45'
+                        : 'bg-primary'
                 )}
-                style={{ boxShadow: open ? '0 8px 30px rgba(0,0,0,0.25)' : '0 8px 30px rgba(5,150,105,0.45)' }}
             >
                 {open
-                    ? <X className="h-5 w-5 text-white" />
-                    : <Plus className="h-5 w-5 text-white" />
+                    ? <X className="h-5 w-5 text-secondary-foreground" />
+                    : <Plus className="h-5 w-5 text-primary-foreground" />
                 }
             </button>
         </>
@@ -84,7 +83,7 @@ export function AppShell() {
     }
 
     return (
-        <div className="min-h-screen bg-slate-50">
+        <div className="min-h-screen bg-background">
             <div className="max-w-lg mx-auto min-h-screen flex flex-col relative pb-[5.5rem]">
                 <main className="flex-1">
                     <Outlet />

@@ -102,10 +102,10 @@ export function SettingsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] pb-8">
+    <div className="min-h-screen bg-background pb-8">
 
       {/* ─── HEADER ─── */}
-      <header className="relative pt-12 pb-8 px-5 bg-white rounded-b-[2.5rem] shadow-sm mb-5">
+      <header className="relative pt-12 pb-8 px-5 bg-card rounded-b-[2.5rem] shadow-sm mb-5">
         <div className="flex flex-col items-center text-center">
           <span className="text-[10px] font-extrabold uppercase tracking-[0.2em] mb-1.5 text-slate-400">
             Dashboard Pencapaian

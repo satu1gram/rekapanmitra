@@ -41,11 +41,11 @@ export function PerformaPage({ onBack }: PerformaPageProps) {
       let netProfit = margin;
       if (isCurrentMonth) {
         const monthExpenses = expenses.filter(e => {
-          const d = new Date(e.created_at);
+          const d = new Date(e.createdAt);
           return d.getFullYear() === selectedYear && d.getMonth() === idx;
         });
         const monthIncome = income.filter(i => {
-          const d = new Date(i.created_at);
+          const d = new Date(i.createdAt);
           return d.getFullYear() === selectedYear && d.getMonth() === idx;
         });
         netProfit = margin - getTotalExpenses(monthExpenses) + getTotalIncome(monthIncome);
@@ -116,9 +116,9 @@ export function PerformaPage({ onBack }: PerformaPageProps) {
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-gray-50">
+    <div className="flex flex-col min-h-screen bg-background">
       {/* Header */}
-      <header className="px-5 pt-8 pb-4 bg-white shadow-sm z-10 sticky top-0">
+      <header className="px-5 pt-8 pb-4 bg-card shadow-sm z-10 sticky top-0">
         <div className="flex items-center gap-3 mb-4">
           <button
             onClick={onBack}

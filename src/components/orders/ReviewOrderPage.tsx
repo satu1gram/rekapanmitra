@@ -49,9 +49,9 @@ export function ReviewOrderPage({
     const totalPrice = activeItems.reduce((s, i) => s + i.subtotal, 0);
 
     return (
-        <div className="flex flex-col min-h-screen bg-slate-50">
+        <div className="flex flex-col min-h-screen bg-background">
             {/* Header */}
-            <header className="px-4 pt-4 pb-3 bg-white z-10 sticky top-0 shadow-sm border-b border-slate-100">
+            <header className="px-4 pt-4 pb-3 bg-card z-10 sticky top-0 shadow-sm border-b border-border">
                 <div className="flex items-center gap-3">
                     <button
                         onClick={onBack}
@@ -142,14 +142,14 @@ export function ReviewOrderPage({
             </main>
 
             {/* Confirm button — bottom-16 to clear the navbar + some breathing room */}
-            <div className="fixed bottom-16 left-0 right-0 max-w-md mx-auto px-4 pb-3 pt-2 bg-white/95 backdrop-blur-sm border-t border-slate-100 z-20">
+            <div className="fixed bottom-16 left-0 right-0 max-w-md mx-auto px-4 pb-3 pt-2 bg-card/95 backdrop-blur-sm border-t border-border z-20">
                 <button
                     onClick={onConfirm}
                     disabled={submitting}
                     className={cn(
                         "w-full h-14 rounded-xl shadow-lg flex items-center justify-center gap-2 active:scale-[0.98] transition-all text-white font-black text-lg tracking-tight",
                         submitting
-                            ? "bg-slate-300"
+                            ? "bg-muted text-muted-foreground"
                             : "bg-emerald-600 hover:bg-emerald-700 shadow-emerald-100"
                     )}
                 >

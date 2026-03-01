@@ -66,7 +66,7 @@ export function OrderResultPage({ result, onAddNew, onGoHome }: OrderResultPageP
 
   if (result.success) {
     return (
-      <div className="flex flex-col min-h-screen bg-white text-slate-900">
+      <div className="flex flex-col min-h-screen bg-card text-foreground">
         <main className="flex-1 flex flex-col items-center px-5 pt-10 pb-4 text-center space-y-5">
           <div className="animate-in zoom-in duration-500">
             <div className="w-28 h-28 bg-emerald-100 rounded-full flex items-center justify-center mx-auto shadow-sm">
@@ -149,7 +149,7 @@ export function OrderResultPage({ result, onAddNew, onGoHome }: OrderResultPageP
 
   // Error screen
   return (
-    <div className="flex flex-col min-h-screen bg-white">
+    <div className="flex flex-col min-h-screen bg-card">
       <main className="flex-1 px-6 flex flex-col items-center justify-center text-center space-y-8 py-12">
         <div className="w-32 h-32 bg-red-50 rounded-full flex items-center justify-center">
           <XCircle className="h-20 w-20 text-red-500" strokeWidth={1.5} />
