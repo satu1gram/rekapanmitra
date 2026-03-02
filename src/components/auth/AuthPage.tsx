@@ -46,7 +46,7 @@ export function AuthPage() {
         {/* Logo & Title */}
         <div className="text-center mb-8">
           <h1 className="text-3xl font-extrabold text-primary tracking-tight mb-2">
-            BP Community Manager
+            Rekapan Mitra
           </h1>
           <p className="text-muted-foreground text-lg font-medium">Mitra Bisnis Terpercaya</p>
         </div>

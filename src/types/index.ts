@@ -1,4 +1,4 @@
-// Types for BP Community Manager
+// Types for Rekapan Mitra
 
 export type TierType = 'satuan' | 'reseller' | 'agen' | 'agen_plus' | 'sap' | 'se';
 

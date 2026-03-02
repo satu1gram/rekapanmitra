@@ -20,9 +20,9 @@ export default defineConfig(({ mode }) => ({
       registerType: "autoUpdate",
       includeAssets: ["favicon.ico", "robots.txt"],
       manifest: {
-        name: "BP Community Manager",
-        short_name: "BP Manager",
-        description: "Aplikasi manajemen bisnis BP untuk mencatat order, stok, customer, dan hitung keuntungan otomatis.",
+        name: "Rekapan Mitra",
+        short_name: "Rekapan Mitra",
+        description: "Rekapan Mitra - Aplikasi manajemen bisnis untuk mencatat order, stok, customer, dan hitung keuntungan otomatis.",
         theme_color: "#d946a8",
         background_color: "#eaf1f8",
         display: "standalone",
