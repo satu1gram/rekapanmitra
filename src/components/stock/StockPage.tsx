@@ -21,10 +21,10 @@ type View = 'main' | 'restok' | 'initial' | 'history';
 export function StockPage() {
   const { currentStock, stockEntries, loading, addStock, updateStockEntry, deleteStockEntry, isLowStock } = useStock();
   const { uploadTransferProof } = useFileUpload();
-  const { mitraLevel, currentMitraInfo } = useProfile();
+  const { mitraLevel } = useProfile();
   const { orders } = useOrders();
 
-  const mitraInfo = currentMitraInfo;
+  const mitraInfo = MITRA_LEVELS[mitraLevel];
 
   const [view, setView] = useState<View>('main');
   const [quantity, setQuantity] = useState(1);
@@ -48,12 +48,12 @@ export function StockPage() {
   const [historyEndDate, setHistoryEndDate] = useState(lastDay.toISOString().split('T')[0]);
 
   useEffect(() => {
-    setBuyPrice(currentMitraInfo.buyPricePerBottle);
-  }, [currentMitraInfo]);
+    setBuyPrice(mitraInfo.buyPricePerBottle);
+  }, [mitraInfo]);
 
   const resetForm = () => {
     setQuantity(1);
-    setBuyPrice(currentMitraInfo.buyPricePerBottle);
+    setBuyPrice(mitraInfo.buyPricePerBottle);
     setNotes('');
     setStockDate(new Date().toISOString().split('T')[0]);
     setShowAdvanced(false);
@@ -142,7 +142,7 @@ export function StockPage() {
   const openEdit = (entry: StockEntry) => {
     setEditingEntry(entry);
     setQuantity(entry.quantity);
-    setBuyPrice(entry.buy_price_per_bottle || currentMitraInfo.buyPricePerBottle);
+    setBuyPrice(entry.buy_price_per_bottle || mitraInfo.buyPricePerBottle);
     setNotes(entry.notes || '');
     setTransferProofUrl(entry.transfer_proof_url);
     setTransferProofPreview(entry.transfer_proof_url);

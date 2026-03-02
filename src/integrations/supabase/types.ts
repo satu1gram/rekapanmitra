@@ -381,6 +381,36 @@ export type Database = {
           },
         ]
       }
+      user_mitra_levels: {
+        Row: {
+          buy_price_per_bottle: number
+          created_at: string
+          id: string
+          label: string
+          level_code: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          buy_price_per_bottle?: number
+          created_at?: string
+          id?: string
+          label: string
+          level_code: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          buy_price_per_bottle?: number
+          created_at?: string
+          id?: string
+          label?: string
+          level_code?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_stock: {
         Row: {
           current_stock: number
