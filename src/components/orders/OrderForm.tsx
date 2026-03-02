@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useFileUpload } from '@/hooks/useFileUpload';
 import { useProfile } from '@/hooks/useProfile';
 import { useProducts } from '@/hooks/useProducts';
-import { TierType, TIER_PRICING, OrderItem } from '@/types';
+import { TierType, TIER_PRICING, MITRA_LEVELS, OrderItem } from '@/types';
 import { formatCurrency } from '@/lib/formatters';
 import { Plus, Minus, X, Search, Package, Pencil, ArrowRight, Loader2, Calendar } from 'lucide-react';
 import { toast } from 'sonner';
@@ -65,7 +65,7 @@ const formatDateCompact = (dateStr: string) => {
 };
 
 export function OrderForm({ customers, currentStock, submitting, onSubmit, onCancel, onEditCustomer, initialData }: OrderFormProps) {
-  const { currentMitraInfo } = useProfile();
+  const { mitraLevel } = useProfile();
   const { products } = useProducts();
 
   const buildDefaultItems = (): OrderItem[] => {
@@ -108,7 +108,7 @@ export function OrderForm({ customers, currentStock, submitting, onSubmit, onCan
 
   const totalQuantity = items.reduce((s, i) => s + i.quantity, 0);
   const totalSellPrice = items.reduce((s, i) => s + i.subtotal, 0);
-  const estimatedMargin = totalSellPrice - ((currentMitraInfo?.buyPricePerBottle || 217000) * totalQuantity);
+  const estimatedMargin = totalSellPrice - ((MITRA_LEVELS[mitraLevel]?.buyPricePerBottle || 217000) * totalQuantity);
 
   const recentCustomer = customers[0] || null;
   const favoriteCustomers = customers.slice(1, 3);
