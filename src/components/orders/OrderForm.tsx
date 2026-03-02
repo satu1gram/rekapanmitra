@@ -491,17 +491,7 @@ export function OrderForm({ customers, currentStock, submitting, onSubmit, onCan
         {/* ── TANGGAL ── */}
         <section className="px-4 relative">
           <div
-            onClick={(e) => {
-              const input = e.currentTarget.querySelector('input[type="date"]') as HTMLInputElement;
-              if (input) {
-                try {
-                  input.showPicker();
-                } catch (err) {
-                  input.focus();
-                }
-              }
-            }}
-            className="bg-white px-3 py-2.5 rounded-lg border border-slate-200 shadow-sm flex items-center justify-between relative cursor-pointer active:bg-slate-50 transition-colors"
+            className="bg-card px-3 py-2.5 rounded-lg border border-border shadow-sm flex items-center justify-between relative cursor-pointer active:bg-muted/50 transition-colors"
           >
             <div className="flex items-center gap-2.5 pointer-events-none">
               <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 border border-emerald-100">
@@ -519,7 +509,7 @@ export function OrderForm({ customers, currentStock, submitting, onSubmit, onCan
               type="date"
               value={orderDate}
               onChange={e => setOrderDate(e.target.value)}
-              className="absolute opacity-0 w-[1px] h-[1px] -z-10 left-10"
+              className="absolute inset-0 opacity-0 w-full h-full cursor-pointer z-10"
             />
 
             <div className="shrink-0 pl-2 pointer-events-none text-muted">
