@@ -46,6 +46,9 @@ export function useCustomers() {
   const addOrUpdateCustomer = async (orderData: {
     customerName: string;
     customerPhone: string;
+    customerAddress?: string;
+    province?: string;
+    city?: string;
     tier: TierType;
     totalPrice: number;
   }) => {
@@ -62,7 +65,10 @@ export function useCustomers() {
           name: orderData.customerName,
           total_orders: existing.total_orders + 1,
           total_spent: existing.total_spent + orderData.totalPrice,
-          tier: newTier
+          tier: newTier,
+          ...(orderData.customerAddress !== undefined && { address: orderData.customerAddress }),
+          ...(orderData.province !== undefined && { province: orderData.province }),
+          ...(orderData.city !== undefined && { city: orderData.city })
         })
         .eq('id', existing.id);
 
@@ -76,6 +82,9 @@ export function useCustomers() {
           user_id: user.id,
           name: orderData.customerName,
           phone: orderData.customerPhone,
+          address: orderData.customerAddress || null,
+          province: orderData.province || null,
+          city: orderData.city || null,
           tier: orderData.tier,
           total_orders: 1,
           total_spent: orderData.totalPrice
@@ -93,7 +102,7 @@ export function useCustomers() {
     return customers.find(c => c.phone === phone);
   };
 
-  const updateCustomer = async (id: string, updates: { name?: string; phone?: string; address?: string | null }) => {
+  const updateCustomer = async (id: string, updates: { name?: string; phone?: string; address?: string | null; created_at?: string }) => {
     if (!user) throw new Error('User not authenticated');
     const { error } = await supabase
       .from('customers')

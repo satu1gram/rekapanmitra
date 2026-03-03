@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 import type { Tables } from '@/integrations/supabase/types';
 import { cn } from '@/lib/utils';
 import { ReviewOrderPage } from './ReviewOrderPage';
+import { useIndonesianRegions } from '@/hooks/useIndonesianRegions';
 
 type Customer = Tables<'customers'>;
 
@@ -24,6 +25,8 @@ interface OrderFormProps {
     items: OrderItem[];
     transferProofUrl?: string;
     customerId?: string;
+    province?: string;
+    city?: string;
     createdAt?: string;
   }) => void;
   onCancel: () => void;
@@ -77,6 +80,10 @@ export function OrderForm({ customers, currentStock, submitting, onSubmit, onCan
   const [customerName, setCustomerName] = useState(initialData?.customerName || '');
   const [customerPhone, setCustomerPhone] = useState(initialData?.customerPhone || '');
   const [customerAddress, setCustomerAddress] = useState(initialData?.customerAddress || '');
+  const [province, setProvince] = useState('');
+  const [city, setCity] = useState('');
+  const { provinces, loadingProvinces, cities, loadingCities, fetchCities, setCities } = useIndonesianRegions();
+
   const [selectedCustomerId, setSelectedCustomerId] = useState('');
   const [selectedTier, setSelectedTier] = useState<TierType>(initialData?.tier || 'satuan');
   const [items, setItems] = useState<OrderItem[]>(buildDefaultItems());
@@ -124,6 +131,8 @@ export function OrderForm({ customers, currentStock, submitting, onSubmit, onCan
     setCustomerPhone(c.phone);
     setSelectedCustomerId(c.id);
     setCustomerAddress((c as any).address || '');
+    setProvince(c.province || '');
+    setCity(c.city || '');
     const tier = (c.tier && TIER_PRICING[c.tier as TierType]) ? c.tier as TierType : 'satuan';
     setSelectedTier(tier);
     const tierPrice = getPriceByTier(tier);
@@ -212,6 +221,8 @@ export function OrderForm({ customers, currentStock, submitting, onSubmit, onCan
       customerName: customerName.trim(),
       customerPhone: customerPhone.trim(),
       customerAddress: customerAddress.trim() || undefined,
+      province: province || undefined,
+      city: city || undefined,
       tier: selectedTier,
       items: activeItems,
       customerId: selectedCustomerId || undefined,
@@ -437,11 +448,45 @@ export function OrderForm({ customers, currentStock, submitting, onSubmit, onCan
                   className="w-full bg-neutral-50 rounded-lg px-3 py-2 text-sm font-medium outline-none border border-slate-200 focus:border-emerald-400"
                 />
                 <input
-                  placeholder="Alamat (opsional)"
+                  placeholder="Alamat Lengkap (opsional)"
                   value={customerAddress}
                   onChange={e => setCustomerAddress(e.target.value)}
                   className="w-full bg-neutral-50 rounded-lg px-3 py-2 text-sm font-medium outline-none border border-slate-200 focus:border-emerald-400"
                 />
+
+                <select
+                  value={province}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setProvince(val);
+                    setCity('');
+                    if (!val) {
+                      setCities([]);
+                      return;
+                    }
+                    const p = provinces.find(x => x.name === val);
+                    if (p) fetchCities(p.id);
+                  }}
+                  disabled={loadingProvinces}
+                  className="w-full bg-neutral-50 rounded-lg px-3 py-2 text-sm font-medium outline-none border border-slate-200 focus:border-emerald-400 text-slate-700 disabled:opacity-50"
+                >
+                  <option value="">Provinsi (opsional)</option>
+                  {provinces.map(p => (
+                    <option key={p.id} value={p.name}>{p.name}</option>
+                  ))}
+                </select>
+
+                <select
+                  value={city}
+                  onChange={(e) => setCity(e.target.value)}
+                  disabled={!province || loadingCities || cities.length === 0}
+                  className="w-full bg-neutral-50 rounded-lg px-3 py-2 text-sm font-medium outline-none border border-slate-200 focus:border-emerald-400 text-slate-700 disabled:opacity-50"
+                >
+                  <option value="">Kabupaten/Kota (opsional)</option>
+                  {cities.map(c => (
+                    <option key={c.id} value={c.name}>{c.name}</option>
+                  ))}
+                </select>
               </div>
               <div className="p-2.5 border-t border-slate-100">
                 <button

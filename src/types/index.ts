@@ -124,6 +124,9 @@ export interface Customer {
   id: string;
   name: string;
   phone: string;
+  address?: string;
+  province?: string;
+  city?: string;
   tier: TierType;
   totalOrders: number;
   totalSpent: number;

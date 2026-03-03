@@ -1,10 +1,11 @@
-import { useState } from 'react';
-import { ArrowLeft, User, Phone, MapPin, Save, Loader2, ShoppingBag, Store, Package, Check, X } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { ArrowLeft, User, Phone, MapPin, Save, Loader2, ShoppingBag, Store, Package, Check, X, Calendar } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { TierType } from '@/types';
+import { useIndonesianRegions } from '@/hooks/useIndonesianRegions';
 import type { Tables } from '@/integrations/supabase/types';
 
 type Customer = Tables<'customers'>;
@@ -34,9 +35,34 @@ export function EditCustomerPage({ customer, onBack, onSaved }: EditCustomerPage
   const [name, setName] = useState(customer.name);
   const [phone, setPhone] = useState(customer.phone);
   const [address, setAddress] = useState(customer.address || '');
+  const [province, setProvince] = useState(customer.province || '');
+  const [provinceName, setProvinceName] = useState('');
+  const [city, setCity] = useState(customer.city || '');
+
   const [status, setStatus] = useState<Status>(isMitraTier(customer.tier) ? 'mitra' : 'konsumen');
   const [tier, setTier] = useState<TierType>(customer.tier as TierType || 'satuan');
+  const [createdAt, setCreatedAt] = useState(customer.created_at.split('T')[0]); // YYYY-MM-DD for input type="date"
   const [saving, setSaving] = useState(false);
+
+  const { provinces, loadingProvinces, cities, loadingCities, fetchCities, setCities } = useIndonesianRegions();
+
+  // Initial load for cities if we already have a province
+  // The API doesn't give us names for the IDs saved in DB easily without matching against the lists,
+  // For simplicity, we can just save the string Name directly to DB instead of IDs.
+  // Wait, let's check what we save. We save `province` and `city` which should be the names.
+  // If we save names, we need to find the ID of the province to fetch its cities.
+  useState(() => {
+    // This will run once but we can't await inside useState. 
+    // Handled in a separate useEffect below.
+  });
+
+  // Re-fetch cities when provinces are loaded if we have an existing province name
+  useEffect(() => {
+    if (provinces.length > 0 && province) {
+      const p = provinces.find(x => x.name === province);
+      if (p) fetchCities(p.id);
+    }
+  }, [provinces, province]);
 
   const handleSave = async () => {
     if (!name.trim() || !phone.trim()) {
@@ -55,7 +81,10 @@ export function EditCustomerPage({ customer, onBack, onSaved }: EditCustomerPage
           name: name.trim(),
           phone: phone.trim(),
           address: address.trim() || null,
+          province: province || null,
+          city: city || null,
           tier: finalTier,
+          created_at: new Date(createdAt).toISOString(),
           updated_at: new Date().toISOString(),
         })
         .eq('id', customer.id)
@@ -73,7 +102,7 @@ export function EditCustomerPage({ customer, onBack, onSaved }: EditCustomerPage
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-background">
+    <div className="bg-background min-h-screen pb-24">
       {/* Header - same pattern as StockPage */}
       <header className="flex items-center justify-between px-4 py-3 sticky top-0 bg-background/95 backdrop-blur-sm z-10 border-b border-border/50">
         <div className="flex items-center gap-3">
@@ -96,7 +125,7 @@ export function EditCustomerPage({ customer, onBack, onSaved }: EditCustomerPage
         </button>
       </header>
 
-      <main className="flex-1 px-4 mt-3 mb-6 space-y-3 pb-28">
+      <main className="px-4 mt-3 space-y-3">
         {/* Form card - same rounded-2xl card pattern */}
         <div className="bg-card rounded-2xl p-4 shadow-sm border border-border/50 space-y-5">
           <h3 className="text-lg font-bold text-foreground flex items-center">
@@ -144,6 +173,68 @@ export function EditCustomerPage({ customer, onBack, onSaved }: EditCustomerPage
                 placeholder="Nama jalan, nomor rumah, kota..."
                 rows={2}
                 className="flex-1 text-sm font-bold text-foreground placeholder-muted-foreground/50 bg-transparent border-none focus:ring-0 p-0 outline-none resize-none leading-relaxed"
+              />
+            </div>
+          </div>
+
+          {/* Provinsi */}
+          <div>
+            <label className="block text-sm font-bold text-foreground mb-2">Provinsi (Opsional)</label>
+            <div className="flex items-center gap-2 bg-muted/30 rounded-xl p-3 border border-border">
+              <MapPin className="h-4 w-4 text-muted-foreground shrink-0" />
+              <select
+                value={province}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setProvince(val);
+                  setCity(''); // reset city
+                  if (!val) {
+                    setCities([]);
+                    return;
+                  }
+                  const p = provinces.find(x => x.name === val);
+                  if (p) fetchCities(p.id);
+                }}
+                disabled={loadingProvinces}
+                className="flex-1 text-sm font-bold text-foreground bg-transparent border-none focus:ring-0 p-0 outline-none disabled:opacity-50"
+              >
+                <option value="">Pilih Provinsi</option>
+                {provinces.map(p => (
+                  <option key={p.id} value={p.name}>{p.name}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Kota/Kabupaten */}
+          <div>
+            <label className="block text-sm font-bold text-foreground mb-2">Kabupaten/Kota (Opsional)</label>
+            <div className="flex items-center gap-2 bg-muted/30 rounded-xl p-3 border border-border">
+              <MapPin className="h-4 w-4 text-muted-foreground shrink-0" />
+              <select
+                value={city}
+                onChange={(e) => setCity(e.target.value)}
+                disabled={!province || loadingCities || cities.length === 0}
+                className="flex-1 text-sm font-bold text-foreground bg-transparent border-none focus:ring-0 p-0 outline-none disabled:opacity-50"
+              >
+                <option value="">Pilih Kabupaten/Kota</option>
+                {cities.map(c => (
+                  <option key={c.id} value={c.name}>{c.name}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Tanggal Bergabung */}
+          <div>
+            <label className="block text-sm font-bold text-foreground mb-2">Tanggal Bergabung</label>
+            <div className="flex items-center gap-2 bg-muted/30 rounded-xl p-3 border border-border">
+              <Calendar className="h-4 w-4 text-muted-foreground shrink-0" />
+              <input
+                type="date"
+                value={createdAt}
+                onChange={e => setCreatedAt(e.target.value)}
+                className="flex-1 text-sm font-bold text-foreground placeholder-muted-foreground/50 bg-transparent border-none focus:ring-0 p-0 outline-none"
               />
             </div>
           </div>
@@ -245,8 +336,8 @@ export function EditCustomerPage({ customer, onBack, onSaved }: EditCustomerPage
         )}
       </main>
 
-      {/* Save button - fixed bottom like other pages */}
-      <div className="fixed bottom-16 left-0 right-0 p-4 bg-background/95 backdrop-blur-sm border-t border-border z-20">
+      {/* Save button - positioned fixed so it stays over the bottom nav area */}
+      <div className="fixed bottom-0 left-0 right-0 p-4 bg-background border-t border-border z-20 pb-safe sm:pb-4 shadow-[0_-8px_30px_-15px_rgba(0,0,0,0.1)]">
         <button
           onClick={handleSave}
           disabled={saving}

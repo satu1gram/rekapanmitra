@@ -146,7 +146,7 @@ export function OrdersPage({ openAddForm = false, onAddFormClose }: OrdersPagePr
   const visibleDays = showAllDays ? dailySummaries : dailySummaries.slice(0, 5);
 
   const handleSubmit = async (data: {
-    customerName: string; customerPhone: string; customerAddress?: string; tier: TierType;
+    customerName: string; customerPhone: string; customerAddress?: string; province?: string; city?: string; tier: TierType;
     items: OrderItem[]; transferProofUrl?: string; customerId?: string; createdAt?: string;
   }) => {
     const totalQuantity = data.items.reduce((sum, item) => sum + item.quantity, 0);
@@ -174,12 +174,15 @@ export function OrdersPage({ openAddForm = false, onAddFormClose }: OrdersPagePr
           subtotal: i.subtotal,
         })),
       });
-      reduceStock(totalQuantity, order.id).catch(err =>
+      reduceStock(totalQuantity, order.id, data.createdAt).catch(err =>
         console.error('reduceStock failed (order already saved):', err)
       );
       addOrUpdateCustomer({
         customerName: data.customerName,
         customerPhone: data.customerPhone,
+        customerAddress: data.customerAddress,
+        province: data.province,
+        city: data.city,
         tier: data.tier,
         totalPrice,
       }).catch(err => console.error('addOrUpdateCustomer failed:', err));
@@ -209,12 +212,13 @@ export function OrdersPage({ openAddForm = false, onAddFormClose }: OrdersPagePr
   };
 
   const handleEditSubmit = async (data: {
-    customerName: string; customerPhone: string; tier: TierType;
+    customerName: string; customerPhone: string; customerAddress?: string; province?: string; city?: string; tier: TierType;
     items: OrderItem[]; transferProofUrl?: string; customerId?: string; createdAt?: string;
   }) => {
     if (!editingOrder) return;
     setSubmitting(true);
     try {
+      // NOTE: order update only updates order details. customer info update is done via EditCustomerPage.
       await updateOrder(editingOrder.id, { ...data, mitraLevel });
       toast.success('Order berhasil diupdate!');
       setShowEditDialog(false); setEditingOrder(null);
@@ -224,7 +228,7 @@ export function OrdersPage({ openAddForm = false, onAddFormClose }: OrdersPagePr
 
   if (editingCustomer) {
     return (
-      <div className="fixed inset-0 z-[100] bg-white">
+      <div className="fixed inset-0 z-[100] bg-white overflow-y-auto">
         <EditCustomerPage
           customer={editingCustomer}
           onBack={() => setEditingCustomer(null)}

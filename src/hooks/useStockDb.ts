@@ -108,21 +108,27 @@ export function useStock() {
     await fetchStock();
   };
 
-  const reduceStock = async (quantity: number, orderId?: string) => {
+  const reduceStock = async (quantity: number, orderId?: string, createdAt?: string) => {
     if (!user) throw new Error('User not authenticated');
     if (currentStock < quantity) {
       throw new Error('Stok tidak mencukupi');
     }
 
+    const insertData: any = {
+      user_id: user.id,
+      type: 'out',
+      quantity,
+      order_id: orderId || null
+    };
+
+    if (createdAt) {
+      insertData.created_at = createdAt;
+    }
+
     // Add stock entry
     const { error: entryError } = await supabase
       .from('stock_entries')
-      .insert({
-        user_id: user.id,
-        type: 'out',
-        quantity,
-        order_id: orderId || null
-      });
+      .insert(insertData);
 
     if (entryError) throw entryError;
 

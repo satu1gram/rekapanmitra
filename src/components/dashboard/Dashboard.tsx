@@ -4,17 +4,19 @@ import { useStock } from '@/hooks/useStockDb';
 import { useGeneralExpenses } from '@/hooks/useGeneralExpenses';
 import { useGeneralIncome } from '@/hooks/useGeneralIncome';
 import { useTargets } from '@/hooks/useTargets';
+import { useCustomers } from '@/hooks/useCustomersDb';
 import { formatCurrency, formatShortCurrency } from '@/lib/formatters';
 import {
   TrendingUp, Package, ShoppingCart, Plus, PackagePlus,
   Loader2, AlertTriangle, ChevronRight, ChevronDown,
-  Flag, Lock, ListFilter,
+  Flag, Lock, ListFilter, Users
 } from 'lucide-react';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
 import { LOW_STOCK_THRESHOLD } from '@/types';
 import { cn } from '@/lib/utils';
 import { TargetForm } from './TargetForm';
 import { TargetList } from './TargetList';
+import { CustomerGrowthPage } from './CustomerGrowthPage';
 
 function getGreeting(): string {
   const hour = new Date().getHours();
@@ -39,15 +41,16 @@ export function Dashboard({ onNavigate }: DashboardProps) {
   const { loading: expensesLoading, getMonthExpenses, getTotalExpenses } = useGeneralExpenses();
   const { loading: incomeLoading, getMonthIncome, getTotalIncome } = useGeneralIncome();
   const { targets, getTarget, setTarget } = useTargets();
+  const { customers, loading: customersLoading } = useCustomers();
 
-  const loading = ordersLoading || stockLoading || expensesLoading || incomeLoading;
+  const loading = ordersLoading || stockLoading || expensesLoading || incomeLoading || customersLoading;
 
   const now = new Date();
   const thisYear = now.getFullYear();
   const thisMonth = now.getMonth();
 
   // UI State
-  const [view, setView] = useState<'dashboard' | 'form' | 'list'>('dashboard');
+  const [view, setView] = useState<'dashboard' | 'form' | 'list' | 'customer-growth'>('dashboard');
   const [formYear, setFormYear] = useState(thisYear);
   const [formMonth, setFormMonth] = useState(thisMonth);
 
@@ -98,6 +101,11 @@ export function Dashboard({ onNavigate }: DashboardProps) {
     return map;
   }, [orders]);
 
+  // Customer statistics
+  const totalCustomers = customers.length;
+  const totalKonsumen = customers.filter(c => c.tier === 'satuan').length;
+  const totalMitra = totalCustomers - totalKonsumen;
+
   const openForm = (year: number, month: number) => {
     setFormYear(year); setFormMonth(month); setView('form');
   };
@@ -133,6 +141,11 @@ export function Dashboard({ onNavigate }: DashboardProps) {
         onCreate={(y, m) => openForm(y, m)}
       />
     );
+  }
+
+  // ── CUSTOMER GROWTH MODE ──
+  if (view === 'customer-growth') {
+    return <CustomerGrowthPage onBack={() => setView('dashboard')} />;
   }
 
   // ── DASHBOARD MODE ──
@@ -394,6 +407,33 @@ export function Dashboard({ onNavigate }: DashboardProps) {
                 <ChevronRight className="h-6 w-6 text-slate-300 shrink-0" />
               </button>
             </div>
+
+            {/* Total Pelanggan Card */}
+            <button
+              onClick={() => setView('customer-growth')}
+              className="w-full text-left bg-white p-5 rounded-[1.75rem] border-2 border-slate-100 shadow-sm flex items-center justify-between active:scale-[0.99] active:bg-slate-50 transition-all"
+            >
+              <div className="flex items-center gap-4">
+                <div className="w-14 h-14 rounded-3xl bg-blue-50 flex items-center justify-center shrink-0">
+                  <Users className="h-7 w-7 text-blue-600 fill-blue-600" />
+                </div>
+                <div>
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-0.5">Total Pelanggan</span>
+                  <p className="text-4xl font-black text-slate-900 tracking-tighter leading-none">{totalCustomers}</p>
+                </div>
+              </div>
+              <div className="flex flex-col items-end gap-1 text-right">
+                <div className="flex items-center gap-1.5">
+                  <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
+                  <span className="text-sm font-bold text-emerald-600">{totalMitra} Mitra</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-2 h-2 rounded-full bg-slate-200"></div>
+                  <span className="text-sm font-bold text-slate-500">{totalKonsumen} Konsumen</span>
+                </div>
+              </div>
+            </button>
+
           </>
         )}
       </main>

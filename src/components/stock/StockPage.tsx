@@ -252,6 +252,21 @@ export function StockPage() {
             <span className="text-xl font-extrabold text-emerald-600">{formatCurrency(quantity * buyPrice)}</span>
           </div>
 
+          {/* Date */}
+          <div className="mt-4">
+            <label className="block text-sm font-bold text-gray-800 mb-2">Tanggal Restok</label>
+            <input
+              type="date" value={stockDate}
+              onChange={e => setStockDate(e.target.value)}
+              className="w-full rounded-xl border border-gray-200 bg-white py-2.5 px-3 text-sm font-medium text-gray-900 shadow-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+            />
+            {stockDate && (
+              <p className="mt-1 text-xs text-gray-500 font-medium pl-1">
+                {formattedDate(stockDate)}
+              </p>
+            )}
+          </div>
+
           {/* Advanced options */}
           <div className="border-t border-gray-100 pt-3">
             <button
@@ -268,21 +283,6 @@ export function StockPage() {
 
             {showAdvanced && (
               <div className="mt-2 space-y-4 px-1">
-                {/* Date */}
-                <div>
-                  <label className="block text-sm font-bold text-gray-800 mb-2">Pilih Tanggal</label>
-                  <input
-                    type="date" value={stockDate}
-                    onChange={e => setStockDate(e.target.value)}
-                    className="w-full rounded-xl border border-gray-200 bg-white py-2.5 px-3 text-sm font-medium text-gray-900 shadow-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
-                  />
-                  {stockDate && (
-                    <p className="mt-1 text-xs text-gray-500 font-medium pl-1">
-                      {formattedDate(stockDate)}
-                    </p>
-                  )}
-                </div>
-
                 {/* Notes */}
                 <div>
                   <label className="block text-sm font-bold text-gray-800 mb-2">Catatan (Opsional)</label>
@@ -491,7 +491,7 @@ export function StockPage() {
                         </span>
                       </div>
                       <p className="text-[10px] text-gray-400 mt-0.5">
-                        {formatDateTime(entry.created_at)}
+                        {formatDateTime(orderRef ? orderRef.created_at : entry.created_at)}
                       </p>
                     </div>
 
@@ -655,7 +655,7 @@ export function StockPage() {
                             {badgeText}
                           </span>
                         </div>
-                        <p className="text-[10px] text-gray-400 mt-0.5">{formatDateTime(entry.created_at)}</p>
+                        <p className="text-[10px] text-gray-400 mt-0.5">{formatDateTime(orderRef ? orderRef.created_at : entry.created_at)}</p>
                       </div>
                     </div>
 
