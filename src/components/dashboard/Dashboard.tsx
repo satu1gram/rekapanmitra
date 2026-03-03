@@ -51,6 +51,7 @@ export function Dashboard({ onNavigate }: DashboardProps) {
 
   // UI State
   const [view, setView] = useState<'dashboard' | 'form' | 'list' | 'customer-growth'>('dashboard');
+  const [includeBiaya, setIncludeBiaya] = useState(false);
   const [formYear, setFormYear] = useState(thisYear);
   const [formMonth, setFormMonth] = useState(thisMonth);
 
@@ -64,6 +65,7 @@ export function Dashboard({ onNavigate }: DashboardProps) {
   const monthExpensesTotal = getTotalExpenses(getMonthExpenses());
   const monthIncomeTotal = getTotalIncome(getMonthIncome());
   const monthNetProfit = monthProfit - monthExpensesTotal + monthIncomeTotal;
+  const displayedProfit = includeBiaya ? monthNetProfit : monthProfit;
   const monthQty = monthOrders.reduce((sum, o) => sum + o.quantity, 0);
 
   const currentTarget = getTarget(thisYear, thisMonth);
@@ -74,7 +76,7 @@ export function Dashboard({ onNavigate }: DashboardProps) {
 
   // Progress calculations
   const profitPct = currentTarget && currentTarget.targetProfit > 0
-    ? Math.min(Math.round((monthNetProfit / currentTarget.targetProfit) * 100), 100)
+    ? Math.min(Math.round((displayedProfit / currentTarget.targetProfit) * 100), 100)
     : 0;
   const qtyPct = currentTarget && currentTarget.targetQty > 0
     ? Math.min(Math.round((monthQty / currentTarget.targetQty) * 100), 100)
@@ -254,14 +256,41 @@ export function Dashboard({ onNavigate }: DashboardProps) {
                     <span className="text-[10px] font-black text-emerald-400">+{profitPct}%</span>
                   </div>
                 </div>
+
+                {/* Include/Exclude Biaya Toggle */}
+                <div className="flex items-center gap-2 mb-3">
+                  <button
+                    onClick={() => setIncludeBiaya(false)}
+                    className={cn(
+                      "px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wide transition-all border",
+                      !includeBiaya
+                        ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
+                        : "bg-white/5 text-slate-500 border-white/10 hover:bg-white/10"
+                    )}
+                  >
+                    Tanpa Biaya
+                  </button>
+                  <button
+                    onClick={() => setIncludeBiaya(true)}
+                    className={cn(
+                      "px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wide transition-all border",
+                      includeBiaya
+                        ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
+                        : "bg-white/5 text-slate-500 border-white/10 hover:bg-white/10"
+                    )}
+                  >
+                    Dengan Biaya
+                  </button>
+                </div>
+
                 {/* Amount */}
                 <div className="flex items-baseline gap-1 mb-1.5">
                   <span className="text-emerald-400 text-2xl font-black">Rp</span>
                   <span className={cn(
                     'text-5xl font-black tracking-tighter leading-none',
-                    monthNetProfit >= 0 ? 'text-emerald-400' : 'text-red-400'
+                    displayedProfit >= 0 ? 'text-emerald-400' : 'text-red-400'
                   )}>
-                    {formatCurrency(monthNetProfit).replace('Rp', '').trim()}
+                    {formatCurrency(displayedProfit).replace('Rp', '').trim()}
                   </span>
                 </div>
                 {/* Progress */}
