@@ -21,6 +21,7 @@ import {
   ShoppingCart,
   BarChart3,
   ChevronLeft,
+  Bell,
 } from 'lucide-react';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
 import { toast } from 'sonner';
@@ -83,6 +84,7 @@ export function OrdersPage({ openAddForm = false, onAddFormClose }: OrdersPagePr
     addOrder,
     updateOrder,
     updateOrderStatus,
+    deleteOrder,
     fetchOrderExpenses,
     addOrderExpense,
     deleteOrderExpense,
@@ -94,6 +96,9 @@ export function OrdersPage({ openAddForm = false, onAddFormClose }: OrdersPagePr
   const { getTotalExpenses, getExpensesByDateRange } = useGeneralExpenses();
   const { getTotalIncome, getIncomeByDateRange } = useGeneralIncome();
 
+  // Orders waiting for payment confirmation from public store link
+  const pendingPaymentOrders = useMemo(() => orders.filter(o => o.status === 'menunggu_bayar'), [orders]);
+
   const filteredOrders = useMemo(() => {
     const start = new Date(startDate);
     start.setHours(0, 0, 0, 0);
@@ -102,7 +107,8 @@ export function OrdersPage({ openAddForm = false, onAddFormClose }: OrdersPagePr
 
     return orders.filter(o => {
       const d = new Date(o.created_at);
-      return d >= start && d <= end;
+      // Exclude menunggu_bayar from the main date-filtered list (they appear in the banner)
+      return d >= start && d <= end && o.status !== 'menunggu_bayar';
     });
   }, [orders, startDate, endDate]);
 
@@ -201,6 +207,13 @@ export function OrdersPage({ openAddForm = false, onAddFormClose }: OrdersPagePr
     } catch { toast.error('Gagal mengubah status'); }
   };
 
+  const handleDeleteOrder = async (orderId: string) => {
+    try {
+      await deleteOrder(orderId);
+      toast.success('Pesanan ditolak dan dihapus');
+    } catch { toast.error('Gagal menghapus pesanan'); }
+  };
+
   const openEditDialog = async (order: Order) => {
     setEditingOrder(order);
     const items = await fetchOrderItems(order.id);
@@ -274,6 +287,45 @@ export function OrdersPage({ openAddForm = false, onAddFormClose }: OrdersPagePr
       {/* Header */}
       <header className="px-5 pt-8 pb-4 bg-card shadow-sm z-10 sticky top-0">
         <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 mb-4">Riwayat Order</h1>
+
+        {/* Pending Payment Banner */}
+        {pendingPaymentOrders.length > 0 && (
+          <div className="mb-3 bg-orange-50 border border-orange-200 rounded-2xl px-4 py-3 flex items-center gap-3">
+            <div className="w-9 h-9 bg-orange-500 rounded-xl flex items-center justify-center shrink-0">
+              <Bell className="h-4 w-4 text-white" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-extrabold text-orange-800">
+                {pendingPaymentOrders.length} Pesanan Menunggu Konfirmasi
+              </p>
+              <p className="text-xs text-orange-600 font-medium">Dari link toko publik — klik untuk konfirmasi</p>
+            </div>
+            <div className="bg-orange-500 text-white text-xs font-black px-2.5 py-1 rounded-full shrink-0">
+              {pendingPaymentOrders.length}
+            </div>
+          </div>
+        )}
+
+        {/* Pending Payment Orders List */}
+        {pendingPaymentOrders.length > 0 && (
+          <div className="mb-3 space-y-2">
+            {pendingPaymentOrders.map(order => (
+              <OrderCard
+                key={order.id}
+                order={order}
+                expanded={expandedOrder === order.id}
+                onToggleExpand={() => setExpandedOrder(expandedOrder === order.id ? null : order.id)}
+                onStatusChange={handleStatusChange}
+                onEdit={openEditDialog}
+                onDelete={handleDeleteOrder}
+                fetchOrderExpenses={fetchOrderExpenses}
+                addOrderExpense={addOrderExpense}
+                deleteOrderExpense={deleteOrderExpense}
+                fetchOrderItems={fetchOrderItems}
+              />
+            ))}
+          </div>
+        )}
 
         {/* Ultra-Compact Date filter and Grafik button */}
         <div className="flex items-center gap-2 mb-3">

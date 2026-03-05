@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { StoreSettingsCard } from '@/components/settings/StoreSettingsCard';
 
 // Urutan level dari terendah ke tertinggi (sesuai types/index.ts)
 const LEVEL_ORDER: MitraLevel[] = ['reseller', 'agen', 'agen_plus', 'sap', 'se'];
@@ -256,6 +257,9 @@ export function SettingsPage() {
             </div>
           )}
         </section>
+
+        {/* ─── LINK TOKO ─── */}
+        <StoreSettingsCard />
 
         {/* ─── POTENSI PROFIT (DARK) ─── */}
         <section className="bg-[#1A1F2C] rounded-[2rem] p-5 overflow-hidden relative shadow-2xl shadow-slate-900/10">

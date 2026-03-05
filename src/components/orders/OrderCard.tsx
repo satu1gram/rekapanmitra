@@ -28,6 +28,7 @@ interface OrderCardProps {
   onToggleExpand: () => void;
   onStatusChange: (orderId: string, status: OrderStatus) => Promise<void>;
   onEdit: (order: Order) => void;
+  onDelete?: (orderId: string) => Promise<void>;
   fetchOrderExpenses: (orderId: string) => Promise<OrderExpense[]>;
   addOrderExpense: (orderId: string, name: string, amount: number) => Promise<any>;
   deleteOrderExpense: (expenseId: string, orderId: string, amount: number) => Promise<void>;
@@ -35,20 +36,22 @@ interface OrderCardProps {
 }
 
 const STATUS_STYLE: Record<string, string> = {
-  pending:  'bg-amber-50 text-amber-700 border border-amber-200',
+  menunggu_bayar: 'bg-orange-50 text-orange-700 border border-orange-200',
+  pending: 'bg-amber-50 text-amber-700 border border-amber-200',
   terkirim: 'bg-blue-50 text-blue-700 border border-blue-200',
-  selesai:  'bg-emerald-50 text-emerald-700 border border-emerald-200',
+  selesai: 'bg-emerald-50 text-emerald-700 border border-emerald-200',
 };
 
 const STATUS_LABEL: Record<string, string> = {
-  pending:  'pending',
+  menunggu_bayar: 'Menunggu Bayar',
+  pending: 'pending',
   terkirim: 'terkirim',
-  selesai:  'selesai',
+  selesai: 'selesai',
 };
 
 export function OrderCard({
   order, expanded, onToggleExpand, onStatusChange, onEdit,
-  fetchOrderExpenses, addOrderExpense, deleteOrderExpense, fetchOrderItems,
+  fetchOrderExpenses, addOrderExpense, deleteOrderExpense, fetchOrderItems, onDelete,
 }: OrderCardProps) {
   const [orderExpenses, setOrderExpenses] = useState<OrderExpense[]>([]);
   const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
@@ -233,6 +236,22 @@ export function OrderCard({
 
               {/* Status actions */}
               <div className="flex gap-2">
+                {order.status === 'menunggu_bayar' && (
+                  <>
+                    <button
+                      onClick={e => { e.stopPropagation(); onDelete?.(order.id); }}
+                      className="flex items-center gap-1.5 px-4 py-2.5 bg-white border border-red-200 rounded-xl text-red-500 font-bold text-sm hover:bg-red-50 transition-colors"
+                    >
+                      <Trash2 className="h-4 w-4" /> Tolak
+                    </button>
+                    <button
+                      onClick={e => { e.stopPropagation(); onStatusChange(order.id, 'pending'); }}
+                      className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-orange-500 text-white rounded-xl font-bold text-sm hover:bg-orange-600 transition-colors"
+                    >
+                      <Check className="h-4 w-4" /> Konfirmasi Bayar
+                    </button>
+                  </>
+                )}
                 {order.status === 'pending' && (
                   <>
                     <button

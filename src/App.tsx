@@ -15,6 +15,8 @@ const DashboardPage = lazy(() => import("./pages/DashboardPage"));
 const RiwayatPage = lazy(() => import("./pages/RiwayatPage"));
 const ProdukPage = lazy(() => import("./pages/ProdukPage"));
 const AkunPage = lazy(() => import("./pages/AkunPage"));
+const PublicOrderPage = lazy(() => import("./pages/PublicOrderPage"));
+const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage").then(m => ({ default: m.ResetPasswordPage })));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -60,6 +62,16 @@ const App = () => (
           <Routes>
             {/* Auth route — tidak perlu shell */}
             <Route path="/login" element={<AuthPage />} />
+
+            {/* Public store page — no auth required */}
+            <Route path="/toko/:slug" element={
+              <Suspense fallback={<PageLoader />}><PublicOrderPage /></Suspense>
+            } />
+
+            {/* Reset password — link dari email Supabase */}
+            <Route path="/reset-password" element={
+              <Suspense fallback={<PageLoader />}><ResetPasswordPage /></Suspense>
+            } />
 
             {/* App routes — semua di dalam AppShell */}
             <Route element={<AppShell />}>
