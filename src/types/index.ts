@@ -3,7 +3,7 @@
 export type TierType = 'satuan' | 'reseller' | 'agen' | 'agen_plus' | 'sap' | 'se';
 
 // Level mitra (level penjual sendiri) - menentukan harga modal
-export type MitraLevel = 'reseller' | 'agen' | 'agen_plus' | 'sap' | 'se';
+export type MitraLevel = 'reseller' | 'agen' | 'agen_plus' | 'sap' | 'se' | 'custom';
 
 export interface MitraLevelInfo {
   level: MitraLevel;
@@ -37,6 +37,11 @@ export const MITRA_LEVELS: Record<MitraLevel, MitraLevelInfo> = {
     level: 'se',
     buyPricePerBottle: 150000,
     label: 'Special Entrepreneur (SE)'
+  },
+  custom: {
+    level: 'custom',
+    buyPricePerBottle: 0, // diisi user saat onboarding
+    label: 'Level Kustom'
   }
 };
 

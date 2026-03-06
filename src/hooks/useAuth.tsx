@@ -37,13 +37,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signUp = async (email: string, password: string, name: string) => {
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         data: { name }
       }
     });
+
+    // Supabase kadang tidak mengembalikan error untuk email yang sudah terdaftar,
+    // melainkan mengembalikan user dengan identities kosong (array kosong).
+    // Ini adalah cara Supabase mencegah email enumeration.
+    if (!error && data?.user && data.user.identities?.length === 0) {
+      return { error: new Error('Email ini sudah terdaftar.') as Error };
+    }
+
     return { error: error as Error | null };
   };
 

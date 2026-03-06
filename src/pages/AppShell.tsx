@@ -5,6 +5,9 @@ import { LoadingScreen } from '@/components/ui/LoadingScreen';
 import { useState } from 'react';
 import { Plus, X, Package, ShoppingCart } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useOnboarding } from '@/hooks/useOnboarding';
+import { OnboardingWizard } from '@/components/onboarding/OnboardingWizard';
+
 
 function GlobalFAB() {
     const navigate = useNavigate();
@@ -73,8 +76,9 @@ function GlobalFAB() {
 export function AppShell() {
     const { user, loading } = useAuth();
     const location = useLocation();
+    const { isOnboardingComplete, isOnboardingLoading } = useOnboarding();
 
-    if (loading) {
+    if (loading || isOnboardingLoading) {
         return <LoadingScreen fullScreen />;
     }
 
@@ -84,6 +88,9 @@ export function AppShell() {
 
     return (
         <div className="min-h-screen bg-background">
+            {/* Onboarding wizard — muncul di atas semua konten jika belum selesai */}
+            {isOnboardingComplete === false && <OnboardingWizard />}
+
             <div className="max-w-lg mx-auto min-h-screen flex flex-col relative pb-[5.5rem]">
                 <main className="flex-1">
                     <Outlet />
@@ -94,3 +101,4 @@ export function AppShell() {
         </div>
     );
 }
+
