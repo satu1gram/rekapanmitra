@@ -13,10 +13,13 @@ from telethon.errors import SessionPasswordNeededError
 API_ID = 37220251 # GANTI DENGAN API ID ANDA (Angka, tanpa tanda kutip)
 API_HASH = '39ce4be2d15ebf4ac86091c9275da90a' # GANTI DENGAN API HASH ANDA (String, gunakan tanda kutip)
 GROUP_LINK = 'https://t.me/+aEs5CmlwJbozYWZl' 
+PHONE_NUMBER = '' # Opsional: Isi dengan nomor HP Anda dalam format internasional (misal +62812...)
 
 # File output tempat data akan disimpan
 OUTPUT_FILE = os.path.join(os.path.dirname(__file__), '../src/lib/telegram_raw_data.json')
-# ------------------
+
+# Nama file sesi
+session_name = '.credentials/telegram_session'
 
 async def scrape_group():
     print("Memulai sesi Telegram...")
@@ -75,7 +78,7 @@ async def scrape_group():
     print(f"File berhasil disimpan di: {OUTPUT_FILE}")
 
 if __name__ == '__main__':
-    if API_ID == 0 or API_HASH == 'GANTI_DENGAN_API_HASH_ANDA':
+    if not API_ID or not API_HASH:
         print("ERROR: Anda belum mengisi API_ID dan API_HASH di dalam script ini!")
         print("Silakan buka file ini dan isi terlebih dahulu.")
     else:

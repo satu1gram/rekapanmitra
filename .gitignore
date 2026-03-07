@@ -28,12 +28,8 @@ dist-ssr
 .env.*
 !.env.example
 
-# Telegram Session
-*.session
-
-# Temp
-temp_models.json
-test_div.js
+# Credentials & Temp Files
+.credentials/
 admin_mvp_plan.md.resolved
 
 # OS
