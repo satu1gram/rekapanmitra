@@ -127,28 +127,7 @@ export function SettingsPage() {
             </div>
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Status Kemitraan</span>
 
-            <div className="mt-6 w-full">
-              <div className="flex justify-between text-[10px] font-bold mb-2 uppercase tracking-wider">
-                <span className="text-slate-500">Target Omzet</span>
-                <span className="text-[#009624]">Next: {NEXT_LEVEL_LABEL[safeMitraLevel] || '—'}</span>
-              </div>
-              <div className="w-full h-3.5 bg-slate-100 rounded-full overflow-hidden border border-slate-200">
-                <div
-                  className="h-full bg-[#059669] rounded-full relative transition-all duration-700"
-                  style={{ width: `${progressPct}%` }}
-                >
-                  <div className="absolute inset-0 bg-white/20 animate-pulse rounded-full" />
-                </div>
-              </div>
-              <p className="mt-2.5 text-xs font-medium text-slate-600">
-                Satu langkah lagi menuju{' '}
-                <span className="font-bold text-[#009624] underline decoration-2">
-                  {NEXT_LEVEL_LABEL[safeMitraLevel] !== '—'
-                    ? NEXT_LEVEL_LABEL[safeMitraLevel] + '!'
-                    : 'Level Tertinggi!'}
-                </span>
-              </p>
-            </div>
+
           </div>
         </div>
       </header>
@@ -298,32 +277,7 @@ export function SettingsPage() {
               </div>
             </div>
 
-            {/* Grid comparison: Reseller vs Agen Plus */}
-            <div className="grid grid-cols-2 gap-2.5">
-              {(['reseller', 'agen_plus'] as MitraLevel[]).map((lv, i) => {
-                const lvInfo = MITRA_LEVELS[lv];
-                if (!lvInfo) return null;
-                const isActive = safeMitraLevel === lv;
-                const barWidths = ['w-[30%]', 'w-[60%]'];
-                return (
-                  <button
-                    key={lv}
-                    onClick={() => handleMitraLevelChange(lv)}
-                    disabled={savingLevel || isActive}
-                    className={cn(
-                      'p-4 bg-[#252B3B] rounded-2xl border border-white/5 text-left transition-all',
-                      isActive ? 'opacity-100 border-[#059669]/40' : 'opacity-60'
-                    )}
-                  >
-                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">{lvInfo.label}</p>
-                    <h4 className="text-base font-bold text-slate-200">{formatShortCurrency(LEVEL_MARGIN[lv])}</h4>
-                    <div className="mt-2.5 h-1.5 w-full bg-slate-700 rounded-full">
-                      <div className={cn('h-full rounded-full', barWidths[i], isActive ? 'bg-[#059669]' : 'bg-slate-500')} />
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
+
 
             {/* Level selector */}
             <div className="space-y-2">
@@ -357,19 +311,7 @@ export function SettingsPage() {
               })}
             </div>
 
-            {/* CTA */}
-            <div className="bg-gradient-to-r from-[#009624] to-[#059669] p-4 rounded-2xl text-white shadow-lg mt-1">
-              <div className="flex items-center gap-3">
-                <div className="bg-white/20 p-2 rounded-full shrink-0">
-                  <Rocket className="h-5 w-5 text-white" />
-                </div>
-                <div className="flex-1">
-                  <p className="text-[10px] font-bold uppercase tracking-tight opacity-90 mb-0.5">Target Berikutnya</p>
-                  <p className="text-sm font-black leading-snug">Ambil Paket 40 Botol untuk Margin Lebih Besar!</p>
-                </div>
-                <ChevronRight className="h-5 w-5 opacity-70 shrink-0" />
-              </div>
-            </div>
+
           </div>
         </section>
 
