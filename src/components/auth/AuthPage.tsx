@@ -23,7 +23,7 @@ export function AuthPage() {
   const { signIn, signUp } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const from = (location.state as any)?.from?.pathname ?? '/';
+  const from = (location.state as any)?.from?.pathname ?? '/dashboard';
 
   const [mode, setMode] = useState<Mode>('login');
   const [loading, setLoading] = useState(false);
@@ -91,11 +91,12 @@ export function AuthPage() {
       <main className="w-full max-w-sm">
 
         {/* Logo */}
-        <div className="text-center mb-5">
-          <h1 className="text-2xl font-extrabold tracking-tight mb-0.5" style={{ color: DS.primary }}>
-            Rekapan Mitra
-          </h1>
-          <p className="text-sm font-medium" style={{ color: DS.gray }}>Mitra Bisnis Terpercaya</p>
+        <div className="flex justify-center mb-6 mt-2">
+          <img
+            src="/icon-rekapan-mitra.png"
+            alt="Logo Rekapan Mitra"
+            className="h-12 w-auto object-contain drop-shadow-sm"
+          />
         </div>
 
         {/* Card */}
@@ -182,6 +183,7 @@ export function AuthPage() {
                     <ArrowLeft className="h-3.5 w-3.5" /> Kembali ke Login
                   </button>
                 )}
+
                 <h2 className="text-lg font-bold" style={{ color: DS.navy }}>
                   {mode === 'login' ? 'Selamat Datang Kembali' : mode === 'register' ? 'Buat Akun Baru' : 'Lupa Password?'}
                 </h2>

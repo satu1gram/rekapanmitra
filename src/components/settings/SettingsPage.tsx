@@ -3,10 +3,9 @@ import { MITRA_LEVELS, MitraLevel } from '@/types';
 import { formatCurrency, formatShortCurrency } from '@/lib/formatters';
 import { useAuth } from '@/hooks/useAuth';
 import { useProfile } from '@/hooks/useProfile';
-import { useProducts, Product } from '@/hooks/useProducts';
 import {
-  LogOut, Loader2, Plus, Trash2, Edit, Check,
-  TrendingUp, ChevronRight, Rocket, MapPin, ShoppingBag,
+  LogOut, Loader2, Check,
+  TrendingUp, ChevronRight, Rocket, MapPin,
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -37,17 +36,9 @@ const LEVEL_MARGIN: Record<string, number> = {
 export function SettingsPage() {
   const { user, signOut } = useAuth();
   const { profile, mitraLevel, updateMitraLevel } = useProfile();
-  const { products, loading: productsLoading, addProduct, updateProduct, deleteProduct } = useProducts();
 
   const [loggingOut, setLoggingOut] = useState(false);
   const [savingLevel, setSavingLevel] = useState(false);
-  const [showAddProduct, setShowAddProduct] = useState(false);
-  const [newProductName, setNewProductName] = useState('');
-  const [newProductPrice, setNewProductPrice] = useState(250000);
-  const [savingProduct, setSavingProduct] = useState(false);
-  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-  const [editName, setEditName] = useState('');
-  const [editPrice, setEditPrice] = useState(0);
 
   // Pastikan mitraLevel valid, fallback ke 'reseller'
   const safeMitraLevel: MitraLevel = (MITRA_LEVELS[mitraLevel as MitraLevel] ? mitraLevel as MitraLevel : 'reseller');
@@ -68,38 +59,6 @@ export function SettingsPage() {
     try { await updateMitraLevel(level); toast.success(`Level diubah ke ${MITRA_LEVELS[level].label}`); }
     catch { toast.error('Gagal mengubah level mitra'); }
     finally { setSavingLevel(false); }
-  };
-
-  const handleAddProduct = async () => {
-    if (!newProductName.trim()) { toast.error('Nama produk wajib diisi'); return; }
-    setSavingProduct(true);
-    try {
-      await addProduct(newProductName.trim(), newProductPrice);
-      toast.success(`Produk "${newProductName}" ditambahkan`);
-      setNewProductName(''); setNewProductPrice(250000); setShowAddProduct(false);
-    } catch { toast.error('Gagal menambah produk'); }
-    finally { setSavingProduct(false); }
-  };
-
-  const handleEditProduct = async () => {
-    if (!editingProduct || !editName.trim()) return;
-    setSavingProduct(true);
-    try {
-      await updateProduct(editingProduct.id, { name: editName.trim(), default_sell_price: editPrice });
-      toast.success('Produk berhasil diupdate'); setEditingProduct(null);
-    } catch { toast.error('Gagal mengupdate produk'); }
-    finally { setSavingProduct(false); }
-  };
-
-  const handleDeleteProduct = async (product: Product) => {
-    setSavingProduct(true);
-    try { await deleteProduct(product.id); toast.success(`Produk "${product.name}" dihapus`); }
-    catch { toast.error('Gagal menghapus produk'); }
-    finally { setSavingProduct(false); }
-  };
-
-  const startEdit = (product: Product) => {
-    setEditingProduct(product); setEditName(product.name); setEditPrice(product.default_sell_price);
   };
 
   return (
@@ -134,108 +93,7 @@ export function SettingsPage() {
 
       <main className="px-4 space-y-4">
 
-        {/* ─── ETALASE PRODUK ─── */}
-        <section className="bg-white border border-slate-100 rounded-[2rem] p-5 shadow-sm">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-2xl bg-green-50 flex items-center justify-center">
-                <ShoppingBag className="h-5 w-5 text-[#059669]" />
-              </div>
-              <div>
-                <h2 className="text-base font-extrabold text-slate-800">Etalase Produk</h2>
-                <p className="text-xs text-slate-500 font-medium italic">Koleksi jualan Anda</p>
-              </div>
-            </div>
-            <div className="text-right">
-              <span className="text-3xl font-black text-[#059669] leading-none">{products.length}</span>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Item Aktif</p>
-            </div>
-          </div>
 
-          {/* Add form */}
-          {showAddProduct && (
-            <div className="mb-4 bg-green-50 rounded-2xl p-4 border border-green-100 space-y-3">
-              <Label className="text-sm font-bold text-slate-700">Nama Produk</Label>
-              <Input placeholder="Contoh: BP Merah, Steffi..." value={newProductName}
-                onChange={e => setNewProductName(e.target.value)} disabled={savingProduct}
-                className="h-10 text-sm bg-white" />
-              <Label className="text-sm font-bold text-slate-700">Harga Jual Default</Label>
-              <Input type="number" step={1000} value={newProductPrice}
-                onChange={e => setNewProductPrice(parseInt(e.target.value) || 0)} disabled={savingProduct}
-                className="h-10 text-sm bg-white" />
-              <div className="flex gap-2 pt-1">
-                <button onClick={() => { setShowAddProduct(false); setNewProductName(''); }}
-                  className="flex-1 py-2.5 border-2 border-slate-200 rounded-xl font-bold text-slate-600 text-sm">
-                  Batal
-                </button>
-                <button onClick={handleAddProduct} disabled={savingProduct || !newProductName.trim()}
-                  className="flex-1 py-2.5 bg-[#059669] text-white rounded-xl font-bold text-sm disabled:opacity-50 flex items-center justify-center gap-1">
-                  {savingProduct ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
-                  Simpan
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Product list */}
-          {productsLoading ? (
-            <div className="flex justify-center py-6"><Loader2 className="h-5 w-5 animate-spin text-green-400" /></div>
-          ) : products.length === 0 && !showAddProduct ? (
-            <div className="relative bg-slate-50 border-2 border-dashed border-slate-200 rounded-2xl p-7 flex flex-col items-center justify-center">
-              <div className="w-14 h-14 bg-white shadow-md rounded-full flex items-center justify-center mb-3 text-[#059669]">
-                <Plus className="h-7 w-7" />
-              </div>
-              <p className="text-slate-700 font-bold mb-1">Mulai Isi Toko Anda</p>
-              <p className="text-xs text-slate-500 text-center max-w-[180px] mb-5 font-medium leading-snug">
-                Tambah produk pertama untuk memantau keuntungan.
-              </p>
-              <button onClick={() => setShowAddProduct(true)}
-                className="bg-[#059669] text-white w-full py-3.5 rounded-xl font-bold text-sm shadow-lg shadow-green-500/20 active:scale-95 transition-all uppercase tracking-wide">
-                Tambah Produk Baru
-              </button>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {products.map(product => (
-                <div key={product.id} className="bg-slate-50 rounded-2xl px-4 py-3 border border-slate-100">
-                  {editingProduct?.id === product.id ? (
-                    <div className="space-y-2">
-                      <Input value={editName} onChange={e => setEditName(e.target.value)} className="h-9 text-sm" disabled={savingProduct} />
-                      <Input type="number" value={editPrice} onChange={e => setEditPrice(parseInt(e.target.value) || 0)} className="h-9 text-sm" disabled={savingProduct} />
-                      <div className="flex gap-2">
-                        <button onClick={() => setEditingProduct(null)} className="flex-1 py-2 border border-slate-200 rounded-xl text-slate-600 font-bold text-xs">Batal</button>
-                        <button onClick={handleEditProduct} disabled={savingProduct || !editName.trim()} className="flex-1 py-2 bg-[#059669] text-white rounded-xl font-bold text-xs disabled:opacity-50 flex items-center justify-center gap-1">
-                          <Check className="h-3.5 w-3.5" /> Simpan
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="font-bold text-slate-800 text-sm">{product.name}</p>
-                        <p className="text-xs text-slate-500">{formatCurrency(product.default_sell_price)}</p>
-                      </div>
-                      <div className="flex gap-1">
-                        <button onClick={() => startEdit(product)} className="w-8 h-8 rounded-lg bg-white text-slate-500 flex items-center justify-center border border-slate-200">
-                          <Edit className="h-3.5 w-3.5" />
-                        </button>
-                        <button onClick={() => handleDeleteProduct(product)} className="w-8 h-8 rounded-lg bg-red-50 text-red-400 flex items-center justify-center">
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ))}
-              {!showAddProduct && (
-                <button onClick={() => setShowAddProduct(true)}
-                  className="w-full py-3 border-2 border-dashed border-green-200 rounded-2xl text-[#059669] font-bold text-sm flex items-center justify-center gap-2">
-                  <Plus className="h-4 w-4" /> Tambah Produk
-                </button>
-              )}
-            </div>
-          )}
-        </section>
 
         {/* ─── LINK TOKO ─── */}
         <StoreSettingsCard />

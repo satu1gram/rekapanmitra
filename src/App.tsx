@@ -11,6 +11,8 @@ import { lazy, Suspense } from "react";
 import { LoadingScreen } from "@/components/ui/LoadingScreen";
 
 // Lazy-load each page → hemat data (code-splitting otomatis via Vite)
+const LandingPage = lazy(() => import("./pages/LandingPage"));
+const KatalogProdukPage = lazy(() => import("./pages/KatalogProdukPage"));
 const DashboardPage = lazy(() => import("./pages/DashboardPage"));
 const RiwayatPage = lazy(() => import("./pages/RiwayatPage"));
 const ProdukPage = lazy(() => import("./pages/ProdukPage"));
@@ -60,6 +62,16 @@ const App = () => (
           }}
         >
           <Routes>
+            {/* Landing page utama — visitor / organic user */}
+            <Route path="/" element={
+              <Suspense fallback={<PageLoader />}><LandingPage /></Suspense>
+            } />
+
+            {/* Katalog public page */}
+            <Route path="/katalog" element={
+              <Suspense fallback={<PageLoader />}><KatalogProdukPage /></Suspense>
+            } />
+
             {/* Auth route — tidak perlu shell */}
             <Route path="/login" element={<AuthPage />} />
 
@@ -75,7 +87,7 @@ const App = () => (
 
             {/* App routes — semua di dalam AppShell */}
             <Route element={<AppShell />}>
-              <Route index element={
+              <Route path="dashboard" element={
                 <Suspense fallback={<PageLoader />}><DashboardPage /></Suspense>
               } />
               <Route path="riwayat" element={

@@ -4,12 +4,12 @@ import { useAuth } from './useAuth';
 
 export interface Product {
   id: string;
-  user_id: string;
   name: string;
+  category: string;
+  package_type: string;
+  quantity_per_package: number;
   default_sell_price: number;
   is_active: boolean;
-  created_at: string;
-  updated_at: string;
 }
 
 export function useProducts() {
@@ -25,74 +25,44 @@ export function useProducts() {
     }
 
     const { data, error } = await supabase
-      .from('products' as any)
+      .from('master_products' as any)
       .select('*')
-      .eq('user_id', user.id)
       .eq('is_active', true)
-      .order('name', { ascending: true });
+      .order('created_at', { ascending: false });
 
     if (error) {
       console.error('Error fetching products:', error);
     } else {
       setProducts((data || []).map((p: any) => ({
         id: p.id,
-        user_id: p.user_id,
         name: p.name,
-        default_sell_price: Number(p.default_sell_price),
+        category: p.category,
+        package_type: p.package_type,
+        quantity_per_package: p.quantity_per_package,
+        default_sell_price: Number(p.price),
         is_active: p.is_active,
-        created_at: p.created_at,
-        updated_at: p.updated_at,
       })));
     }
     setLoading(false);
-  }, [user]);
+  }, []);
 
   useEffect(() => {
     fetchProducts();
   }, [fetchProducts]);
 
-  const addProduct = useCallback(async (name: string, defaultSellPrice: number) => {
-    if (!user) throw new Error('User not authenticated');
+  // User App tidak boleh melakukan mutasi Master Produk.
+  // Method CRUD disesuaikan agar melempar pesan error atau hanya log saja.
+  const addProduct = useCallback(async () => {
+    throw new Error('Penambahan produk khusus dari Portal Admin.');
+  }, []);
 
-    const { data, error } = await supabase
-      .from('products' as any)
-      .insert({
-        user_id: user.id,
-        name: name.trim(),
-        default_sell_price: defaultSellPrice,
-      })
-      .select()
-      .single();
+  const updateProduct = useCallback(async () => {
+    throw new Error('Update produk khusus dari Portal Admin.');
+  }, []);
 
-    if (error) throw error;
-    await fetchProducts();
-    return data;
-  }, [user, fetchProducts]);
-
-  const updateProduct = useCallback(async (id: string, updates: { name?: string; default_sell_price?: number }) => {
-    if (!user) throw new Error('User not authenticated');
-
-    const { error } = await supabase
-      .from('products' as any)
-      .update(updates)
-      .eq('id', id);
-
-    if (error) throw error;
-    await fetchProducts();
-  }, [user, fetchProducts]);
-
-  const deleteProduct = useCallback(async (id: string) => {
-    if (!user) throw new Error('User not authenticated');
-
-    // Soft delete by setting is_active to false
-    const { error } = await supabase
-      .from('products' as any)
-      .update({ is_active: false })
-      .eq('id', id);
-
-    if (error) throw error;
-    await fetchProducts();
-  }, [user, fetchProducts]);
+  const deleteProduct = useCallback(async () => {
+    throw new Error('Hapus produk khusus dari Portal Admin.');
+  }, []);
 
   return {
     products,

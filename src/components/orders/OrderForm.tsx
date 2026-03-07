@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useFileUpload } from '@/hooks/useFileUpload';
 import { useProfile } from '@/hooks/useProfile';
-import { useProducts } from '@/hooks/useProducts';
+import { useProducts, Product } from '@/hooks/useProducts';
 import { TierType, TIER_PRICING, MITRA_LEVELS, OrderItem } from '@/types';
 import { formatCurrency } from '@/lib/formatters';
 import { Plus, Minus, X, Search, Package, Pencil, ArrowRight, Loader2, Calendar } from 'lucide-react';
@@ -46,22 +46,6 @@ function getPriceByTier(tier: TierType): number {
   return TIER_PRICING[tier]?.pricePerBottle ?? 250000;
 }
 
-const TIER_BRACKETS: { minQty: number; price: number }[] = [
-  { minQty: 200, price: 150000 },
-  { minQty: 40, price: 170000 },
-  { minQty: 10, price: 180000 },
-  { minQty: 5, price: 198000 },
-  { minQty: 3, price: 217000 },
-  { minQty: 1, price: 250000 },
-];
-
-function getPriceByQty(totalQty: number): number {
-  for (const bracket of TIER_BRACKETS) {
-    if (totalQty >= bracket.minQty) return bracket.price;
-  }
-  return 250000;
-}
-
 const formatDateCompact = (dateStr: string) => {
   const d = new Date(dateStr);
   return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
@@ -71,11 +55,18 @@ export function OrderForm({ customers, currentStock, submitting, onSubmit, onCan
   const { mitraLevel } = useProfile();
   const { products } = useProducts();
 
-  const buildDefaultItems = (): OrderItem[] => {
-    if (initialData?.items && initialData.items.length > 0) return initialData.items;
-    if (products.length > 0) return products.map(p => ({ productId: p.id, productName: p.name, quantity: 0, pricePerBottle: p.default_sell_price, subtotal: 0 }));
-    return [{ productName: 'Produk', quantity: 0, pricePerBottle: 250000, subtotal: 0 }];
-  };
+  const productCategories = useMemo(() => {
+    const categories: Record<string, Product[]> = {};
+    for (const p of products) {
+      if (!p.category) continue;
+      if (!categories[p.category]) categories[p.category] = [];
+      categories[p.category].push(p);
+    }
+    for (const cat of Object.keys(categories)) {
+      categories[cat].sort((a, b) => b.quantity_per_package - a.quantity_per_package);
+    }
+    return categories;
+  }, [products]);
 
   const [customerName, setCustomerName] = useState(initialData?.customerName || '');
   const [customerPhone, setCustomerPhone] = useState(initialData?.customerPhone || '');
@@ -86,7 +77,7 @@ export function OrderForm({ customers, currentStock, submitting, onSubmit, onCan
 
   const [selectedCustomerId, setSelectedCustomerId] = useState('');
   const [selectedTier, setSelectedTier] = useState<TierType>(initialData?.tier || 'satuan');
-  const [items, setItems] = useState<OrderItem[]>(buildDefaultItems());
+  const [items, setItems] = useState<OrderItem[]>(initialData?.items || []);
   const [orderDate, setOrderDate] = useState(initialData?.orderDate || new Date().toISOString().split('T')[0]);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
@@ -99,19 +90,23 @@ export function OrderForm({ customers, currentStock, submitting, onSubmit, onCan
 
   useEffect(() => {
     if (initialData?.items && initialData.items.length > 0) return;
-    if (products.length === 0) return;
-    setItems(products.map(p => ({ productId: p.id, productName: p.name, quantity: 0, pricePerBottle: p.default_sell_price, subtotal: 0 })));
-    setCustomPriceSet(new Set());
-  }, [products, initialData]);
+    if (Object.keys(productCategories).length === 0) return;
 
-  useEffect(() => {
-    if (selectedTier === 'satuan') return;
-    const tierPrice = getPriceByTier(selectedTier);
-    setItems(prev => prev.map((item, i) => {
-      if (customPriceSet.has(i)) return item;
-      return { ...item, pricePerBottle: tierPrice, subtotal: item.quantity * tierPrice };
+    setItems(Object.keys(productCategories).map(cat => {
+      let defaultPricePerBottle = 250000;
+      const smallestTier = productCategories[cat][productCategories[cat].length - 1];
+      if (smallestTier && smallestTier.quantity_per_package > 0) {
+        defaultPricePerBottle = smallestTier.default_sell_price / smallestTier.quantity_per_package;
+      }
+      return {
+        productName: cat,
+        quantity: 0,
+        pricePerBottle: defaultPricePerBottle,
+        subtotal: 0
+      };
     }));
-  }, [selectedTier]);
+    setCustomPriceSet(new Set());
+  }, [productCategories, initialData]);
 
   const totalQuantity = items.reduce((s, i) => s + i.quantity, 0);
   const totalSellPrice = items.reduce((s, i) => s + i.subtotal, 0);
@@ -135,48 +130,50 @@ export function OrderForm({ customers, currentStock, submitting, onSubmit, onCan
     setCity(c.city || '');
     const tier = (c.tier && TIER_PRICING[c.tier as TierType]) ? c.tier as TierType : 'satuan';
     setSelectedTier(tier);
-    const tierPrice = getPriceByTier(tier);
-    setItems(prev => prev.map(item => ({ ...item, pricePerBottle: tierPrice, subtotal: item.quantity * tierPrice })));
-    setCustomPriceSet(new Set());
     setShowSearch(false);
     setShowNewCustomer(false);
   };
 
-  const incrementItem = (idx: number) => {
+  const updateItemQty = (idx: number, newQty: number) => {
     setItems(prev => {
-      const newItems = prev.map((item, i) => i !== idx ? item : { ...item, quantity: item.quantity + 1 });
-      const newTotal = newItems.reduce((s, it) => s + it.quantity, 0);
-      const basePrice = selectedTier === 'satuan' ? getPriceByQty(newTotal) : getPriceByTier(selectedTier);
-      return newItems.map((item, i) => {
-        if (customPriceSet.has(i)) return { ...item, subtotal: item.quantity * item.pricePerBottle };
-        return { ...item, pricePerBottle: basePrice, subtotal: item.quantity * basePrice };
+      const newTotalQuantity = prev.reduce((sum, item, i) => sum + (i === idx ? newQty : item.quantity), 0);
+
+      return prev.map((item, i) => {
+        const qty = i === idx ? newQty : item.quantity;
+        let pricePerBottle = item.pricePerBottle;
+        let productId = item.productId;
+
+        if (!customPriceSet.has(i)) {
+          const tiers = productCategories[item.productName] || [];
+          let applicableTier = tiers[tiers.length - 1];
+          for (const tier of tiers) {
+            if (newTotalQuantity >= tier.quantity_per_package) {
+              applicableTier = tier;
+              break;
+            }
+          }
+          if (applicableTier && applicableTier.quantity_per_package > 0) {
+            pricePerBottle = applicableTier.default_sell_price / applicableTier.quantity_per_package;
+            productId = applicableTier.id;
+          }
+        }
+        return { ...item, quantity: qty, productId, pricePerBottle, subtotal: qty * pricePerBottle };
       });
     });
+  };
+
+  const incrementItem = (idx: number) => {
+    const item = items[idx];
+    if (item) updateItemQty(idx, item.quantity + 1);
   };
 
   const decrementItem = (idx: number) => {
-    setItems(prev => {
-      const newItems = prev.map((item, i) => i !== idx ? item : { ...item, quantity: Math.max(0, item.quantity - 1) });
-      const newTotal = newItems.reduce((s, it) => s + it.quantity, 0);
-      const basePrice = selectedTier === 'satuan' ? getPriceByQty(newTotal) : getPriceByTier(selectedTier);
-      return newItems.map((item, i) => {
-        if (customPriceSet.has(i)) return { ...item, subtotal: item.quantity * item.pricePerBottle };
-        return { ...item, pricePerBottle: basePrice, subtotal: item.quantity * basePrice };
-      });
-    });
+    const item = items[idx];
+    if (item) updateItemQty(idx, Math.max(0, item.quantity - 1));
   };
 
   const setItemQuantity = (idx: number, qty: number) => {
-    const safeQty = Math.max(0, isNaN(qty) ? 0 : qty);
-    setItems(prev => {
-      const newItems = prev.map((item, i) => i !== idx ? item : { ...item, quantity: safeQty });
-      const newTotal = newItems.reduce((s, it) => s + it.quantity, 0);
-      const basePrice = selectedTier === 'satuan' ? getPriceByQty(newTotal) : getPriceByTier(selectedTier);
-      return newItems.map((item, i) => {
-        if (customPriceSet.has(i)) return { ...item, subtotal: item.quantity * item.pricePerBottle };
-        return { ...item, pricePerBottle: basePrice, subtotal: item.quantity * basePrice };
-      });
-    });
+    updateItemQty(idx, Math.max(0, isNaN(qty) ? 0 : qty));
   };
 
   const applyCustomPrice = () => {
@@ -209,7 +206,7 @@ export function OrderForm({ customers, currentStock, submitting, onSubmit, onCan
       return;
     }
     if (totalQuantity > currentStock) {
-      toast.error(`Stok tidak cukup. Tersisa ${currentStock} pcs`);
+      toast.error(`Stok tidak cukup. Anda mencoba pesanan ${totalQuantity} botol. Tersisa ${currentStock} pcs`);
       return;
     }
     setShowReview(true);
@@ -575,7 +572,7 @@ export function OrderForm({ customers, currentStock, submitting, onSubmit, onCan
 
           <div className="flex overflow-x-auto gap-2.5 px-4 pb-2 hide-scrollbar" style={{ scrollbarWidth: 'none' }}>
             {items.map((item, idx) => {
-              const isCustomPrice = products[idx] && item.pricePerBottle !== products[idx].default_sell_price;
+              const isCustomPrice = customPriceSet.has(idx);
               const isActive = item.quantity > 0;
               return (
                 <div
@@ -645,7 +642,7 @@ export function OrderForm({ customers, currentStock, submitting, onSubmit, onCan
             <div className="flex justify-between items-center mb-2">
               <span className="text-muted font-medium text-xs uppercase tracking-wide">Ringkasan</span>
               <span className="bg-success text-xs font-bold px-1.5 py-0.5 rounded uppercase">
-                {totalQuantity > 0 ? `${totalQuantity} pcs` : 'Baru'}
+                {totalQuantity > 0 ? `${totalQuantity} btl` : 'Baru'}
               </span>
             </div>
             <div className="flex justify-between items-end">

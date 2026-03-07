@@ -1,7 +1,7 @@
-import { 
-  LayoutDashboard, 
-  Receipt,
-  Package, 
+import {
+  LayoutGrid,
+  ReceiptText,
+  ClipboardCheck,
   Settings,
   type LucideIcon
 } from 'lucide-react';
@@ -15,10 +15,10 @@ export interface NavItem {
 }
 
 export const NAV_PRIMARY_ITEMS: NavItem[] = [
-  { id: 'dashboard', label: 'Beranda', icon: LayoutDashboard },
-  { id: 'orders', label: 'Riwayat', icon: Receipt },
-  { id: 'stock', label: 'Produk', icon: Package },
-  { id: 'settings', label: 'Akun', icon: Settings },
+  { id: 'dashboard', label: 'BERANDA', icon: LayoutGrid },
+  { id: 'orders', label: 'RIWAYAT', icon: ReceiptText },
+  { id: 'stock', label: 'STOK', icon: ClipboardCheck },
+  { id: 'settings', label: 'AKUN', icon: Settings },
 ];
 
 export const NAV_MORE_ITEMS: NavItem[] = [];

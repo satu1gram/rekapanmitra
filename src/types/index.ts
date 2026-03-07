@@ -174,6 +174,6 @@ export interface OrderItem {
   productName: string;
   productId?: string;
   quantity: number;
-  pricePerBottle: number;
+  pricePerBottle: number;  // Currently acts as price_per_package from master_products
   subtotal: number;
 }

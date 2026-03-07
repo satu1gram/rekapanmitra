@@ -24,7 +24,7 @@ export interface StoreSettings {
 // For public (unauthenticated) access — fetch store by slug
 export async function fetchPublicStore(slug: string): Promise<{
     store: Pick<StoreSettings, 'store_name' | 'is_active' | 'payment_info' | 'welcome_message' | 'user_id'> | null;
-    products: { id: string; name: string; default_sell_price: number }[];
+    products: { id: string; name: string; default_sell_price: number; quantity_per_package: number; category: string }[];
 }> {
     // Fetch store settings
     const { data: storeData, error: storeError } = await supabase
@@ -40,13 +40,12 @@ export async function fetchPublicStore(slug: string): Promise<{
 
     const store = storeData as any;
 
-    // Fetch active products for this store
+    // Fetch active products from master_products (all mitra sell from master catalog)
     const { data: productsData } = await supabase
-        .from('products' as any)
-        .select('id, name, default_sell_price')
-        .eq('user_id', store.user_id)
+        .from('master_products' as any)
+        .select('id, name, price, quantity_per_package, category')
         .eq('is_active', true)
-        .order('name', { ascending: true });
+        .order('created_at', { ascending: false });
 
     return {
         store: {
@@ -59,7 +58,9 @@ export async function fetchPublicStore(slug: string): Promise<{
         products: ((productsData || []) as any[]).map((p: any) => ({
             id: p.id,
             name: p.name,
-            default_sell_price: Number(p.default_sell_price),
+            default_sell_price: Number(p.price),
+            quantity_per_package: Number(p.quantity_per_package || 1),
+            category: p.category || '',
         })),
     };
 }

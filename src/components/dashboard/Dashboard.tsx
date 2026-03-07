@@ -156,11 +156,14 @@ export function Dashboard({ onNavigate }: DashboardProps) {
       {/* Header */}
       <header className="sticky top-0 z-30 bg-card/80 backdrop-blur-md border-b border-border px-5 py-4">
         <div className="flex items-center justify-between">
-          <div className="flex flex-col">
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-widest leading-none mb-1">
-              Halo, {getGreeting()}
-            </span>
-            <h1 className="text-lg font-black text-slate-900 leading-none">Beranda Anda</h1>
+          <div className="flex items-center gap-3">
+            <img src="/pwa-192x192.png" alt="Logo" className="w-10 h-10 object-contain rounded-xl drop-shadow-sm" />
+            <div className="flex flex-col">
+              <span className="text-xs font-bold text-slate-400 uppercase tracking-widest leading-none mb-1">
+                Halo, {getGreeting()}
+              </span>
+              <h1 className="text-lg font-black text-slate-900 leading-none">Beranda Anda</h1>
+            </div>
           </div>
           <div className="flex items-center gap-2 bg-slate-900 text-white px-4 py-2.5 rounded-full shadow-lg cursor-pointer">
             <span className="text-sm font-black tracking-tight capitalize">{monthName}</span>

@@ -78,7 +78,7 @@ export function useOrders() {
 
     const mitraInfo = MITRA_LEVELS[orderData.mitraLevel];
 
-    // Calculate totals from items
+    // Calculate totals from items using actual bottles multiplier
     const totalQuantity = orderData.items.reduce((sum, item) => sum + item.quantity, 0);
     const totalPrice = orderData.items.reduce((sum, item) => sum + item.subtotal, 0);
     const buyPrice = mitraInfo.buyPricePerBottle * totalQuantity;

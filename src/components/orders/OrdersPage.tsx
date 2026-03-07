@@ -158,7 +158,7 @@ export function OrdersPage({ openAddForm = false, onAddFormClose }: OrdersPagePr
     const totalQuantity = data.items.reduce((sum, item) => sum + item.quantity, 0);
     if (totalQuantity > currentStock) {
       setShowAddModal(false); onAddFormClose?.();
-      setOrderResult({ success: false, errorMessage: `Stok tidak cukup. Tersisa ${currentStock} pcs.` });
+      setOrderResult({ success: false, errorMessage: `Stok tidak cukup. Anda mencoba pesanan sebanyak ${totalQuantity} botol (Tersisa ${currentStock} pcs).` });
       return;
     }
     setSubmitting(true);

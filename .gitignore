@@ -24,8 +24,20 @@ dist-ssr
 *.sw?
 
 # Environment variables — NEVER commit secrets
+.env
 .env.*
 !.env.example
 
+# Telegram Session
+*.session
+
+# Temp
+temp_models.json
+test_div.js
+admin_mvp_plan.md.resolved
+
 # OS
 Thumbs.db
+
+# Admin Portal Isolation
+/admin-portal

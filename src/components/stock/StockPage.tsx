@@ -541,8 +541,8 @@ export function StockPage() {
       {/* Header */}
       <header className="flex items-center justify-between px-4 py-3 sticky top-0 bg-background/95 backdrop-blur-sm z-10 border-b border-border/50">
         <div>
-          <h1 className="text-xl font-extrabold text-gray-900 tracking-tight">Stok Produksi</h1>
-          <p className="text-sm text-gray-600 font-medium mt-0.5">Kelola persediaan barang</p>
+          <h1 className="text-xl font-extrabold text-gray-900 tracking-tight">Stok Produk</h1>
+          <p className="text-sm text-gray-600 font-medium mt-0.5">Kelola stok produk</p>
         </div>
         <button onClick={() => setView('history')}
           className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-200 bg-white text-gray-700 font-semibold hover:bg-gray-50 shadow-sm transition-colors text-sm">

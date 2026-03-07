@@ -11,40 +11,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 
-// ── Pricing logic mirroring OrderForm ────────────────────────────
-const TIER_BRACKETS: { minQty: number; price: number; label: string; tier: TierType }[] = [
-    { minQty: 200, price: 150000, label: 'Paket 200 btl', tier: 'se' },
-    { minQty: 40, price: 170000, label: 'Paket 40 btl', tier: 'sap' },
-    { minQty: 10, price: 180000, label: 'Paket 10 btl', tier: 'agen_plus' },
-    { minQty: 5, price: 198000, label: 'Paket 5 btl', tier: 'agen' },
-    { minQty: 3, price: 217000, label: 'Paket 3 btl', tier: 'reseller' },
-    { minQty: 1, price: 0, label: 'Satuan', tier: 'satuan' }, // 0 = pakai default_sell_price
-];
-
-function getPriceByQty(totalQty: number, defaultSellPrice: number): number {
-    for (const b of TIER_BRACKETS) {
-        if (totalQty >= b.minQty) {
-            // Harga tier hanya dipakai jika lebih murah dari harga satuan produk
-            if (b.tier === 'satuan') return defaultSellPrice;
-            return Math.min(b.price, defaultSellPrice);
-        }
-    }
-    return defaultSellPrice;
-}
-
-function getCurrentBracket(totalQty: number) {
-    for (const b of TIER_BRACKETS) {
-        if (totalQty >= b.minQty) return b;
-    }
-    return TIER_BRACKETS[TIER_BRACKETS.length - 1];
-}
-
-function getNextBracket(totalQty: number) {
-    const brackets = [...TIER_BRACKETS].reverse(); // ascending
-    for (const b of brackets) {
-        if (b.minQty > totalQty) return b;
-    }
-    return null;
+// ── Types ───────────────────────────────────────────────────────
+interface ProductItem {
+    id: string; // Current applied product tier ID
+    name: string; // The category name
+    default_sell_price: number; // Base unit price
+    quantity: number;
+    pricePerBottle: number;
+    subtotal: number;
 }
 
 // ── Types ───────────────────────────────────────────────────────
@@ -63,6 +37,33 @@ const PAYMENT_TYPE_LABELS: Record<string, string> = {
     bank: 'Transfer Bank',
     ewallet: 'E-Wallet',
     cod: 'COD / Tunai',
+};
+
+const PRODUCT_DETAILS: Record<string, { desc: string; benefits: string[] }> = {
+    'STEFFI': {
+        desc: 'Skincare premium untuk perawatan kulit harian, menjaga kelembapan dan mencerahkan secara natural.',
+        benefits: ['Mencerahkan kulit', 'Menyamarkan noda hitam', 'BPOM Approved']
+    },
+    'BELGIE': {
+        desc: 'Serum anti-aging mutakhir dari Eropa untuk merawat keremajaan kulit Anda.',
+        benefits: ['Mengurangi kerutan halus', 'Kulit tampak lebih kenyal', 'Aman khusus kulit sensitif']
+    },
+    'BP': {
+        desc: 'British Propolis asli berkualitas tinggi, suplemen andalan untuk daya tahan tubuh keluarga.',
+        benefits: ['Meningkatkan imunitas', 'Membantu proses pemulihan', 'Kaya antioksidan']
+    },
+    'BRO': {
+        desc: 'Rangkaian perawatan khusus pria agar wajah dan tubuh  bebas kusam serta tampil penuh percaya diri.',
+        benefits: ['Menyegarkan kulit wajah', 'Wangi maskulin tahan lama', 'Mencegah jerawat']
+    },
+    'BRE': {
+        desc: 'Solusi menyeluruh dari alam untuk perawatan rambut rontok dan merangsang pertumbuhan alami.',
+        benefits: ['Menguatkan akar rambut', 'Merangsang folikel baru', 'Bahan alami & aman']
+    },
+    'NORWAY': {
+        desc: 'Minyak Ikan Salmon Norwegia premium yang kaya asupan nutrisi untuk masa depan.',
+        benefits: ['Nutrisi kecerdasan anak', 'Menjaga kesehatan jantung', 'Bebas kontaminasi merkuri']
+    }
 };
 
 // ── Compact copy button ─────────────────────────────────────────
@@ -95,6 +96,7 @@ export default function PublicOrderPage() {
         user_id: string;
     } | null>(null);
     const [items, setItems] = useState<ProductItem[]>([]);
+    const [productCategories, setProductCategories] = useState<Record<string, any[]>>({});
     const [storeNotFound, setStoreNotFound] = useState(false);
 
     // Step & form
@@ -115,14 +117,35 @@ export default function PublicOrderPage() {
                 setStoreNotFound(true);
             } else {
                 setStoreData(store);
-                setItems(prods.map(p => ({
-                    id: p.id,
-                    name: p.name,
-                    default_sell_price: p.default_sell_price,
-                    quantity: 0,
-                    pricePerBottle: p.default_sell_price,
-                    subtotal: 0,
-                })));
+
+                // Group by category
+                const categories: Record<string, typeof prods> = {};
+                for (const p of prods) {
+                    if (!p.category) continue;
+                    if (!categories[p.category]) categories[p.category] = [];
+                    categories[p.category].push(p);
+                }
+                // Sort by package size descending
+                for (const cat of Object.keys(categories)) {
+                    categories[cat].sort((a, b) => b.quantity_per_package - a.quantity_per_package);
+                }
+                setProductCategories(categories);
+
+                setItems(Object.keys(categories).map(cat => {
+                    let defaultPricePerBottle = 250000;
+                    const smallestTier = categories[cat][categories[cat].length - 1];
+                    if (smallestTier && smallestTier.quantity_per_package > 0) {
+                        defaultPricePerBottle = smallestTier.default_sell_price / smallestTier.quantity_per_package;
+                    }
+                    return {
+                        id: smallestTier?.id || cat,
+                        name: cat,
+                        default_sell_price: defaultPricePerBottle,
+                        quantity: 0,
+                        pricePerBottle: defaultPricePerBottle,
+                        subtotal: 0,
+                    };
+                }));
             }
             setStoreLoading(false);
         })();
@@ -132,30 +155,44 @@ export default function PublicOrderPage() {
     const totalPrice = items.reduce((s, i) => s + i.subtotal, 0);
     const activeItems = items.filter(i => i.quantity > 0);
 
-    // Recalculate prices based on new total qty (mirrors TIER_BRACKETS logic)
-    const recalcItems = (newItems: ProductItem[], newTotal: number): ProductItem[] =>
-        newItems.map(item => {
-            const price = getPriceByQty(newTotal, item.default_sell_price);
-            return { ...item, pricePerBottle: price, subtotal: item.quantity * price };
-        });
+    const recalcItems = (newItems: ProductItem[]): ProductItem[] => {
+        const newTotalQuantity = newItems.reduce((s, i) => s + i.quantity, 0);
+        return newItems.map(item => {
+            const tiers = productCategories[item.name] || [];
+            let pricePerBottle = item.default_sell_price;
+            let productId = item.id;
 
-    const changeQty = (id: string, delta: number) => {
-        setItems(prev => {
-            const updated = prev.map(item =>
-                item.id !== id ? item : { ...item, quantity: Math.max(0, item.quantity + delta) }
-            );
-            const newTotal = updated.reduce((s, i) => s + i.quantity, 0);
-            return recalcItems(updated, newTotal);
+            let applicableTier = tiers[tiers.length - 1];
+            for (const tier of tiers) {
+                if (newTotalQuantity >= tier.quantity_per_package) {
+                    applicableTier = tier;
+                    break;
+                }
+            }
+            if (applicableTier && applicableTier.quantity_per_package > 0) {
+                pricePerBottle = applicableTier.default_sell_price / applicableTier.quantity_per_package;
+                productId = applicableTier.id;
+            }
+
+            return { ...item, id: productId, pricePerBottle, subtotal: item.quantity * pricePerBottle };
         });
     };
 
-    const setQty = (id: string, qty: number) => {
+    const changeQty = (categoryId: string, delta: number) => {
         setItems(prev => {
             const updated = prev.map(item =>
-                item.id !== id ? item : { ...item, quantity: Math.max(0, qty) }
+                item.name !== categoryId ? item : { ...item, quantity: Math.max(0, item.quantity + delta) }
             );
-            const newTotal = updated.reduce((s, i) => s + i.quantity, 0);
-            return recalcItems(updated, newTotal);
+            return recalcItems(updated);
+        });
+    };
+
+    const setQty = (categoryId: string, qty: number) => {
+        setItems(prev => {
+            const updated = prev.map(item =>
+                item.name !== categoryId ? item : { ...item, quantity: Math.max(0, qty) }
+            );
+            return recalcItems(updated);
         });
     };
 
@@ -257,8 +294,7 @@ export default function PublicOrderPage() {
         </div>
     );
 
-    const currentBracket = getCurrentBracket(totalQty);
-    const nextBracket = getNextBracket(totalQty);
+
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-green-50/50 to-white">
@@ -316,37 +352,7 @@ export default function PublicOrderPage() {
                 {/* ── STEP: PRODUCTS ──────────────────────────────── */}
                 {step === 'products' && (
                     <div className="space-y-3">
-                        {/* Tier price banner */}
-                        <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm">
-                            <div className="flex items-center justify-between mb-2">
-                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Harga Saat Ini</p>
-                                {totalQty > 0 && (
-                                    <span className="bg-[#059669]/10 text-[#009624] text-[10px] font-black px-2 py-0.5 rounded-full">
-                                        {currentBracket.label}
-                                    </span>
-                                )}
-                            </div>
-                            <div className="grid grid-cols-5 gap-1.5">
-                                {TIER_BRACKETS.filter(b => b.tier !== 'satuan').map(b => {
-                                    const isActive = totalQty >= b.minQty;
-                                    return (
-                                        <div key={b.tier} className={cn(
-                                            'flex flex-col items-center rounded-xl p-2 border transition-all',
-                                            isActive ? 'bg-[#059669] border-[#059669]' : 'bg-slate-50 border-slate-100'
-                                        )}>
-                                            <span className={cn('text-xs font-black', isActive ? 'text-white' : 'text-slate-800')}>{b.minQty}</span>
-                                            <span className={cn('text-[9px] font-bold', isActive ? 'text-white/80' : 'text-slate-400')}>btl</span>
-                                            <span className={cn('text-[9px] font-extrabold mt-0.5', isActive ? 'text-white' : 'text-[#009624]')}>{formatCurrency(b.price)}</span>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                            {nextBracket && nextBracket.tier !== 'satuan' && (
-                                <p className="text-[10px] text-slate-400 mt-2 text-center font-medium">
-                                    Tambah <strong className="text-slate-600">{nextBracket.minQty - totalQty} botol</strong> lagi untuk harga <strong className="text-[#009624]">{formatCurrency(nextBracket.price)}/btl</strong>
-                                </p>
-                            )}
-                        </div>
+
 
                         {/* Product list */}
                         <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm">
@@ -383,7 +389,7 @@ export default function PublicOrderPage() {
                                                 </div>
                                                 <div className="flex items-center gap-2 shrink-0">
                                                     {item.quantity > 0 && (
-                                                        <button onClick={() => changeQty(item.id, -1)}
+                                                        <button onClick={() => changeQty(item.name, -1)}
                                                             className="w-8 h-8 rounded-xl bg-white border border-slate-200 flex items-center justify-center shadow-sm active:scale-95 transition-all">
                                                             <Minus className="h-3.5 w-3.5 text-slate-600" />
                                                         </button>
@@ -391,7 +397,7 @@ export default function PublicOrderPage() {
                                                     {item.quantity > 0 && (
                                                         <span className="w-6 text-center font-extrabold text-slate-800 text-sm">{item.quantity}</span>
                                                     )}
-                                                    <button onClick={() => changeQty(item.id, 1)}
+                                                    <button onClick={() => changeQty(item.name, 1)}
                                                         className={cn(
                                                             'w-8 h-8 rounded-xl flex items-center justify-center shadow-sm active:scale-95 transition-all',
                                                             item.quantity > 0
@@ -418,7 +424,7 @@ export default function PublicOrderPage() {
                         {totalQty > 0 && (
                             <div className="bg-[#1A1F2C] rounded-2xl p-4 flex items-center gap-3 shadow-xl">
                                 <div className="flex-1">
-                                    <p className="text-xs font-bold text-slate-400">{totalQty} botol · {currentBracket.label}</p>
+                                    <p className="text-xs font-bold text-slate-400">{totalQty} botol</p>
                                     <p className="text-lg font-black text-white">{formatCurrency(totalPrice)}</p>
                                 </div>
                                 <button onClick={() => setStep('info')}
@@ -513,7 +519,7 @@ export default function PublicOrderPage() {
                                     <p className="font-extrabold text-slate-700">Total Bayar</p>
                                     <p className="text-xl font-black text-[#009624]">{formatCurrency(totalPrice)}</p>
                                 </div>
-                                <p className="text-xs text-slate-400 mt-0.5">{totalQty} botol · {currentBracket.label}</p>
+                                <p className="text-xs text-slate-400 mt-0.5">{totalQty} botol</p>
                             </div>
                         </div>
 
@@ -576,43 +582,65 @@ export default function PublicOrderPage() {
                                 <X className="h-4 w-4 text-slate-600" />
                             </button>
                         </div>
-                        <div className="p-5 space-y-3">
-                            <h3 className="text-lg font-black text-slate-800">{detailProduct.name}</h3>
+                        <div className="p-5 space-y-4">
+                            <div>
+                                <h3 className="text-xl font-black text-slate-800 mb-1">{detailProduct.name}</h3>
+                                {PRODUCT_DETAILS[detailProduct.name] && (
+                                    <p className="text-sm text-slate-600 leading-relaxed">
+                                        {PRODUCT_DETAILS[detailProduct.name].desc}
+                                    </p>
+                                )}
+                            </div>
+
+                            {PRODUCT_DETAILS[detailProduct.name] && (
+                                <div className="bg-green-50/50 rounded-xl p-3 border border-green-100">
+                                    <p className="text-[10px] font-black text-[#059669] uppercase tracking-widest mb-2">Manfaat Utama</p>
+                                    <ul className="space-y-1.5">
+                                        {PRODUCT_DETAILS[detailProduct.name].benefits.map((benefit, i) => (
+                                            <li key={i} className="flex items-start gap-2 text-xs text-slate-700 font-medium">
+                                                <Check className="h-4 w-4 text-[#009624] shrink-0" />
+                                                <span>{benefit}</span>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            )}
+
                             <div className="space-y-2">
-                                <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Harga Berdasarkan Jumlah Total</p>
-                                {TIER_BRACKETS.map(b => {
-                                    const price = getPriceByQty(b.minQty, detailProduct.default_sell_price);
-                                    const isCurrentTier = b.tier === currentBracket.tier || (totalQty === 0 && b.tier === 'satuan');
+                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Harga Berdasarkan Jumlah Total</p>
+                                {(productCategories[detailProduct.name] || []).map((b: any) => {
+                                    const price = b.default_sell_price / b.quantity_per_package;
+                                    const isCurrentTier = b.id === detailProduct.id || (detailProduct.quantity === 0 && b === productCategories[detailProduct.name][productCategories[detailProduct.name].length - 1]);
                                     return (
-                                        <div key={b.tier} className={cn(
+                                        <div key={b.id} className={cn(
                                             'flex items-center justify-between px-3 py-2 rounded-xl border',
                                             isCurrentTier ? 'bg-[#059669]/5 border-[#059669]/30' : 'bg-slate-50 border-slate-100'
                                         )}>
                                             <div>
-                                                <span className="text-sm font-bold text-slate-700">{b.label}</span>
-                                                {b.tier !== 'satuan' && <span className="text-xs text-slate-400 ml-1">(min. {b.minQty} btl)</span>}
+                                                <span className="text-sm font-bold text-slate-700">{b.quantity_per_package === 1 ? 'Satuan' : `Paket ${b.quantity_per_package} btl`}</span>
+                                                {b.quantity_per_package > 1 && <span className="text-xs text-slate-400 ml-1">(min. {b.quantity_per_package} btl)</span>}
                                             </div>
                                             <div className="text-right">
                                                 <span className={cn('text-sm font-extrabold', isCurrentTier ? 'text-[#009624]' : 'text-slate-600')}>{formatCurrency(price)}/btl</span>
-                                                {b.tier !== 'satuan' && <p className="text-[10px] text-slate-400">={formatCurrency(price * b.minQty)} total</p>}
+                                                {b.quantity_per_package > 1 && <p className="text-[10px] text-slate-400">={formatCurrency(b.default_sell_price)} total</p>}
                                             </div>
                                         </div>
                                     );
                                 })}
                             </div>
-                            <div className="flex items-center gap-3 pt-1">
+                            <div className="flex items-center gap-3 pt-2 border-t border-slate-100">
                                 {detailProduct.quantity > 0 && (
-                                    <button onClick={() => { changeQty(detailProduct.id, -1); setDetailProduct(prev => prev ? { ...prev, quantity: Math.max(0, prev.quantity - 1) } : null); }}
-                                        className="w-10 h-10 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center active:scale-95">
-                                        <Minus className="h-4 w-4 text-slate-600" />
+                                    <button onClick={() => { changeQty(detailProduct.name, -1); setDetailProduct(prev => prev ? { ...prev, quantity: Math.max(0, prev.quantity - 1) } : null); }}
+                                        className="w-12 h-12 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center active:scale-95 transition-all">
+                                        <Minus className="h-5 w-5 text-slate-600" />
                                     </button>
                                 )}
                                 {detailProduct.quantity > 0 && (
-                                    <span className="text-lg font-black text-slate-800 w-8 text-center">{detailProduct.quantity}</span>
+                                    <span className="text-xl font-black text-slate-800 w-10 text-center">{detailProduct.quantity}</span>
                                 )}
-                                <button onClick={() => { changeQty(detailProduct.id, 1); setDetailProduct(prev => prev ? { ...prev, quantity: (prev.quantity || 0) + 1 } : null); }}
-                                    className="flex-1 h-10 rounded-xl bg-[#059669] text-white font-bold text-sm flex items-center justify-center gap-2 shadow-md shadow-green-500/30 active:scale-95">
-                                    <Plus className="h-4 w-4" /> Tambah
+                                <button onClick={() => { changeQty(detailProduct.name, 1); setDetailProduct(prev => prev ? { ...prev, quantity: (prev.quantity || 0) + 1 } : null); }}
+                                    className="flex-1 h-12 rounded-xl bg-[#059669] text-white font-bold text-base flex items-center justify-center gap-2 shadow-md shadow-green-500/30 active:scale-95">
+                                    <Plus className="h-5 w-5" /> Tambah
                                 </button>
                             </div>
                         </div>
