@@ -44,12 +44,12 @@ export function ProductsStep({ mitraLevel, products, onChange, onNext, onBack }:
 
             {/* Info harga modal */}
             <div className="flex items-center gap-3 bg-green-50 border border-green-100 rounded-2xl p-3.5">
-                <div className="w-9 h-9 rounded-xl bg-[#00C853]/10 flex items-center justify-center shrink-0">
-                    <Tag className="h-4.5 w-4.5 text-[#00C853]" />
+                <div className="w-9 h-9 rounded-xl bg-[#059669]/10 flex items-center justify-center shrink-0">
+                    <Tag className="h-4.5 w-4.5 text-[#059669]" />
                 </div>
                 <div>
                     <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">Harga Modal Anda ({mitraLabel})</p>
-                    <p className="text-base font-extrabold text-[#00C853]">{formatRp(buyPrice)}<span className="text-xs font-semibold text-slate-500">/botol</span></p>
+                    <p className="text-base font-extrabold text-[#059669]">{formatRp(buyPrice)}<span className="text-xs font-semibold text-slate-500">/botol</span></p>
                 </div>
             </div>
 
@@ -74,7 +74,7 @@ export function ProductsStep({ mitraLevel, products, onChange, onNext, onBack }:
                                     type="checkbox"
                                     checked={product.include}
                                     onChange={e => updateProduct(index, 'include', e.target.checked)}
-                                    className="w-4 h-4 accent-[#00C853] rounded cursor-pointer"
+                                    className="w-4 h-4 accent-[#059669] rounded cursor-pointer"
                                 />
                                 <input
                                     className="flex-1 text-sm font-bold text-slate-800 bg-transparent border-none outline-none placeholder:text-slate-400"
@@ -139,7 +139,7 @@ export function ProductsStep({ mitraLevel, products, onChange, onNext, onBack }:
                 <button
                     onClick={onNext}
                     disabled={!hasAtLeastOne}
-                    className="flex-[2] py-3.5 bg-[#00C853] text-white rounded-2xl font-extrabold text-sm disabled:opacity-40 flex items-center justify-center gap-2 shadow-lg shadow-green-500/20 active:scale-95 transition-all"
+                    className="flex-[2] py-3.5 bg-[#059669] text-white rounded-2xl font-extrabold text-sm disabled:opacity-40 flex items-center justify-center gap-2 shadow-lg shadow-green-500/20 active:scale-95 transition-all"
                 >
                     Lanjut <ChevronRight className="h-4 w-4" />
                 </button>

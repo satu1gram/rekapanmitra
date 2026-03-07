@@ -107,7 +107,7 @@ export function StoreSettingsCard() {
     if (loading) {
         return (
             <section className="bg-white border border-slate-100 rounded-[2rem] p-5 shadow-sm flex items-center justify-center py-10">
-                <Loader2 className="h-5 w-5 animate-spin text-[#00C853]" />
+                <Loader2 className="h-5 w-5 animate-spin text-[#059669]" />
             </section>
         );
     }
@@ -118,7 +118,7 @@ export function StoreSettingsCard() {
             <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
                     <div className="w-11 h-11 rounded-2xl bg-green-50 flex items-center justify-center">
-                        <Store className="h-5 w-5 text-[#00C853]" />
+                        <Store className="h-5 w-5 text-[#059669]" />
                     </div>
                     <div>
                         <h2 className="text-base font-extrabold text-slate-800">Link Toko</h2>
@@ -132,9 +132,9 @@ export function StoreSettingsCard() {
                         className="flex items-center gap-1.5 text-xs font-bold"
                     >
                         {settings.is_active
-                            ? <ToggleRight className="h-6 w-6 text-[#00C853]" />
+                            ? <ToggleRight className="h-6 w-6 text-[#059669]" />
                             : <ToggleLeft className="h-6 w-6 text-slate-400" />}
-                        <span className={settings.is_active ? 'text-[#00C853]' : 'text-slate-400'}>
+                        <span className={settings.is_active ? 'text-[#059669]' : 'text-slate-400'}>
                             {settings.is_active ? 'Aktif' : 'Nonaktif'}
                         </span>
                     </button>
@@ -144,7 +144,7 @@ export function StoreSettingsCard() {
             {/* No settings yet — prompt to create */}
             {!settings && !isEditing && (
                 <div className="relative bg-slate-50 border-2 border-dashed border-slate-200 rounded-2xl p-7 flex flex-col items-center justify-center">
-                    <div className="w-14 h-14 bg-white shadow-md rounded-full flex items-center justify-center mb-3 text-[#00C853]">
+                    <div className="w-14 h-14 bg-white shadow-md rounded-full flex items-center justify-center mb-3 text-[#059669]">
                         <Link2 className="h-7 w-7" />
                     </div>
                     <p className="text-slate-700 font-bold mb-1">Buat Link Toko</p>
@@ -153,7 +153,7 @@ export function StoreSettingsCard() {
                     </p>
                     <button
                         onClick={() => setIsEditing(true)}
-                        className="bg-[#00C853] text-white w-full py-3.5 rounded-xl font-bold text-sm shadow-lg shadow-green-500/20 active:scale-95 transition-all uppercase tracking-wide"
+                        className="bg-[#059669] text-white w-full py-3.5 rounded-xl font-bold text-sm shadow-lg shadow-green-500/20 active:scale-95 transition-all uppercase tracking-wide"
                     >
                         Buat Link Sekarang
                     </button>
@@ -172,7 +172,7 @@ export function StoreSettingsCard() {
                                 onClick={handleCopyLink}
                                 className={cn(
                                     'shrink-0 w-8 h-8 rounded-lg flex items-center justify-center transition-all',
-                                    copied ? 'bg-green-100 text-[#00C853]' : 'bg-white border border-slate-200 text-slate-500'
+                                    copied ? 'bg-green-100 text-[#059669]' : 'bg-white border border-slate-200 text-slate-500'
                                 )}
                             >
                                 {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
@@ -253,7 +253,7 @@ export function StoreSettingsCard() {
                     <div className="space-y-1.5">
                         <Label className="text-sm font-bold text-slate-700">Pesan Sambutan <span className="text-slate-400 font-medium">(opsional)</span></Label>
                         <textarea
-                            className="w-full border border-input rounded-xl px-3 py-2.5 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#00C853]/30 bg-white"
+                            className="w-full border border-input rounded-xl px-3 py-2.5 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#059669]/30 bg-white"
                             placeholder="Selamat datang! Pesanmu langsung kami proses ya 😊"
                             rows={2}
                             value={welcomeMessage}
@@ -266,12 +266,12 @@ export function StoreSettingsCard() {
                     <div className="space-y-2">
                         <div className="flex items-center justify-between">
                             <Label className="text-sm font-bold text-slate-700 flex items-center gap-1.5">
-                                <CreditCard className="h-3.5 w-3.5 text-[#00C853]" /> Info Pembayaran
+                                <CreditCard className="h-3.5 w-3.5 text-[#059669]" /> Info Pembayaran
                             </Label>
                             <button
                                 onClick={addPayment}
                                 disabled={saving}
-                                className="text-xs font-bold text-[#00C853] flex items-center gap-1"
+                                className="text-xs font-bold text-[#059669] flex items-center gap-1"
                             >
                                 <Plus className="h-3.5 w-3.5" /> Tambah
                             </button>
@@ -290,7 +290,7 @@ export function StoreSettingsCard() {
                                         value={p.type}
                                         onChange={e => updatePayment(i, 'type', e.target.value)}
                                         disabled={saving}
-                                        className="text-xs font-bold bg-white border border-slate-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-[#00C853]/40"
+                                        className="text-xs font-bold bg-white border border-slate-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-[#059669]/40"
                                     >
                                         {PAYMENT_TYPES.map(t => (
                                             <option key={t.value} value={t.value}>{t.label}</option>
@@ -341,7 +341,7 @@ export function StoreSettingsCard() {
                         <button
                             onClick={handleSave}
                             disabled={saving || !slug.trim() || !storeName.trim()}
-                            className="flex-1 py-3 bg-[#00C853] text-white rounded-xl font-bold text-sm disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg shadow-green-500/20"
+                            className="flex-1 py-3 bg-[#059669] text-white rounded-xl font-bold text-sm disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg shadow-green-500/20"
                         >
                             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
                             Simpan

@@ -115,13 +115,13 @@ export function SettingsPage() {
 
           {/* Level card */}
           <div className="w-full bg-white border-2 border-slate-100 rounded-[2rem] p-6 shadow-xl shadow-slate-200/50 flex flex-col items-center relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-full h-2 bg-[#00C853] rounded-t-[2rem]" />
+            <div className="absolute top-0 left-0 w-full h-2 bg-[#059669] rounded-t-[2rem]" />
 
-            <div className="w-20 h-20 bg-[#00C853]/10 rounded-full flex items-center justify-center mt-2 mb-4 ring-4 ring-white shadow-lg">
+            <div className="w-20 h-20 bg-[#059669]/10 rounded-full flex items-center justify-center mt-2 mb-4 ring-4 ring-white shadow-lg">
               <span className="text-[#009624] font-black text-3xl tracking-tighter">{levelInitials}</span>
             </div>
 
-            <div className="bg-[#00C853] text-white px-4 py-1.5 rounded-full text-xs font-black shadow-md shadow-green-500/30 flex items-center gap-1.5 mb-1">
+            <div className="bg-[#059669] text-white px-4 py-1.5 rounded-full text-xs font-black shadow-md shadow-green-500/30 flex items-center gap-1.5 mb-1">
               <Check className="h-3.5 w-3.5" />
               {currentMitra.label.toUpperCase()}
             </div>
@@ -134,7 +134,7 @@ export function SettingsPage() {
               </div>
               <div className="w-full h-3.5 bg-slate-100 rounded-full overflow-hidden border border-slate-200">
                 <div
-                  className="h-full bg-[#00C853] rounded-full relative transition-all duration-700"
+                  className="h-full bg-[#059669] rounded-full relative transition-all duration-700"
                   style={{ width: `${progressPct}%` }}
                 >
                   <div className="absolute inset-0 bg-white/20 animate-pulse rounded-full" />
@@ -160,7 +160,7 @@ export function SettingsPage() {
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
               <div className="w-11 h-11 rounded-2xl bg-green-50 flex items-center justify-center">
-                <ShoppingBag className="h-5 w-5 text-[#00C853]" />
+                <ShoppingBag className="h-5 w-5 text-[#059669]" />
               </div>
               <div>
                 <h2 className="text-base font-extrabold text-slate-800">Etalase Produk</h2>
@@ -168,7 +168,7 @@ export function SettingsPage() {
               </div>
             </div>
             <div className="text-right">
-              <span className="text-3xl font-black text-[#00C853] leading-none">{products.length}</span>
+              <span className="text-3xl font-black text-[#059669] leading-none">{products.length}</span>
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Item Aktif</p>
             </div>
           </div>
@@ -190,7 +190,7 @@ export function SettingsPage() {
                   Batal
                 </button>
                 <button onClick={handleAddProduct} disabled={savingProduct || !newProductName.trim()}
-                  className="flex-1 py-2.5 bg-[#00C853] text-white rounded-xl font-bold text-sm disabled:opacity-50 flex items-center justify-center gap-1">
+                  className="flex-1 py-2.5 bg-[#059669] text-white rounded-xl font-bold text-sm disabled:opacity-50 flex items-center justify-center gap-1">
                   {savingProduct ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
                   Simpan
                 </button>
@@ -203,7 +203,7 @@ export function SettingsPage() {
             <div className="flex justify-center py-6"><Loader2 className="h-5 w-5 animate-spin text-green-400" /></div>
           ) : products.length === 0 && !showAddProduct ? (
             <div className="relative bg-slate-50 border-2 border-dashed border-slate-200 rounded-2xl p-7 flex flex-col items-center justify-center">
-              <div className="w-14 h-14 bg-white shadow-md rounded-full flex items-center justify-center mb-3 text-[#00C853]">
+              <div className="w-14 h-14 bg-white shadow-md rounded-full flex items-center justify-center mb-3 text-[#059669]">
                 <Plus className="h-7 w-7" />
               </div>
               <p className="text-slate-700 font-bold mb-1">Mulai Isi Toko Anda</p>
@@ -211,7 +211,7 @@ export function SettingsPage() {
                 Tambah produk pertama untuk memantau keuntungan.
               </p>
               <button onClick={() => setShowAddProduct(true)}
-                className="bg-[#00C853] text-white w-full py-3.5 rounded-xl font-bold text-sm shadow-lg shadow-green-500/20 active:scale-95 transition-all uppercase tracking-wide">
+                className="bg-[#059669] text-white w-full py-3.5 rounded-xl font-bold text-sm shadow-lg shadow-green-500/20 active:scale-95 transition-all uppercase tracking-wide">
                 Tambah Produk Baru
               </button>
             </div>
@@ -225,7 +225,7 @@ export function SettingsPage() {
                       <Input type="number" value={editPrice} onChange={e => setEditPrice(parseInt(e.target.value) || 0)} className="h-9 text-sm" disabled={savingProduct} />
                       <div className="flex gap-2">
                         <button onClick={() => setEditingProduct(null)} className="flex-1 py-2 border border-slate-200 rounded-xl text-slate-600 font-bold text-xs">Batal</button>
-                        <button onClick={handleEditProduct} disabled={savingProduct || !editName.trim()} className="flex-1 py-2 bg-[#00C853] text-white rounded-xl font-bold text-xs disabled:opacity-50 flex items-center justify-center gap-1">
+                        <button onClick={handleEditProduct} disabled={savingProduct || !editName.trim()} className="flex-1 py-2 bg-[#059669] text-white rounded-xl font-bold text-xs disabled:opacity-50 flex items-center justify-center gap-1">
                           <Check className="h-3.5 w-3.5" /> Simpan
                         </button>
                       </div>
@@ -250,7 +250,7 @@ export function SettingsPage() {
               ))}
               {!showAddProduct && (
                 <button onClick={() => setShowAddProduct(true)}
-                  className="w-full py-3 border-2 border-dashed border-green-200 rounded-2xl text-[#00C853] font-bold text-sm flex items-center justify-center gap-2">
+                  className="w-full py-3 border-2 border-dashed border-green-200 rounded-2xl text-[#059669] font-bold text-sm flex items-center justify-center gap-2">
                   <Plus className="h-4 w-4" /> Tambah Produk
                 </button>
               )}
@@ -263,11 +263,11 @@ export function SettingsPage() {
 
         {/* ─── POTENSI PROFIT (DARK) ─── */}
         <section className="bg-[#1A1F2C] rounded-[2rem] p-5 overflow-hidden relative shadow-2xl shadow-slate-900/10">
-          <div className="absolute top-0 right-0 -mr-16 -mt-16 w-48 h-48 bg-[#00C853] opacity-5 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute top-0 right-0 -mr-16 -mt-16 w-48 h-48 bg-[#059669] opacity-5 rounded-full blur-3xl pointer-events-none" />
 
           <div className="flex items-center gap-3 mb-5 relative z-10">
             <div className="w-11 h-11 rounded-2xl bg-[#252B3B] flex items-center justify-center border border-white/10">
-              <TrendingUp className="h-5 w-5 text-[#00C853]" />
+              <TrendingUp className="h-5 w-5 text-[#059669]" />
             </div>
             <div>
               <h2 className="text-base font-extrabold text-white">Potensi Profit</h2>
@@ -278,10 +278,10 @@ export function SettingsPage() {
           <div className="space-y-3 relative z-10">
             {/* Status Sekarang */}
             <div className="relative bg-[#252B3B] rounded-2xl p-4 border border-white/5 overflow-hidden">
-              <div className="absolute right-0 top-0 h-full w-1 bg-[#00C853]" />
+              <div className="absolute right-0 top-0 h-full w-1 bg-[#059669]" />
               <div className="flex justify-between items-start mb-2">
                 <div>
-                  <span className="bg-[#00C853] text-white text-[9px] font-bold px-2 py-0.5 rounded-md uppercase tracking-widest mb-2 inline-block">
+                  <span className="bg-[#059669] text-white text-[9px] font-bold px-2 py-0.5 rounded-md uppercase tracking-widest mb-2 inline-block">
                     Status Sekarang
                   </span>
                   <p className="text-xs text-slate-400 mb-0.5">Keuntungan per Item</p>
@@ -289,12 +289,12 @@ export function SettingsPage() {
                     {formatCurrency(LEVEL_MARGIN[safeMitraLevel] ?? 0)}
                   </h3>
                 </div>
-                <div className="w-9 h-9 rounded-full bg-[#00C853]/20 flex items-center justify-center">
-                  <Check className="h-4 w-4 text-[#00C853]" />
+                <div className="w-9 h-9 rounded-full bg-[#059669]/20 flex items-center justify-center">
+                  <Check className="h-4 w-4 text-[#059669]" />
                 </div>
               </div>
               <div className="mt-2 pt-2.5 border-t border-white/10">
-                <span className="text-xs font-bold text-[#00C853]">Margin {currentMitra.label}</span>
+                <span className="text-xs font-bold text-[#059669]">Margin {currentMitra.label}</span>
               </div>
             </div>
 
@@ -312,13 +312,13 @@ export function SettingsPage() {
                     disabled={savingLevel || isActive}
                     className={cn(
                       'p-4 bg-[#252B3B] rounded-2xl border border-white/5 text-left transition-all',
-                      isActive ? 'opacity-100 border-[#00C853]/40' : 'opacity-60'
+                      isActive ? 'opacity-100 border-[#059669]/40' : 'opacity-60'
                     )}
                   >
                     <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">{lvInfo.label}</p>
                     <h4 className="text-base font-bold text-slate-200">{formatShortCurrency(LEVEL_MARGIN[lv])}</h4>
                     <div className="mt-2.5 h-1.5 w-full bg-slate-700 rounded-full">
-                      <div className={cn('h-full rounded-full', barWidths[i], isActive ? 'bg-[#00C853]' : 'bg-slate-500')} />
+                      <div className={cn('h-full rounded-full', barWidths[i], isActive ? 'bg-[#059669]' : 'bg-slate-500')} />
                     </div>
                   </button>
                 );
@@ -339,7 +339,7 @@ export function SettingsPage() {
                     className={cn(
                       'w-full flex items-center justify-between px-4 py-3 rounded-2xl border transition-all',
                       isActive
-                        ? 'border-[#00C853]/50 bg-[#00C853]/10 text-white'
+                        ? 'border-[#059669]/50 bg-[#059669]/10 text-white'
                         : 'border-white/5 bg-[#252B3B] text-slate-400 hover:border-white/10'
                     )}
                   >
@@ -348,7 +348,7 @@ export function SettingsPage() {
                       <p className="text-[10px] opacity-60">Modal {formatShortCurrency(lvInfo.buyPricePerBottle)}/btl</p>
                     </div>
                     {isActive
-                      ? <span className="text-[9px] font-black bg-[#00C853] text-white px-2 py-0.5 rounded-full">AKTIF</span>
+                      ? <span className="text-[9px] font-black bg-[#059669] text-white px-2 py-0.5 rounded-full">AKTIF</span>
                       : savingLevel
                         ? <Loader2 className="h-3.5 w-3.5 animate-spin text-slate-500" />
                         : <ChevronRight className="h-4 w-4 text-slate-600" />}
@@ -358,7 +358,7 @@ export function SettingsPage() {
             </div>
 
             {/* CTA */}
-            <div className="bg-gradient-to-r from-[#009624] to-[#00C853] p-4 rounded-2xl text-white shadow-lg mt-1">
+            <div className="bg-gradient-to-r from-[#009624] to-[#059669] p-4 rounded-2xl text-white shadow-lg mt-1">
               <div className="flex items-center gap-3">
                 <div className="bg-white/20 p-2 rounded-full shrink-0">
                   <Rocket className="h-5 w-5 text-white" />
@@ -376,7 +376,7 @@ export function SettingsPage() {
         {/* ─── PROFIL & LOGOUT (DARK) ─── */}
         <section className="bg-[#1A1F2C] rounded-[2rem] p-5 space-y-4 shadow-xl">
           <div className="flex items-center gap-4 border-b border-white/10 pb-4">
-            <div className="w-14 h-14 rounded-full bg-slate-700 flex items-center justify-center border-2 border-[#00C853] shadow-sm overflow-hidden shrink-0">
+            <div className="w-14 h-14 rounded-full bg-slate-700 flex items-center justify-center border-2 border-[#059669] shadow-sm overflow-hidden shrink-0">
               <span className="text-2xl font-black text-slate-300">
                 {user?.email?.slice(0, 1).toUpperCase() || '?'}
               </span>
@@ -384,7 +384,7 @@ export function SettingsPage() {
             <div>
               <h3 className="font-extrabold text-white text-sm">{user?.email}</h3>
               <div className="flex items-center gap-1 mt-0.5">
-                <MapPin className="h-3.5 w-3.5 text-[#00C853]" />
+                <MapPin className="h-3.5 w-3.5 text-[#059669]" />
                 <p className="text-xs text-slate-400 font-medium">{profile?.location || 'Malang, Indonesia'}</p>
               </div>
             </div>

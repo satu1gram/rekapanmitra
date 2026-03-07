@@ -16,90 +16,92 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    --background: 0 0% 96%;
-    --foreground: 0 0% 9%;
+    /* ============================================
+       DESIGN SYSTEM — REKAPAN MITRA BP
+       ============================================
+       Hijau Utama  #059669 → hsl(161 91% 30%)
+       Navy Gelap   #1E293B → hsl(215 28% 17%)
+       Abu Terang   #F8FAFC → hsl(210 40% 98%)
+       Abu Teks     #64748B → hsl(215 16% 47%)
+       Merah        #DC2626 → hsl(0 72% 51%)
+       Biru Info    #2563EB → hsl(224 90% 53%)
+       Oranye       #F97316 → hsl(24 95% 53%)
+       Kuning       #FBBF24 → hsl(43 96% 56%)
+       ============================================ */
 
-    --card: 0 0% 98%;
-    --card-foreground: 0 0% 9%;
+    /* Latar belakang layar: Abu-abu Terang #F8FAFC */
+    --background: 210 40% 98%;
+    /* Teks utama: Navy Gelap #1E293B */
+    --foreground: 215 28% 17%;
 
-    --popover: 0 0% 89%;
-    --popover-foreground: 0 0% 9%;
+    /* Kartu & form: Putih Bersih #FFFFFF */
+    --card: 0 0% 100%;
+    --card-foreground: 215 28% 17%;
 
-    --primary: 161 93% 30%;
-    --primary-foreground: 151 80% 95%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 215 28% 17%;
 
-    --secondary: 0 0% 32%;
-    --secondary-foreground: 0 0% 98%;
+    /* Aksi utama: Hijau Utama #059669 */
+    --primary: 161 91% 30%;
+    --primary-foreground: 0 0% 100%;
 
-    --muted: 0 0% 63%;
-    --muted-foreground: 0 0% 9%;
+    --secondary: 210 40% 94%;
+    --secondary-foreground: 215 28% 17%;
 
-    --accent: 166 76% 96%;
-    --accent-foreground: 173 80% 40%;
+    /* Teks lemah / disabled */
+    --muted: 210 40% 94%;
+    /* Abu-abu Teks #64748B */
+    --muted-foreground: 215 16% 47%;
 
-    --destructive: 0 72% 50%;
-    --destructive-foreground: 0 85% 97%;
+    /* Hover ringan / highlight */
+    --accent: 158 60% 92%;
+    --accent-foreground: 161 91% 25%;
 
-    --border: 0 0% 83%;
-    --input: 0 0% 83%;
-    --ring: 161 93% 30%;
+    /* Error / hapus: Merah Peringatan #DC2626 */
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 161 91% 30%;
 
     --radius: 0.75rem;
 
-    --sidebar-background: 0 0% 98%;
+    /* Sidebar */
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 215 28% 17%;
+    --sidebar-primary: 161 91% 30%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 158 60% 92%;
+    --sidebar-accent-foreground: 161 91% 25%;
+    --sidebar-border: 214 32% 91%;
+    --sidebar-ring: 161 91% 30%;
+    --sidebar: 0 0% 100%;
 
-    --sidebar-foreground: 0 0% 9%;
-
-    --sidebar-primary: 161 93% 30%;
-
-    --sidebar-primary-foreground: 151 80% 95%;
-
-    --sidebar-accent: 0 0% 32%;
-
-    --sidebar-accent-foreground: 0 0% 98%;
-
-    --sidebar-border: 0 0% 83%;
-
-    --sidebar-ring: 161 93% 30%;
-
-    --chart-1: 158 64% 51%;
-
-    --chart-2: 141 69% 58%;
-
-    --chart-3: 172 66% 50%;
-
-    --chart-4: 82 77% 55%;
-
-    --chart-5: 0 0% 45%;
-
-    --sidebar: 0 0% 98%;
+    /* Chart: Hijau-hijau natural */
+    --chart-1: 161 91% 30%;   /* #059669 Hijau Utama */
+    --chart-2: 24 95% 53%;    /* #F97316 Oranye */
+    --chart-3: 224 90% 53%;   /* #2563EB Biru */
+    --chart-4: 43 96% 56%;    /* #FBBF24 Kuning */
+    --chart-5: 215 16% 47%;   /* #64748B Abu */
 
     --font-sans: 'Work Sans', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif;
-
     --font-serif: 'Lora', ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif;
-
     --font-mono: 'Inconsolata', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
 
     --shadow-2xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
-
     --shadow-xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
-
     --shadow-sm: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 1px 2px -1px hsl(0 0% 0% / 0.1);
-
     --shadow: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 1px 2px -1px hsl(0 0% 0% / 0.1);
-
     --shadow-md: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 2px 4px -1px hsl(0 0% 0% / 0.1);
-
     --shadow-lg: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 4px 6px -1px hsl(0 0% 0% / 0.1);
-
     --shadow-xl: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 8px 10px -1px hsl(0 0% 0% / 0.1);
-
     --shadow-2xl: 0 1px 3px 0px hsl(0 0% 0% / 0.25);
 
     --tracking-normal: 0em;
-
     --spacing: 0.25rem;
   }
+
 
   .dark {
     --background: 0 0% 9%;

@@ -75,7 +75,7 @@ function CopyButton({ text }: { text: string }) {
         });
     };
     return (
-        <button onClick={handleCopy} className="flex items-center gap-1 text-[10px] font-bold text-[#00C853] bg-[#00C853]/10 rounded-lg px-2 py-1 active:scale-95 transition-all">
+        <button onClick={handleCopy} className="flex items-center gap-1 text-[10px] font-bold text-[#059669] bg-[#059669]/10 rounded-lg px-2 py-1 active:scale-95 transition-all">
             {copied ? <CheckCheck className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
             {copied ? 'Tersalin' : 'Salin'}
         </button>
@@ -191,7 +191,7 @@ export default function PublicOrderPage() {
     if (storeLoading) return (
         <div className="min-h-screen bg-gradient-to-br from-green-50 to-white flex items-center justify-center">
             <div className="flex flex-col items-center gap-3">
-                <Loader2 className="h-8 w-8 animate-spin text-[#00C853]" />
+                <Loader2 className="h-8 w-8 animate-spin text-[#059669]" />
                 <p className="text-sm font-semibold text-slate-500">Memuat toko...</p>
             </div>
         </div>
@@ -215,8 +215,8 @@ export default function PublicOrderPage() {
     if (step === 'success') return (
         <div className="min-h-screen bg-gradient-to-br from-green-50 to-white flex items-center justify-center px-5">
             <div className="text-center max-w-xs">
-                <div className="w-24 h-24 bg-[#00C853]/10 rounded-full flex items-center justify-center mx-auto mb-5 ring-8 ring-[#00C853]/10">
-                    <div className="w-16 h-16 bg-[#00C853] rounded-full flex items-center justify-center shadow-xl shadow-green-500/30">
+                <div className="w-24 h-24 bg-[#059669]/10 rounded-full flex items-center justify-center mx-auto mb-5 ring-8 ring-[#059669]/10">
+                    <div className="w-16 h-16 bg-[#059669] rounded-full flex items-center justify-center shadow-xl shadow-green-500/30">
                         <Check className="h-8 w-8 text-white" strokeWidth={3} />
                     </div>
                 </div>
@@ -227,7 +227,7 @@ export default function PublicOrderPage() {
                 {storeData.payment_info.length > 0 && (
                     <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 text-left mb-4 space-y-3">
                         <p className="text-xs font-black text-slate-500 uppercase tracking-widest">Segera Transfer</p>
-                        <div className="bg-[#00C853]/5 rounded-xl p-3 border border-[#00C853]/20">
+                        <div className="bg-[#059669]/5 rounded-xl p-3 border border-[#059669]/20">
                             <p className="text-xl font-black text-[#009624]">{formatCurrency(totalPrice)}</p>
                         </div>
                         <div className="space-y-2">
@@ -265,8 +265,8 @@ export default function PublicOrderPage() {
             {/* Store Header */}
             <header className="bg-white border-b border-slate-100 px-4 py-3.5 sticky top-0 z-10 shadow-sm">
                 <div className="flex items-center gap-3 max-w-lg mx-auto">
-                    <div className="w-9 h-9 bg-[#00C853]/10 rounded-xl flex items-center justify-center">
-                        <Store className="h-4.5 w-4.5 text-[#00C853]" />
+                    <div className="w-9 h-9 bg-[#059669]/10 rounded-xl flex items-center justify-center">
+                        <Store className="h-4.5 w-4.5 text-[#059669]" />
                     </div>
                     <div className="flex-1 min-w-0">
                         <h1 className="text-sm font-extrabold text-slate-800 truncate">{storeData.store_name}</h1>
@@ -275,7 +275,7 @@ export default function PublicOrderPage() {
                         )}
                     </div>
                     {totalQty > 0 && step !== 'summary' && (
-                        <div className="shrink-0 bg-[#00C853] text-white rounded-full px-2.5 py-1 text-xs font-black flex items-center gap-1">
+                        <div className="shrink-0 bg-[#059669] text-white rounded-full px-2.5 py-1 text-xs font-black flex items-center gap-1">
                             <ShoppingBag className="h-3.5 w-3.5" /> {totalQty}
                         </div>
                     )}
@@ -292,8 +292,8 @@ export default function PublicOrderPage() {
                             const isActive = step === s;
                             return (
                                 <div key={s} className="flex items-center flex-1">
-                                    <div className={cn('h-1.5 flex-1 rounded-full transition-all duration-300', isDone || isActive ? 'bg-[#00C853]' : 'bg-slate-100')} />
-                                    {idx < 2 && <div className={cn('w-1.5 h-1.5 rounded-full mx-1', isDone ? 'bg-[#00C853]' : 'bg-slate-200')} />}
+                                    <div className={cn('h-1.5 flex-1 rounded-full transition-all duration-300', isDone || isActive ? 'bg-[#059669]' : 'bg-slate-100')} />
+                                    {idx < 2 && <div className={cn('w-1.5 h-1.5 rounded-full mx-1', isDone ? 'bg-[#059669]' : 'bg-slate-200')} />}
                                 </div>
                             );
                         })}
@@ -302,7 +302,7 @@ export default function PublicOrderPage() {
                         {['Pilih Produk', 'Data Diri', 'Konfirmasi'].map((label, idx) => {
                             const stepIdx = ['products', 'info', 'summary'].indexOf(step);
                             return (
-                                <span key={label} className={cn('text-[10px] font-bold uppercase tracking-wide', stepIdx === idx ? 'text-[#00C853]' : stepIdx > idx ? 'text-slate-400' : 'text-slate-300')}>
+                                <span key={label} className={cn('text-[10px] font-bold uppercase tracking-wide', stepIdx === idx ? 'text-[#059669]' : stepIdx > idx ? 'text-slate-400' : 'text-slate-300')}>
                                     {label}
                                 </span>
                             );
@@ -321,7 +321,7 @@ export default function PublicOrderPage() {
                             <div className="flex items-center justify-between mb-2">
                                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Harga Saat Ini</p>
                                 {totalQty > 0 && (
-                                    <span className="bg-[#00C853]/10 text-[#009624] text-[10px] font-black px-2 py-0.5 rounded-full">
+                                    <span className="bg-[#059669]/10 text-[#009624] text-[10px] font-black px-2 py-0.5 rounded-full">
                                         {currentBracket.label}
                                     </span>
                                 )}
@@ -332,7 +332,7 @@ export default function PublicOrderPage() {
                                     return (
                                         <div key={b.tier} className={cn(
                                             'flex flex-col items-center rounded-xl p-2 border transition-all',
-                                            isActive ? 'bg-[#00C853] border-[#00C853]' : 'bg-slate-50 border-slate-100'
+                                            isActive ? 'bg-[#059669] border-[#059669]' : 'bg-slate-50 border-slate-100'
                                         )}>
                                             <span className={cn('text-xs font-black', isActive ? 'text-white' : 'text-slate-800')}>{b.minQty}</span>
                                             <span className={cn('text-[9px] font-bold', isActive ? 'text-white/80' : 'text-slate-400')}>btl</span>
@@ -351,7 +351,7 @@ export default function PublicOrderPage() {
                         {/* Product list */}
                         <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm">
                             <div className="flex items-center gap-2 mb-4">
-                                <Package className="h-5 w-5 text-[#00C853]" />
+                                <Package className="h-5 w-5 text-[#059669]" />
                                 <h2 className="font-extrabold text-slate-800">Pilih Produk</h2>
                             </div>
                             {items.length === 0 ? (
@@ -364,7 +364,7 @@ export default function PublicOrderPage() {
                                     {items.map(item => (
                                         <div key={item.id} className={cn(
                                             'rounded-2xl p-3 border transition-all',
-                                            item.quantity > 0 ? 'border-[#00C853]/30 bg-green-50/50' : 'border-slate-100 bg-slate-50'
+                                            item.quantity > 0 ? 'border-[#059669]/30 bg-green-50/50' : 'border-slate-100 bg-slate-50'
                                         )}>
                                             <div className="flex items-center gap-3">
                                                 <div className="flex-1 min-w-0">
@@ -395,7 +395,7 @@ export default function PublicOrderPage() {
                                                         className={cn(
                                                             'w-8 h-8 rounded-xl flex items-center justify-center shadow-sm active:scale-95 transition-all',
                                                             item.quantity > 0
-                                                                ? 'bg-[#00C853] border border-[#00C853] text-white'
+                                                                ? 'bg-[#059669] border border-[#059669] text-white'
                                                                 : 'bg-white border border-slate-200 text-slate-600'
                                                         )}>
                                                         <Plus className="h-3.5 w-3.5" />
@@ -403,7 +403,7 @@ export default function PublicOrderPage() {
                                                 </div>
                                             </div>
                                             {item.quantity > 0 && (
-                                                <div className="mt-2 pt-2 border-t border-[#00C853]/20 flex justify-between items-center">
+                                                <div className="mt-2 pt-2 border-t border-[#059669]/20 flex justify-between items-center">
                                                     <span className="text-xs text-slate-500 font-medium">{item.quantity} × {formatCurrency(item.pricePerBottle)}</span>
                                                     <span className="text-xs font-extrabold text-[#009624]">{formatCurrency(item.subtotal)}</span>
                                                 </div>
@@ -422,7 +422,7 @@ export default function PublicOrderPage() {
                                     <p className="text-lg font-black text-white">{formatCurrency(totalPrice)}</p>
                                 </div>
                                 <button onClick={() => setStep('info')}
-                                    className="bg-[#00C853] text-white px-5 py-3 rounded-xl font-bold text-sm flex items-center gap-2 shadow-lg shadow-green-500/40 active:scale-95 transition-all">
+                                    className="bg-[#059669] text-white px-5 py-3 rounded-xl font-bold text-sm flex items-center gap-2 shadow-lg shadow-green-500/40 active:scale-95 transition-all">
                                     Lanjut <ArrowRight className="h-4 w-4" />
                                 </button>
                             </div>
@@ -435,7 +435,7 @@ export default function PublicOrderPage() {
                     <div className="space-y-3">
                         <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm space-y-4">
                             <div className="flex items-center gap-2 mb-1">
-                                <User className="h-5 w-5 text-[#00C853]" />
+                                <User className="h-5 w-5 text-[#059669]" />
                                 <h2 className="font-extrabold text-slate-800">Data Diri</h2>
                             </div>
 
@@ -460,7 +460,7 @@ export default function PublicOrderPage() {
                                     <MapPin className="h-3.5 w-3.5 text-slate-400" /> Alamat Lengkap <span className="text-red-500">*</span>
                                 </Label>
                                 <textarea
-                                    className="w-full border border-input rounded-xl px-3 py-2.5 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#00C853]/30 bg-white"
+                                    className="w-full border border-input rounded-xl px-3 py-2.5 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#059669]/30 bg-white"
                                     placeholder="Nama jalan, no. rumah, kecamatan, kota..."
                                     rows={3} value={customerAddress}
                                     onChange={e => setCustomerAddress(e.target.value)} autoComplete="street-address" />
@@ -468,7 +468,7 @@ export default function PublicOrderPage() {
 
                             <button onClick={() => setStep('summary')}
                                 disabled={!customerName.trim() || !customerPhone.trim() || !customerAddress.trim()}
-                                className="w-full py-3.5 bg-[#00C853] text-white rounded-2xl font-bold text-sm disabled:opacity-40 flex items-center justify-center gap-2 shadow-lg shadow-green-500/20 active:scale-95 transition-all">
+                                className="w-full py-3.5 bg-[#059669] text-white rounded-2xl font-bold text-sm disabled:opacity-40 flex items-center justify-center gap-2 shadow-lg shadow-green-500/20 active:scale-95 transition-all">
                                 Lanjut <ArrowRight className="h-4 w-4" />
                             </button>
                         </div>
@@ -486,7 +486,7 @@ export default function PublicOrderPage() {
                         {/* Order detail */}
                         <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm space-y-3">
                             <h2 className="font-extrabold text-slate-800 flex items-center gap-2">
-                                <ShoppingBag className="h-5 w-5 text-[#00C853]" /> Ringkasan Pesanan
+                                <ShoppingBag className="h-5 w-5 text-[#059669]" /> Ringkasan Pesanan
                             </h2>
                             <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100 space-y-2">
                                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Data Pemesan</p>
@@ -508,7 +508,7 @@ export default function PublicOrderPage() {
                                 ))}
                             </div>
 
-                            <div className="bg-[#00C853]/5 rounded-2xl p-4 border border-[#00C853]/20">
+                            <div className="bg-[#059669]/5 rounded-2xl p-4 border border-[#059669]/20">
                                 <div className="flex items-center justify-between">
                                     <p className="font-extrabold text-slate-700">Total Bayar</p>
                                     <p className="text-xl font-black text-[#009624]">{formatCurrency(totalPrice)}</p>
@@ -521,14 +521,14 @@ export default function PublicOrderPage() {
                         {storeData.payment_info.length > 0 && (
                             <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm space-y-3">
                                 <h2 className="font-extrabold text-slate-800 flex items-center gap-2">
-                                    <CreditCard className="h-5 w-5 text-[#00C853]" /> Cara Pembayaran
+                                    <CreditCard className="h-5 w-5 text-[#059669]" /> Cara Pembayaran
                                 </h2>
                                 <p className="text-xs text-slate-500 font-medium">Transfer ke salah satu rekening berikut setelah order dikonfirmasi.</p>
                                 <div className="space-y-2">
                                     {storeData.payment_info.map((p, i) => (
                                         <div key={i} className="bg-slate-50 rounded-xl p-3.5 border border-slate-100 flex items-start gap-3">
                                             <div className="w-9 h-9 bg-green-50 rounded-xl flex items-center justify-center shrink-0">
-                                                <CreditCard className="h-4 w-4 text-[#00C853]" />
+                                                <CreditCard className="h-4 w-4 text-[#059669]" />
                                             </div>
                                             <div className="flex-1">
                                                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">{PAYMENT_TYPE_LABELS[p.type] || p.type}</p>
@@ -546,7 +546,7 @@ export default function PublicOrderPage() {
                         )}
 
                         <button onClick={handleSubmit} disabled={submitting || activeItems.length === 0}
-                            className="w-full py-4 bg-[#00C853] text-white rounded-2xl font-black text-base disabled:opacity-50 flex items-center justify-center gap-2 shadow-2xl shadow-green-500/30 active:scale-95 transition-all">
+                            className="w-full py-4 bg-[#059669] text-white rounded-2xl font-black text-base disabled:opacity-50 flex items-center justify-center gap-2 shadow-2xl shadow-green-500/30 active:scale-95 transition-all">
                             {submitting ? <><Loader2 className="h-5 w-5 animate-spin" /> Mengirim...</> : <><Check className="h-5 w-5" /> Kirim Pesanan</>}
                         </button>
 
@@ -570,7 +570,7 @@ export default function PublicOrderPage() {
                     <div className="bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden"
                         onClick={e => e.stopPropagation()}>
                         <div className="h-32 bg-gradient-to-br from-green-50 to-slate-100 flex items-center justify-center relative">
-                            <Package className="h-14 w-14 text-[#00C853]/30" />
+                            <Package className="h-14 w-14 text-[#059669]/30" />
                             <button onClick={() => setDetailProduct(null)}
                                 className="absolute top-3 right-3 w-8 h-8 bg-white/80 backdrop-blur rounded-full flex items-center justify-center shadow-sm">
                                 <X className="h-4 w-4 text-slate-600" />
@@ -586,7 +586,7 @@ export default function PublicOrderPage() {
                                     return (
                                         <div key={b.tier} className={cn(
                                             'flex items-center justify-between px-3 py-2 rounded-xl border',
-                                            isCurrentTier ? 'bg-[#00C853]/5 border-[#00C853]/30' : 'bg-slate-50 border-slate-100'
+                                            isCurrentTier ? 'bg-[#059669]/5 border-[#059669]/30' : 'bg-slate-50 border-slate-100'
                                         )}>
                                             <div>
                                                 <span className="text-sm font-bold text-slate-700">{b.label}</span>
@@ -611,7 +611,7 @@ export default function PublicOrderPage() {
                                     <span className="text-lg font-black text-slate-800 w-8 text-center">{detailProduct.quantity}</span>
                                 )}
                                 <button onClick={() => { changeQty(detailProduct.id, 1); setDetailProduct(prev => prev ? { ...prev, quantity: (prev.quantity || 0) + 1 } : null); }}
-                                    className="flex-1 h-10 rounded-xl bg-[#00C853] text-white font-bold text-sm flex items-center justify-center gap-2 shadow-md shadow-green-500/30 active:scale-95">
+                                    className="flex-1 h-10 rounded-xl bg-[#059669] text-white font-bold text-sm flex items-center justify-center gap-2 shadow-md shadow-green-500/30 active:scale-95">
                                     <Plus className="h-4 w-4" /> Tambah
                                 </button>
                             </div>
