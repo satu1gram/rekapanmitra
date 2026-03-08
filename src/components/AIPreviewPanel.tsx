@@ -1,7 +1,7 @@
 // src/components/AIPreviewPanel.tsx
 // Panel kanan konsultasi AI dengan 3 state: default, chip selected, loading
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 // ── Fun Facts — rotasi acak saat loading ───────────────────────
 const FUN_FACTS = [
