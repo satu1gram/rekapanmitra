@@ -30,8 +30,8 @@ const queryClient = new QueryClient({
   },
 });
 
-function PageLoader() {
-  return <LoadingScreen />;
+function PageLoader({ variant }: { variant?: 'default' | 'katalog' | 'dashboard' | 'list' }) {
+  return <LoadingScreen variant={variant} />;
 }
 
 const App = () => (
@@ -69,7 +69,7 @@ const App = () => (
 
             {/* Katalog public page */}
             <Route path="/katalog" element={
-              <Suspense fallback={<PageLoader />}><KatalogProdukPage /></Suspense>
+              <Suspense fallback={<PageLoader variant="katalog" />}><KatalogProdukPage /></Suspense>
             } />
 
             {/* Auth route — tidak perlu shell */}
@@ -88,10 +88,10 @@ const App = () => (
             {/* App routes — semua di dalam AppShell */}
             <Route element={<AppShell />}>
               <Route path="dashboard" element={
-                <Suspense fallback={<PageLoader />}><DashboardPage /></Suspense>
+                <Suspense fallback={<PageLoader variant="dashboard" />}><DashboardPage /></Suspense>
               } />
               <Route path="riwayat" element={
-                <Suspense fallback={<PageLoader />}><RiwayatPage /></Suspense>
+                <Suspense fallback={<PageLoader variant="list" />}><RiwayatPage /></Suspense>
               } />
               <Route path="produk" element={
                 <Suspense fallback={<PageLoader />}><ProdukPage /></Suspense>
