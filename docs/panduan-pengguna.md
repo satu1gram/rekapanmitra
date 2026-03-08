@@ -1,12 +1,12 @@
-# 🛍️ Panduan Penggunaan — Quantum Millionaire
+# 🛍️ Panduan Penggunaan — Rekapan Mitra
 
-> Selamat datang di **Quantum Millionaire** — Aplikasi digital untuk mencatat, mengelola, dan mengembangkan bisnis Anda dengan mudah!
+> Selamat datang di **Rekapan Mitra** — Aplikasi digital untuk mencatat, mengelola, dan mengembangkan bisnis Anda dengan mudah!
 
 ---
 
-## Apa Itu Quantum Millionaire?
+## Apa Itu Rekapan Mitra?
 
-Quantum Millionaire adalah aplikasi pencatatan bisnis yang dirancang untuk **mitra usaha dan pemilik toko kecil**. Dengan aplikasi ini, Anda bisa:
+Rekapan Mitra adalah aplikasi pencatatan bisnis yang dirancang untuk **mitra usaha dan pemilik toko kecil**. Dengan aplikasi ini, Anda bisa:
 
 - ✅ Mencatat setiap pesanan pelanggan
 - ✅ Memantau stok produk secara otomatis
@@ -195,7 +195,7 @@ A: Belum tersedia di toko aplikasi resmi, namun Anda bisa **menginstal langsung 
 
 ## 📞 Butuh Bantuan?
 
-Jika mengalami kendala dalam penggunaan, hubungi admin atau pengelola sistem Quantum Millionaire.
+Jika mengalami kendala dalam penggunaan, hubungi admin atau pengelola sistem Rekapan Mitra BP.
 
 ---
 
