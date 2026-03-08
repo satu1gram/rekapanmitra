@@ -128,7 +128,7 @@ export function ExpensesPage() {
   };
 
   if (loading) {
-    return <LoadingScreen />;
+    return <LoadingScreen variant="list" />;
   }
 
   return (

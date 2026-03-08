@@ -113,7 +113,7 @@ export function Dashboard({ onNavigate }: DashboardProps) {
   };
 
   if (loading) {
-    return <LoadingScreen />;
+    return <LoadingScreen variant="dashboard" />;
   }
 
   // ── FORM MODE ──

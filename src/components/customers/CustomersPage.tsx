@@ -76,7 +76,7 @@ export function CustomersPage() {
   };
 
   if (loading) {
-    return <LoadingScreen />;
+    return <LoadingScreen variant="list" />;
   }
 
   return (

@@ -156,7 +156,7 @@ export function StockPage() {
   };
 
   if (loading) {
-    return <LoadingScreen />;
+    return <LoadingScreen variant="list" />;
   }
 
   /* ─── RESTOK FORM ─── */
