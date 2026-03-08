@@ -307,30 +307,39 @@ export type Database = {
       profiles: {
         Row: {
           created_at: string
+          custom_buy_price: number | null
+          custom_level_name: string | null
           id: string
           location: string | null
           mitra_level: string
           name: string
+          onboarding_completed: boolean | null
           phone: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
           created_at?: string
+          custom_buy_price?: number | null
+          custom_level_name?: string | null
           id?: string
           location?: string | null
           mitra_level?: string
           name?: string
+          onboarding_completed?: boolean | null
           phone?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
           created_at?: string
+          custom_buy_price?: number | null
+          custom_level_name?: string | null
           id?: string
           location?: string | null
           mitra_level?: string
           name?: string
+          onboarding_completed?: boolean | null
           phone?: string | null
           updated_at?: string
           user_id?: string
@@ -386,6 +395,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      store_settings: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          payment_info: Json
+          slug: string
+          store_name: string
+          updated_at: string
+          user_id: string
+          welcome_message: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          payment_info?: Json
+          slug: string
+          store_name?: string
+          updated_at?: string
+          user_id: string
+          welcome_message?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          payment_info?: Json
+          slug?: string
+          store_name?: string
+          updated_at?: string
+          user_id?: string
+          welcome_message?: string | null
+        }
+        Relationships: []
       }
       user_mitra_levels: {
         Row: {
@@ -443,7 +488,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      submit_public_order: { Args: { payload: Json }; Returns: Json }
     }
     Enums: {
       [_ in never]: never
