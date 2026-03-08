@@ -40,9 +40,10 @@ function FunFact() {
 
     return (
         <div className="bg-green-50 rounded-xl p-4 w-full max-w-sm mx-auto min-h-[60px]">
-            <p key={fact.slice(0, 20)} className="text-sm text-gray-600 italic text-center animate-in fade-in duration-500">
+            <p key={fact.slice(0, 20)} className="text-sm text-gray-600 italic text-center" style={{ animation: 'fadeInFact 0.5s ease-in-out', opacity: 1 }}>
                 💡 <span className="font-medium text-gray-700">Tahukah kamu?</span> {fact}
             </p>
+            <style>{`@keyframes fadeInFact { from { opacity: 0; } to { opacity: 1; } }`}</style>
         </div>
     );
 }
