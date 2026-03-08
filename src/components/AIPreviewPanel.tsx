@@ -1,7 +1,7 @@
 // src/components/AIPreviewPanel.tsx
 // Panel kanan konsultasi AI dengan 3 state: default, chip selected, loading
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 // ── Fun Facts — rotasi acak saat loading ───────────────────────
 const FUN_FACTS = [
@@ -23,28 +23,25 @@ const FUN_FACTS = [
 ];
 
 function FunFact() {
-    // Pilih 2-3 fakta secara acak saat mount, lalu rotasi setiap 4 detik
-    const pool = useMemo(() => {
-        const shuffled = [...FUN_FACTS].sort(() => Math.random() - 0.5);
-        return shuffled.slice(0, 5);
-    }, []);
-
-    const [idx, setIdx] = useState(0);
+    const [fact, setFact] = useState(() => FUN_FACTS[Math.floor(Math.random() * FUN_FACTS.length)]);
 
     useEffect(() => {
         const timer = setInterval(() => {
-            setIdx(prev => (prev + 1) % pool.length);
+            setFact(prev => {
+                let next = prev;
+                while (next === prev) {
+                    next = FUN_FACTS[Math.floor(Math.random() * FUN_FACTS.length)];
+                }
+                return next;
+            });
         }, 4000);
         return () => clearInterval(timer);
-    }, [pool.length]);
+    }, []);
 
     return (
         <div className="bg-green-50 rounded-xl p-3 max-w-xs">
-            <p
-                key={idx}
-                className="text-xs text-gray-500 italic animate-in fade-in duration-500"
-            >
-                💡 Tahukah kamu? {pool[idx]}
+            <p key={fact.slice(0, 20)} className="text-xs text-gray-500 italic animate-in fade-in duration-500">
+                💡 Tahukah kamu? {fact}
             </p>
         </div>
     );
