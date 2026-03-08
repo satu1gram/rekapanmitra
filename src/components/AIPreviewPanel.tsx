@@ -39,9 +39,9 @@ function FunFact() {
     }, []);
 
     return (
-        <div className="bg-green-50 rounded-xl p-3 max-w-xs">
-            <p key={fact.slice(0, 20)} className="text-xs text-gray-500 italic animate-in fade-in duration-500">
-                💡 Tahukah kamu? {fact}
+        <div className="bg-green-50 rounded-xl p-4 w-full max-w-sm mx-auto min-h-[60px]">
+            <p key={fact.slice(0, 20)} className="text-sm text-gray-600 italic text-center animate-in fade-in duration-500">
+                💡 <span className="font-medium text-gray-700">Tahukah kamu?</span> {fact}
             </p>
         </div>
     );
