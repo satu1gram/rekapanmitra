@@ -279,7 +279,7 @@ export function OrdersPage({ openAddForm = false, onAddFormClose }: OrdersPagePr
   }
 
   if (loading) {
-    return <LoadingScreen />;
+    return <LoadingScreen variant="list" />;
   }
 
   return (

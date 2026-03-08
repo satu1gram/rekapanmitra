@@ -127,7 +127,7 @@ export function IncomePage() {
   };
 
   if (loading) {
-    return <LoadingScreen />;
+    return <LoadingScreen variant="list" />;
   }
 
   return (
