@@ -193,14 +193,14 @@ async function searchTestimonials(query: string): Promise<any[]> {
     try {
         const embedding = await getEmbedding(query);
 
-        const { data: messages, error } = await supabase.rpc('match_messages', {
+        const { data: messages, error } = await supabase.rpc('match_messages' as any, {
             query_embedding: embedding,
             match_threshold: 0.1,
             match_count: 5,
         });
 
         if (error) throw error;
-        return messages || [];
+        return (messages as any[]) || [];
     } catch (error) {
         console.error('Search Testimonials Error:', error);
         return [];

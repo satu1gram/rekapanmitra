@@ -30,7 +30,7 @@ export function ProductsStep({ mitraLevel, products, onChange, onNext, onBack }:
     };
 
     const addCustomProduct = () => {
-        onChange([...products, { name: '', defaultSellPrice: 0, include: true }]);
+        onChange([...products, { name: '', defaultSellPrice: 0, sellPrice: 0, include: true }]);
     };
 
     return (
