@@ -31,6 +31,10 @@ dist-ssr
 # Credentials & Temp Files
 .credentials/
 admin_mvp_plan.md.resolved
+*.session
+*.session-journal
+/public/downloads/
+/scripts/telegram_scraper.py
 
 # OS
 Thumbs.db

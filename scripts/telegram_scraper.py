@@ -48,23 +48,45 @@ async def scrape_group():
         # Hanya ambil pesan teks yang ada isinya
         if message.text and len(message.text.strip()) > 10:
             
-            # Cari tahu pengirim (bisa dari nama akun atau admin title)
+            # Cari tahu pengirim
             sender_name = "Pengguna Anonim"
             if message.sender:
                 if getattr(message.sender, 'first_name', None):
                     sender_name = message.sender.first_name
                     if getattr(message.sender, 'last_name', None):
                         sender_name += f" {message.sender.last_name}"
-                elif getattr(message.sender, 'title', None): # misal dari Channel
+                elif getattr(message.sender, 'title', None): 
                     sender_name = message.sender.title
-                elif getattr(message, 'post_author', None): # Custom admin title
+                elif getattr(message, 'post_author', None): 
                     sender_name = message.post_author
+            
+            # --- HANDLE MEDIA (PHOTO) ---
+            photo_path = None
+            if message.photo:
+                try:
+                    # Buat folder download jika belum ada
+                    download_dir = os.path.join(os.path.dirname(__file__), '../public/downloads/testimoni')
+                    os.makedirs(download_dir, exist_ok=True)
+                    
+                    # Download media
+                    filename = f"testi_{message.id}.jpg"
+                    target_path = os.path.join(download_dir, filename)
+                    
+                    print(f"Mengunduh foto untuk pesan {message.id}...")
+                    path = await message.download_media(file=target_path)
+                    if path:
+                        # Gunakan path relatif untuk web dev agar bisa diakses via /downloads/...
+                        photo_path = f"/downloads/testimoni/{filename}"
+                        print(f"Foto berhasil diunduh: {photo_path}")
+                except Exception as e:
+                    print(f"Gagal mengunduh foto {message.id}: {e}")
                     
             msg_obj = {
                 "id": str(message.id),
                 "date": message.date.isoformat() if message.date else datetime.now().isoformat(),
                 "text": message.text,
-                "sender": sender_name
+                "sender": sender_name,
+                "photo_url": photo_path # Simpan path lokal (atau nantinya URL Supabase)
             }
             messages_data.append(msg_obj)
             

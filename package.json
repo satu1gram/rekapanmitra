@@ -10,7 +10,8 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "sync:testimoni": "python3 scripts/telegram_scraper.py && npx tsx scripts/import_scraped_data.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
@@ -47,6 +48,7 @@
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
     "date-fns": "^3.6.0",
+    "dotenv": "^16.4.7",
     "embla-carousel-react": "^8.6.0",
     "input-otp": "^1.4.2",
     "lucide-react": "^0.462.0",
@@ -62,7 +64,7 @@
     "tailwind-merge": "^2.6.0",
     "tailwindcss-animate": "^1.0.7",
     "vaul": "^0.9.9",
-    "vite-plugin-pwa": "^1.2.0",
+    "vite-plugin-pwa": "^0.19.8",
     "zod": "^3.25.76"
   },
   "devDependencies": {
@@ -79,12 +81,13 @@
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.20",
     "globals": "^15.15.0",
-    "jsdom": "^20.0.3",
+    "jsdom": "^26.1.0",
     "lovable-tagger": "^1.1.13",
     "postcss": "^8.5.6",
     "tailwindcss": "^3.4.17",
+    "tsx": "^4.19.3",
     "typescript": "^5.8.3",
-    "typescript-eslint": "^7.3.1",
+    "typescript-eslint": "^8.0.0",
     "vite": "^6.4.1",
     "vitest": "^3.2.4"
   }

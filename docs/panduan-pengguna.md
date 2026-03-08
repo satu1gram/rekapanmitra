@@ -158,6 +158,27 @@ Buka menu **Akun** untuk:
 
 ---
 
+---
+
+### 🧬 AI Health Advisor (Konsultasi Kesehatan)
+
+Gunakan fitur AI untuk membantu pelanggan Anda memilih produk yang tepat:
+
+1.  Buka menu **Konsultasi** atau halaman Katalog.
+2.  Pilih **Badge Keluhan** yang sesuai (misal: Susah Tidur, Nyeri Sendi, dll.).
+3.  Tambahkan **Catatan Tambahan** jika ingin memberikan detail lebih lanjut.
+4.  Klik **"Analisis Kondisiku"**.
+5.  AI akan memberikan panduan lengkap:
+    -   **Empati**: Memahami kondisi Anda.
+    -   **Edukasi**: Penjelasan penyebab keluhan.
+    -   **Tips Gaya Hidup**: Tindakan praktis yang bisa dilakukan segera.
+    -   **Rekomendasi Produk**: Produk yang paling cocok untuk keluhan tersebut.
+6.  Klik **"Konsultasi via WhatsApp"** untuk langsung mengirimkan hasil tersebut ke nomor Anda.
+
+> 💡 **Tips**: AI kami sudah dibekali logika cerdas untuk membedakan produk khusus anak (BP Green) dan produk hormonal wanita (BP Blue).
+
+---
+
 ## ❓ Pertanyaan yang Sering Ditanyakan (FAQ)
 
 **Q: Apakah data saya aman?**  

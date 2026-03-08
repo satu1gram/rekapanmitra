@@ -79,11 +79,16 @@ All colors MUST be HSL.
     --sidebar: 0 0% 100%;
 
     /* Chart: Hijau-hijau natural */
-    --chart-1: 161 91% 30%;   /* #059669 Hijau Utama */
-    --chart-2: 24 95% 53%;    /* #F97316 Oranye */
-    --chart-3: 224 90% 53%;   /* #2563EB Biru */
-    --chart-4: 43 96% 56%;    /* #FBBF24 Kuning */
-    --chart-5: 215 16% 47%;   /* #64748B Abu */
+    --chart-1: 161 91% 30%;
+    /* #059669 Hijau Utama */
+    --chart-2: 24 95% 53%;
+    /* #F97316 Oranye */
+    --chart-3: 224 90% 53%;
+    /* #2563EB Biru */
+    --chart-4: 43 96% 56%;
+    /* #FBBF24 Kuning */
+    --chart-5: 215 16% 47%;
+    /* #64748B Abu */
 
     --font-sans: 'Work Sans', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif;
     --font-serif: 'Lora', ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif;
@@ -164,4 +169,120 @@ All colors MUST be HSL.
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/* ── Carousel track smoothness ── */
+.carousel-track {
+  cursor: grab;
+  user-select: none;
+  will-change: transform;
+}
+
+.carousel-track:active {
+  cursor: grabbing;
+}
+
+/* ── Smooth card height ── */
+.testimoni-track>div {
+  display: flex;
+  align-items: stretch;
+  transition: opacity 0.5s ease;
+}
+
+/* ── Premium Easing ── */
+.premium-ease {
+  transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ── Custom Animations ── */
+@keyframes zoom-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-zoom-in {
+  animation: zoom-in 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* ── Custom Scrollbar ── */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #e2e8f0;
+  border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #cbd5e1;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.scale-in {
+  animation: scaleIn 0.3s ease-out forwards;
+}
+
+/* ── line-clamp utilities ── */
+.line-clamp-4 {
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.testimoni-track>div {
+  display: flex;
+  align-items: stretch;
+}
+
+/* ── Transisi modal masuk ── */
+@keyframes modal-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.modal-content {
+  animation: modal-in 250ms ease-out forwards;
 }
