@@ -1,1 +1,4 @@
 project_id = "mplnfciugxojlpurxiwk"
+
+[functions.ai-konsultasi]
+verify_jwt = false
