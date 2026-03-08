@@ -1,7 +1,54 @@
 // src/components/AIPreviewPanel.tsx
 // Panel kanan konsultasi AI dengan 3 state: default, chip selected, loading
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+
+// ── Fun Facts — rotasi acak saat loading ───────────────────────
+const FUN_FACTS = [
+    "Propolis lebah mengandung lebih dari 300 senyawa aktif yang mendukung sistem imun tubuh secara alami.",
+    "Lebah pekerja harus mengunjungi sekitar 2 juta bunga untuk menghasilkan 500 gram madu murni.",
+    "Moringa (daun kelor) mengandung 7x lebih banyak vitamin C dibanding jeruk dan 4x kalsium dibanding susu.",
+    "Propolis telah digunakan sejak zaman Mesir Kuno untuk mempercepat penyembuhan luka.",
+    "Tubuh manusia memproduksi sekitar 3,8 juta sel baru setiap detik — nutrisi yang tepat sangat membantu proses ini.",
+    "British Propolis berasal dari lebah yang hidup di cuaca ekstrem Inggris, membuat kadar flavonoidnya 3-4x lebih tinggi.",
+    "Echinacea, bahan utama Brassic Pro, sudah digunakan oleh suku Indian Cherokee selama ratusan tahun untuk menjaga daya tahan tubuh.",
+    "Kolagen alami dalam tubuh mulai menurun sejak usia 25 tahun — suplemen kolagen bisa membantu menjaga elastisitas kulit.",
+    "Omega-3 dari minyak ikan salmon mendukung kesehatan otak, jantung, dan sendi sekaligus.",
+    "Flavonoid dalam propolis bersifat antioksidan kuat yang bisa membantu melawan radikal bebas penyebab penuaan dini.",
+    "Kelor (Moringa) disebut 'pohon ajaib' karena hampir semua bagiannya bermanfaat untuk kesehatan.",
+    "Sistem imun tubuh bekerja 24 jam nonstop — tidur berkualitas dan nutrisi yang cukup adalah bahan bakar utamanya.",
+    "Propolis memiliki sifat antibakteri alami yang membantu melindungi sarang lebah dari infeksi.",
+    "Vitamin E yang terkandung dalam serum wajah alami membantu memperbaiki sel kulit yang rusak akibat sinar UV.",
+    "Air putih hangat di pagi hari bisa membantu melancarkan metabolisme dan membersihkan racun dalam tubuh.",
+];
+
+function FunFact() {
+    // Pilih 2-3 fakta secara acak saat mount, lalu rotasi setiap 4 detik
+    const pool = useMemo(() => {
+        const shuffled = [...FUN_FACTS].sort(() => Math.random() - 0.5);
+        return shuffled.slice(0, 5);
+    }, []);
+
+    const [idx, setIdx] = useState(0);
+
+    useEffect(() => {
+        const timer = setInterval(() => {
+            setIdx(prev => (prev + 1) % pool.length);
+        }, 4000);
+        return () => clearInterval(timer);
+    }, [pool.length]);
+
+    return (
+        <div className="bg-green-50 rounded-xl p-3 max-w-xs">
+            <p
+                key={idx}
+                className="text-xs text-gray-500 italic animate-in fade-in duration-500"
+            >
+                💡 Tahukah kamu? {pool[idx]}
+            </p>
+        </div>
+    );
+}
 
 // ── Tipe ─────────────────────────────────────────────────────────
 interface Props {
