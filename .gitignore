@@ -37,3 +37,7 @@ Thumbs.db
 
 # Admin Portal Isolation
 /admin-portal
+
+# Design Mockups & Prompts
+design-mockups/
+landing.html

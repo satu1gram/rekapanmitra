@@ -13,13 +13,14 @@ export interface ProductData {
     oldPrice?: string;
     bgStyle: 'green' | 'teal' | 'gold' | 'blue' | 'red' | 'purple';
     emoji: string;
+    image?: string;
 }
 
 export const KATALOG_PRODUCTS: ProductData[] = [
     {
         id: "british-propolis",
         category: "propolis",
-        badgeText: "British Propolis",
+        badgeText: "Suplemen Terbaik",
         badgeColor: "green",
         name: "British Propolis",
         tagline: "Imunitas & Pemulihan Ekstra",
@@ -30,13 +31,14 @@ export const KATALOG_PRODUCTS: ProductData[] = [
             "Kaya flavonoid (Antioksidan tinggi)"
         ],
         specs: [
-            { icon: "💧", text: "Drop 6 ML" },
-            { icon: "🔬", text: "Botol Kaca" }
+            { icon: "water_drop", text: "Drop 6 ML" },
+            { icon: "science", text: "Botol Kaca" }
         ],
         price: "Rp 250.000",
         priceNote: "Per Botol 6 ML",
         bgStyle: "green",
-        emoji: "🍯"
+        emoji: "medication_liquid",
+        image: "/images/produk/bp.webp"
     },
     {
         id: "british-propolis-green",
@@ -52,13 +54,37 @@ export const KATALOG_PRODUCTS: ProductData[] = [
             "Anak jarang gampang flu/sakit"
         ],
         specs: [
-            { icon: "💧", text: "Drop 6 ML" },
-            { icon: "👶", text: "Usia 1-12 Th" }
+            { icon: "water_drop", text: "Drop 6 ML" },
+            { icon: "child_care", text: "Usia 1-12 Th" }
         ],
         price: "Rp 250.000",
         priceNote: "Per Botol 6 ML",
         bgStyle: "teal",
-        emoji: "👦👧"
+        emoji: "child_care",
+        image: "/images/produk/bpgreen.webp"
+    },
+    {
+        id: "british-propolis-blue",
+        category: "propolis",
+        badgeText: "Untuk Wanita",
+        badgeColor: "blue",
+        name: "British Propolis Blue",
+        tagline: "✨ Varian Terbaru: Solusi Nyeri Haid & Hormon",
+        description: "PRODUK BARU! Varian premium khusus wanita untuk membantu regulasi sistem reproduksi, meredakan keluhan datang bulan, dan menjaga stabilitas hormonal secara alami.",
+        benefits: [
+            "Meredakan nyeri haid & kram perut",
+            "Melancarkan siklus datang bulan",
+            "Menjaga keseimbangan hormonal & imunitas"
+        ],
+        specs: [
+            { icon: "water_drop", text: "Drop 6 ML" },
+            { icon: "female", text: "Khusus Wanita" }
+        ],
+        price: "Rp 250.000",
+        priceNote: "Per Botol 6 ML",
+        bgStyle: "purple",
+        emoji: "female",
+        image: "/images/produk/bpblue.webp"
     },
     {
         id: "brassic-pro",
@@ -74,13 +100,14 @@ export const KATALOG_PRODUCTS: ProductData[] = [
             "Badan segar tak gampang penat"
         ],
         specs: [
-            { icon: "💊", text: "40 Kapsul" },
-            { icon: "🌿", text: "Moringa" }
+            { icon: "pill", text: "40 Kapsul" },
+            { icon: "eco", text: "Moringa" }
         ],
         price: "Rp 250.000",
         priceNote: "1 Botol 40 Kapsul",
         bgStyle: "gold",
-        emoji: "🦴"
+        emoji: "healing",
+        image: "/images/produk/brassicpro.webp"
     },
     {
         id: "brassic-eye",
@@ -96,13 +123,14 @@ export const KATALOG_PRODUCTS: ProductData[] = [
             "Menyaring paparan Radiasi Biru layar"
         ],
         specs: [
-            { icon: "💊", text: "40 Kapsul" },
-            { icon: "🫐", text: "Bilberry Extract" }
+            { icon: "pill", text: "40 Kapsul" },
+            { icon: "nutrition", text: "Bilberry Extract" }
         ],
         price: "Rp 250.000",
         priceNote: "1 Botol 40 Kapsul",
         bgStyle: "blue",
-        emoji: "👁️"
+        emoji: "visibility",
+        image: "/images/produk/brassiceye.webp"
     },
     {
         id: "bp-norway",
@@ -118,14 +146,15 @@ export const KATALOG_PRODUCTS: ProductData[] = [
             "DHA tinggi bantu tumbuh kembang otak"
         ],
         specs: [
-            { icon: "💊", text: "Soft Kapsul" },
-            { icon: "📦", text: "40 Kapsul" },
-            { icon: "🐟", text: "Salmon Oil" }
+            { icon: "pill", text: "Soft Kapsul" },
+            { icon: "inventory_2", text: "40 Kapsul" },
+            { icon: "set_meal", text: "Salmon Oil" }
         ],
         price: "Rp 250.000",
         priceNote: "40 Soft Capsules",
         bgStyle: "blue",
-        emoji: "🧠"
+        emoji: "psychology",
+        image: "/images/produk/norway.webp"
     },
     {
         id: "belgie-facial-wash",
@@ -141,13 +170,14 @@ export const KATALOG_PRODUCTS: ProductData[] = [
             "Mengontrol produksi sebum minyak"
         ],
         specs: [
-            { icon: "🧴", text: "Gel 100 ML" },
-            { icon: "⚗️", text: "Propolis" }
+            { icon: "sanitizer", text: "Gel 100 ML" },
+            { icon: "science", text: "Propolis" }
         ],
         price: "Rp 195.000",
         priceNote: "Gel 100 ML",
         bgStyle: "red",
-        emoji: "💦"
+        emoji: "water_drop",
+        image: "/images/produk/facialwash.webp"
     },
     {
         id: "belgie-serum",
@@ -163,13 +193,14 @@ export const KATALOG_PRODUCTS: ProductData[] = [
             "Kenyalkan kulit (Anti-Aging)"
         ],
         specs: [
-            { icon: "💧", text: "Cair 10 ML" },
-            { icon: "✨", text: "5 Bahan Aktif" }
+            { icon: "water_drop", text: "Cair 10 ML" },
+            { icon: "auto_awesome", text: "5 Bahan Aktif" }
         ],
         price: "Rp 195.000",
         priceNote: "10 ML",
         bgStyle: "purple",
-        emoji: "🌟"
+        emoji: "auto_awesome",
+        image: "/images/produk/serum.webp"
     },
     {
         id: "belgie-day-cream",
@@ -185,13 +216,14 @@ export const KATALOG_PRODUCTS: ProductData[] = [
             "Melembapkan seharian penuh"
         ],
         specs: [
-            { icon: "🌅", text: "Krim 10 gr" },
-            { icon: "☀️", text: "SPF 30+" }
+            { icon: "light_mode", text: "Krim 10 gr" },
+            { icon: "wb_sunny", text: "SPF 30+" }
         ],
         price: "Rp 195.000",
         priceNote: "10 Gram",
         bgStyle: "red",
-        emoji: "🌅"
+        emoji: "light_mode",
+        image: "/images/produk/daycream.webp"
     },
     {
         id: "belgie-night-cream",
@@ -207,14 +239,15 @@ export const KATALOG_PRODUCTS: ProductData[] = [
             "Cepat perbaiki skin barrier rusak"
         ],
         specs: [
-            { icon: "🌙", text: "Malam" },
-            { icon: "📦", text: "10 Gram" },
-            { icon: "🔬", text: "Collagen" }
+            { icon: "dark_mode", text: "Malam" },
+            { icon: "inventory_2", text: "10 Gram" },
+            { icon: "science", text: "Collagen" }
         ],
         price: "Rp 195.000",
         priceNote: "Krim 10 Gram",
         bgStyle: "red",
-        emoji: "🌙"
+        emoji: "dark_mode",
+        image: "/images/produk/nightcream.webp"
     },
     {
         id: "belgie-hair-tonic",
@@ -230,14 +263,15 @@ export const KATALOG_PRODUCTS: ProductData[] = [
             "Sensasi dingin tenangkan kulit kepala"
         ],
         specs: [
-            { icon: "💆", text: "Spray" },
-            { icon: "📦", text: "100 ML" },
-            { icon: "🌿", text: "Anagain Swiss" }
+            { icon: "face_retouching_natural", text: "Spray" },
+            { icon: "inventory_2", text: "100 ML" },
+            { icon: "eco", text: "Anagain Swiss" }
         ],
         price: "Rp 195.000",
         priceNote: "Spray 100 ML",
         bgStyle: "gold",
-        emoji: "💇"
+        emoji: "face_retouching_natural",
+        image: "/images/produk/hairtonic.webp"
     },
     {
         id: "steffi-pro",
@@ -253,14 +287,15 @@ export const KATALOG_PRODUCTS: ProductData[] = [
             "Tak ada rasa pahit di tenggorokan (aftertaste)"
         ],
         specs: [
-            { icon: "💧", text: "Cair" },
-            { icon: "📦", text: "30 ML" },
-            { icon: "🌿", text: "Stevia Extract" }
+            { icon: "water_drop", text: "Cair" },
+            { icon: "inventory_2", text: "30 ML" },
+            { icon: "eco", text: "Stevia Extract" }
         ],
         price: "Rp 195.000",
         priceNote: "🔥 Harga Promo",
         oldPrice: "Rp 250.000",
         bgStyle: "blue",
-        emoji: "🍵"
+        emoji: "local_cafe",
+        image: "/images/produk/steffi.webp"
     }
 ];

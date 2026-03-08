@@ -107,7 +107,7 @@ export default function LandingPage() {
                 <div className="hero-inner">
                     <div>
                         <div className="hero-badge"><span className="dot"></span> 100% Gratis &middot; Aktif Sekarang</div>
-                        <h1>Kelola Bisnis Mitra Anda dalam <em>Satu Genggaman</em></h1>
+                        <h1>Kelola Bisnis Anda dalam <em>Satu Genggaman</em></h1>
                         <p>Pantau keuntungan real-time, catat pesanan, kelola stok, dan bangun jaringan pelanggan — semua dari
                             HP Anda. Tanpa ribet, tanpa lembar Excel.</p>
                         <div className="hero-cta">
@@ -131,7 +131,7 @@ export default function LandingPage() {
                         <div className="float-badge float-1">
                             <div className="float-icon" style={{ background: '#d1fae5', color: '#059669' }}><Package
                                 className="icon" size={18} /></div>
-                            Stok: 24 item
+                            Stok: 19 item
                         </div>
                         <div className="float-badge float-2">
                             <div className="float-icon" style={{ background: '#fef3c7', color: '#d97706' }}><Wallet className="icon" size={18} />
@@ -141,7 +141,7 @@ export default function LandingPage() {
                         <div className="float-badge float-3">
                             <div className="float-icon" style={{ background: '#e0f2fe', color: '#0284c7' }}><Users className="icon" size={18} />
                             </div>
-                            12 pelanggan
+                            10 pelanggan
                         </div>
                     </div>
                 </div>

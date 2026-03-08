@@ -1,12 +1,12 @@
-# 🛍️ Panduan Penggunaan — Rekapan Mitra BP
+# 🛍️ Panduan Penggunaan — Quantum Millionaire
 
-> Selamat datang di **Rekapan Mitra BP** — Aplikasi digital untuk mencatat, mengelola, dan mengembangkan bisnis Anda dengan mudah!
+> Selamat datang di **Quantum Millionaire** — Aplikasi digital untuk mencatat, mengelola, dan mengembangkan bisnis Anda dengan mudah!
 
 ---
 
-## Apa Itu Rekapan Mitra BP?
+## Apa Itu Quantum Millionaire?
 
-Rekapan Mitra BP adalah aplikasi pencatatan bisnis yang dirancang untuk **mitra usaha dan pemilik toko kecil**. Dengan aplikasi ini, Anda bisa:
+Quantum Millionaire adalah aplikasi pencatatan bisnis yang dirancang untuk **mitra usaha dan pemilik toko kecil**. Dengan aplikasi ini, Anda bisa:
 
 - ✅ Mencatat setiap pesanan pelanggan
 - ✅ Memantau stok produk secara otomatis
@@ -195,7 +195,7 @@ A: Belum tersedia di toko aplikasi resmi, namun Anda bisa **menginstal langsung 
 
 ## 📞 Butuh Bantuan?
 
-Jika mengalami kendala dalam penggunaan, hubungi admin atau pengelola sistem Rekapan Mitra BP.
+Jika mengalami kendala dalam penggunaan, hubungi admin atau pengelola sistem Quantum Millionaire.
 
 ---
 
