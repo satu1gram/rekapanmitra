@@ -325,13 +325,8 @@ function LoadingState() {
                 ))}
             </div>
 
-            {/* Fun fact saat loading */}
-            <div className="bg-green-50 rounded-xl p-3 max-w-xs">
-                <p className="text-xs text-gray-500 italic">
-                    💡 Tahukah kamu? Propolis lebah mengandung lebih dari 300 senyawa
-                    aktif yang mendukung sistem imun tubuh secara alami.
-                </p>
-            </div>
+            {/* Fun fact saat loading — random & rotating */}
+            <FunFact />
         </div>
     );
 }
