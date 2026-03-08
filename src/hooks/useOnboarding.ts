@@ -9,6 +9,7 @@ export interface OnboardingProductData {
     name: string;
     include: boolean;
     sellPrice: number;
+    defaultSellPrice: number;
 }
 
 export interface OnboardingData {
