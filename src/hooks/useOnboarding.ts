@@ -5,6 +5,12 @@ import { useProfile } from './useProfile';
 import { MitraLevel, MITRA_LEVELS } from '@/types';
 import type { PaymentInfo } from './useStoreSettings';
 
+export interface OnboardingProductData {
+    name: string;
+    include: boolean;
+    sellPrice: number;
+}
+
 export interface OnboardingData {
     // Step 2
     name: string;
