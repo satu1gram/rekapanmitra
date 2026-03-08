@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef } from 'react'; // sync
 import { Link, useSearchParams } from 'react-router-dom';
 import '@/styles/katalog.css';
 import { generateAIAdvice, RAGResult } from '@/lib/geminiRAG';
