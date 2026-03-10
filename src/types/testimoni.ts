@@ -13,6 +13,8 @@ export interface Testimoni {
     produk: string | null;
     bintang: number;
     status: string;
+    tags?: string[];        // New: filtering tags (e.g. ['imun', 'stamina'])
+    keluhanLabel?: string;  // New: friendly label (e.g. 'Susah Tidur')
 }
 
 // Helper: tampilkan nama yang paling representatif

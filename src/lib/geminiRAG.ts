@@ -1,5 +1,5 @@
 // ============================================================
-// geminiRAG.ts — via Lovable AI edge function
+// aiAdvisor.ts — via Groq AI (Llama 3.3)
 // ============================================================
 
 import { supabase } from "@/integrations/supabase/client";
@@ -16,7 +16,7 @@ export interface RAGResult {
 
 // ── Cache ──────────────────────────────────────────────────────────
 const CACHE_TTL_HOURS = 24;
-const CACHE_PREFIX = 'bp_gemini_v1_';
+const CACHE_PREFIX = 'bp_gemini_v2_';
 
 interface CacheEntry { value: string; expiry: number; }
 
@@ -124,6 +124,50 @@ function getDynamicFallback(query: string): RAGResult {
     };
 }
 
+const SYSTEM_PROMPT = `Kamu adalah konsultan kesehatan senior yang hangat dan empatik dari BP Group.
+
+[LOGIC RULES]:
+- Jika keluhan anak/makan -> WAJIB sarankan "British Propolis Green".
+- Jika keluhan haid/wanita/promil -> WAJIB sarankan "British Propolis Blue".
+- Jika keluhan tidur/sendi/linu -> WAJIB sarankan "Brassic Pro".
+- Jika keluhan mata -> WAJIB sarankan "Brassic Eye".
+- Jika keluhan kulit/flek -> WAJIB sarankan "Belgie Anti Aging Serum" DAN "Belgie Facial Wash".
+- Jika keluhan gula darah/diabetes -> WAJIB sarankan "Steffi Pro".
+- British Propolis (Reguler) adalah general imunitas untuk dewasa.
+
+INSTRUKSI OUTPUT:
+1. Empati: Akui perasaan mereka dengan tulus (2 kalimat).
+2. Edukasi: Jelaskan akar masalahnya secara sederhana (1 paragraf).
+3. Tips Gaya Hidup: 3 tips KONKRET & NON-UMUM. (Hindari "minum air/tidur cukup" kecuali sangat relevan). Beri tips yang 'insightful'.
+4. Rekomendasi: 2-3 Produk BP Group yang paling akurat sesuai [LOGIC RULES]. Gunakan NAMA PERSIS seperti di daftar di bawah. Beri ALASAN yang menyambungkan gejala mereka dengan manfaat produk.
+
+DAFTAR NAMA PRODUK WAJIB (Gunakan Nama Ini Persis):
+- British Propolis
+- British Propolis Green
+- British Propolis Blue
+- Brassic Pro
+- Brassic Eye
+- Belgie Anti Aging Serum
+- Belgie Facial Wash
+- Belgie Day Cream
+- Belgie Night Cream
+- Steffi Pro
+- BP Norway
+
+PENTING: Jawab HANYA dalam format JSON valid berikut, tanpa markdown atau teks tambahan:
+{
+  "empati": "string",
+  "edukasi": "string",
+  "tips_gaya_hidup": [
+    { "icon": "string", "title": "string", "description": "string" }
+  ],
+  "rekomendasi": [
+    { "name": "string", "emoji": "string", "reason": "string", "price": "string" }
+  ],
+  "cta": "string"
+}
+`;
+
 // ── Fungsi utama ──────────────────────────────────────────────────
 export async function generateAIAdvice(selectedComplaints: string[], complaintText: string): Promise<RAGResult> {
     const userInput = (complaintText || selectedComplaints.join(', ')).trim();
@@ -141,28 +185,56 @@ export async function generateAIAdvice(selectedComplaints: string[], complaintTe
         catch { localStorage.removeItem(cacheKey); }
     }
 
-    // 2. Call edge function
+    // 2. Direct Groq API Call
     try {
-        console.info('[AI] 🔄 Calling edge function...');
-        const { data, error } = await supabase.functions.invoke('ai-konsultasi', {
-            body: { userInput }
-        });
-
-        if (error) {
-            console.error('[AI] Edge function error:', error);
+        const apiKey = import.meta.env.VITE_GROQ_API_KEY;
+        if (!apiKey) {
+            console.warn('[AI] VITE_GROQ_API_KEY missing, using fallback');
             return getDynamicFallback(userInput);
         }
 
-        if (data?.error) {
-            console.error('[AI] API error:', data.error);
-            return getDynamicFallback(userInput);
+        console.info('[AI] 🔄 Calling Groq API...');
+
+        const response = await fetch(
+            'https://api.groq.com/openai/v1/chat/completions',
+            {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${apiKey}`
+                },
+                body: JSON.stringify({
+                    model: 'llama-3.3-70b-versatile',
+                    messages: [
+                        { role: 'system', content: SYSTEM_PROMPT },
+                        { role: 'user', content: userInput }
+                    ],
+                    temperature: 0.8,
+                    max_tokens: 1024,
+                    response_format: { type: "json_object" }
+                })
+            }
+        );
+
+        if (!response.ok) {
+            throw new Error(`Groq API error: ${response.status}`);
         }
+
+        const data = await response.json();
+        const rawText = data?.choices?.[0]?.message?.content;
+
+        if (!rawText) {
+            throw new Error('Empty response from Groq');
+        }
+
+        const parsed = JSON.parse(rawText);
 
         // Cache result
-        writeCache(cacheKey, JSON.stringify(data));
+        writeCache(cacheKey, JSON.stringify(parsed));
         console.info('[AI] ✅ Berhasil');
 
-        return { ...data, testimonials: [] };
+        return { ...parsed, testimonials: [] };
+
     } catch (err) {
         console.error('[AI] ❌ Error:', err);
         return getDynamicFallback(userInput);

@@ -6,6 +6,7 @@ import { KATALOG_PRODUCTS } from '@/data/katalogProducts';
 import { TestimoniSection } from '@/components/TestimoniSection';
 import { TestimoniRelated } from '@/components/TestimoniRelated';
 import { AIPreviewPanel } from '@/components/AIPreviewPanel';
+import { useKeluhanFilter } from '@/hooks/useKeluhanFilter';
 
 const COMPLAINT_OPTIONS = [
     "😴 Susah Tidur", "🦴 Nyeri Sendi", "😷 Imun Lemah", "👁️ Mata Lelah",
@@ -18,7 +19,7 @@ export default function KatalogProdukPage() {
     const [activeCategory, setActiveCategory] = useState('all');
     const storeSlug = searchParams.get('toko') || searchParams.get('ref') || '';
 
-    const [selectedComplaints, setSelectedComplaints] = useState<string[]>([]);
+    const { selectedKeluhan, setSelectedKeluhan } = useKeluhanFilter();
     const [complaintText, setComplaintText] = useState('');
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -67,12 +68,12 @@ export default function KatalogProdukPage() {
     }, []);
 
     const toggleComplaint = (complaint: string) => {
-        const isSelected = selectedComplaints.includes(complaint);
+        const isSelected = selectedKeluhan.includes(complaint);
         const next = isSelected
-            ? selectedComplaints.filter(c => c !== complaint)
-            : [...selectedComplaints, complaint];
+            ? selectedKeluhan.filter(c => c !== complaint)
+            : [...selectedKeluhan, complaint];
 
-        setSelectedComplaints(next);
+        setSelectedKeluhan(next);
 
         // Sinkronisasi ke textarea:
         // 1. Ambil bagian manual dari teks saat ini (yang bukan bagian dari pilihan badge)
@@ -88,12 +89,12 @@ export default function KatalogProdukPage() {
         setComplaintText(val);
         // Sinkronisasi balik ke badge: nyalakan badge jika teks mengandung string pilihannya
         const activeFromText = COMPLAINT_OPTIONS.filter(opt => val.includes(opt));
-        setSelectedComplaints(activeFromText);
+        setSelectedKeluhan(activeFromText);
     };
 
     const handleAnalyze = async (e: React.MouseEvent) => {
         e.preventDefault();
-        const hasChips = selectedComplaints && selectedComplaints.length > 0;
+        const hasChips = selectedKeluhan && selectedKeluhan.length > 0;
         const hasText = complaintText && complaintText.trim().length > 0;
 
         if (!hasChips && !hasText) return;
@@ -102,7 +103,7 @@ export default function KatalogProdukPage() {
         setAiResult(null);
 
         try {
-            const result = await generateAIAdvice(selectedComplaints, complaintText);
+            const result = await generateAIAdvice(selectedKeluhan, complaintText);
             setAiResult(result);
         } catch (err) {
             console.error('[handleAnalyze] Unexpected error:', err);
@@ -129,7 +130,7 @@ export default function KatalogProdukPage() {
         if (storeSlug) {
             return `/toko/${storeSlug}`;
         }
-        const summary = `Halo kak, saya mau konsultasi. Keluhan saya: ${selectedComplaints.join(', ')}. ${complaintText ? 'Detail: ' + complaintText : ''}`;
+        const summary = `Halo kak, saya mau konsultasi. Keluhan saya: ${selectedKeluhan.join(', ')}. ${complaintText ? 'Detail: ' + complaintText : ''}`;
         const finalMessage = waText || summary;
         return `https://wa.me/6287782697973?text=${encodeURIComponent(finalMessage)}`;
     };
@@ -236,12 +237,12 @@ export default function KatalogProdukPage() {
                                 className={[
                                     'px-4 py-2 rounded-full text-sm font-medium',
                                     'border transition-all duration-200 select-none',
-                                    selectedComplaints.includes(c)
+                                    selectedKeluhan.includes(c)
                                         ? 'bg-[#3D7A4F] text-white border-[#3D7A4F] shadow-md shadow-green-200/50 scale-105'
                                         : 'bg-white text-gray-700 border-gray-200 hover:border-[#3D7A4F] hover:text-[#3D7A4F] hover:shadow-sm'
                                 ].join(' ')}
                                 onClick={() => toggleComplaint(c)}
-                                aria-pressed={selectedComplaints.includes(c)}
+                                aria-pressed={selectedKeluhan.includes(c)}
                             >
                                 {c}
                             </button>
@@ -258,10 +259,10 @@ export default function KatalogProdukPage() {
 
                     <button
                         onClick={handleAnalyze}
-                        disabled={isAnalyzing || (selectedComplaints.length === 0 && !complaintText.trim())}
+                        disabled={isAnalyzing || (selectedKeluhan.length === 0 && !complaintText.trim())}
                         className={[
                             'w-full py-4 rounded-2xl font-bold text-base transition-all duration-300 relative overflow-hidden flex items-center justify-center gap-2 group/btn',
-                            selectedComplaints.length === 0 && !complaintText.trim()
+                            selectedKeluhan.length === 0 && !complaintText.trim()
                                 ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                                 : isAnalyzing
                                     ? 'bg-[#3D7A4F] text-white cursor-wait'
@@ -269,7 +270,7 @@ export default function KatalogProdukPage() {
                         ].join(' ')}
                     >
                         {/* Shimmer effect */}
-                        {!isAnalyzing && selectedComplaints.length > 0 && (
+                        {!isAnalyzing && selectedKeluhan.length > 0 && (
                             <div className="absolute inset-0 -skew-x-12 translate-x-[-200%] bg-white/20 w-1/3 group-hover/btn:translate-x-[400%] transition-transform duration-700" />
                         )}
 
@@ -278,7 +279,7 @@ export default function KatalogProdukPage() {
                                 <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                                 <span>Menganalisis...</span>
                             </>
-                        ) : selectedComplaints.length === 0 && !complaintText.trim() ? (
+                        ) : selectedKeluhan.length === 0 && !complaintText.trim() ? (
                             <>
                                 <span>⬆️</span>
                                 <span>Pilih keluhan dulu di atas</span>
@@ -293,8 +294,8 @@ export default function KatalogProdukPage() {
 
                     {!isAnalyzing && (
                         <p className="text-center text-xs text-gray-400 mt-2">
-                            {selectedComplaints.length > 0
-                                ? `${selectedComplaints.length} keluhan dipilih · Klik untuk dapatkan panduan personal`
+                            {selectedKeluhan.length > 0
+                                ? `${selectedKeluhan.length} keluhan dipilih · Klik untuk dapatkan panduan personal`
                                 : 'Pilih minimal 1 keluhan atau ceritakan kondisimu'}
                         </p>
                     )}
@@ -303,10 +304,11 @@ export default function KatalogProdukPage() {
                 {/*  RIGHT: RESULT  */}
                 <div className="ai-hero-right" ref={resultContainerRef}>
                     <AIPreviewPanel
-                        selectedChips={selectedComplaints}
+                        selectedChips={selectedKeluhan}
                         manualText={complaintText.split(',').map(p => p.trim()).filter(p => p && !COMPLAINT_OPTIONS.includes(p)).join(', ')}
                         isLoading={isAnalyzing}
                         hasResult={!!aiResult}
+                        onKeluhanChange={setSelectedKeluhan}
                     />
 
                     {/*  Result  */}
@@ -364,7 +366,14 @@ export default function KatalogProdukPage() {
                             {/* 5. PRODUCT RECO */}
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '24px' }}>
                                 {aiResult.rekomendasi?.map((prod, idx) => {
-                                    const catalogProduct = KATALOG_PRODUCTS.find(p => p.name.toLowerCase().includes(prod.name.toLowerCase()) || prod.name.toLowerCase().includes(p.name.toLowerCase()));
+                                    const catalogProduct = KATALOG_PRODUCTS.find(p => {
+                                        const pName = p.name.toLowerCase();
+                                        const aiName = prod.name.toLowerCase();
+                                        if (pName.includes(aiName) || aiName.includes(pName)) return true;
+                                        // Case specific handling for Belgie Serum
+                                        if (aiName.includes('belgie') && aiName.includes('serum') && pName.includes('belgie') && pName.includes('serum')) return true;
+                                        return false;
+                                    });
                                     return (
                                         <div key={idx} style={{ border: '1px solid var(--border)', borderRadius: '14px', padding: '14px', display: 'flex', alignItems: 'center', gap: '16px', background: 'white', boxShadow: '0 2px 8px rgba(0,0,0,0.03)' }}>
                                             <div style={{ width: '60px', height: '60px', background: 'var(--green-ultra)', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0 }}>
@@ -377,7 +386,7 @@ export default function KatalogProdukPage() {
                                             <div style={{ flex: 1 }}>
                                                 <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text)' }}>{prod.name}</div>
                                                 <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px', lineHeight: 1.4 }}>{prod.reason}</div>
-                                                <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--green)', marginTop: '4px' }}>{prod.price}</div>
+                                                {/* Price removed as per user request */}
 
                                                 {/* Testimoni Related for this specific product */}
                                                 <TestimoniRelated namaProduk={prod.name} />
@@ -641,7 +650,7 @@ export default function KatalogProdukPage() {
             </section>
 
             {/*  TESTIMONI  */}
-            <TestimoniSection />
+            <TestimoniSection activeKeluhan={selectedKeluhan} />
 
             {/*  CTA  */}
             <section className="cta-section">

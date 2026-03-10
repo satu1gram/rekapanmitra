@@ -42,6 +42,9 @@ Thumbs.db
 # Admin Portal Isolation
 /admin-portal
 
+# Supabase Temp
+supabase/.temp/
+
 # Design Mockups & Prompts
 design-mockups/
 landing.html

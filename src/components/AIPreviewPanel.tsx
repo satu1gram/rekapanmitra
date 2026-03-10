@@ -54,6 +54,7 @@ interface Props {
     manualText?: string;       // teks tambahan dari textarea
     isLoading: boolean;    // sedang loading API call
     hasResult: boolean;    // sudah ada hasil AI
+    onKeluhanChange?: (keluhan: string[]) => void;
 }
 
 // ── Data contoh hasil AI (untuk preview di state default) ────────
@@ -379,7 +380,7 @@ function LoadingState() {
 // ═══════════════════════════════════════════
 // KOMPONEN UTAMA
 // ═══════════════════════════════════════════
-export function AIPreviewPanel({ selectedChips, manualText, isLoading, hasResult }: Props) {
+export function AIPreviewPanel({ selectedChips, manualText, isLoading, hasResult, onKeluhanChange }: Props) {
     // Jika sudah ada hasil, panel ini tidak perlu dirender
     // (hasil ditangani oleh komponen hasil AI yang sudah ada)
     if (hasResult) return null;

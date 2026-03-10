@@ -57,7 +57,37 @@ export function useTestimonials(
             const { data: rows, error: qError } = await query;
 
             if (qError) throw qError;
-            setData((rows as unknown as Testimoni[]) || []);
+
+            const rows_mapped = (rows as any[] || []).map(r => {
+                const content = (r.content || '').toLowerCase();
+                const produk = (r.produk || '').toLowerCase();
+
+                // Simple auto-tagging based on content if tags are missing from DB
+                const tags: string[] = r.tags || [];
+                if (tags.length === 0) {
+                    if (content.includes('tidur') || content.includes('lelap') || content.includes('insomnia')) tags.push('susah_tidur', 'insomnia');
+                    if (content.includes('sendi') || content.includes('lutut') || content.includes('asam urat') || content.includes('rematik') || content.includes('linu') || content.includes('pegal')) tags.push('nyeri_sendi', 'asam_urat', 'rematik');
+                    if (content.includes('imun') || content.includes('daya tahan') || content.includes('sakit') || content.includes('flu') || content.includes('bersin') || content.includes('panas')) tags.push('imun', 'daya_tahan', 'flu');
+                    if (content.includes('mata') || content.includes('rabun') || content.includes('lelah')) tags.push('mata');
+                    if (content.includes('gula') || content.includes('diabetes') || content.includes('manis')) tags.push('gula_darah', 'diabetes');
+                    if (content.includes('makan') || content.includes('lahap') || content.includes('anak')) tags.push('nafsu_makan', 'anak');
+                    if (content.includes('stamina') || content.includes('energi') || content.includes('lemas') || content.includes('capek') || content.includes('letih')) tags.push('stamina', 'energi');
+                    if (content.includes('fokus') || content.includes('konsentrasi') || content.includes('otak') || content.includes('ingatan')) tags.push('fokus', 'konsentrasi');
+                    if (content.includes('kulit') || content.includes('kusam') || content.includes('flek') || content.includes('jerawat') || content.includes('muka')) tags.push('kulit', 'flek');
+                    if (content.includes('rambut') || content.includes('rontok')) tags.push('rambut');
+
+                    // Product based tagging
+                    if (produk.includes('british propolis')) tags.push('imun', 'stamina', 'pemulihan');
+                    if (produk.includes('brassic pro')) tags.push('susah_tidur', 'nyeri_sendi');
+                    if (produk.includes('brassic eye')) tags.push('mata');
+                    if (produk.includes('belgie')) tags.push('kulit', 'flek');
+                    if (produk.includes('steffi')) tags.push('gula_darah', 'diabetes');
+                }
+
+                return { ...r, tags };
+            });
+
+            setData(rows_mapped as Testimoni[]);
         } catch (err: unknown) {
             const msg = err instanceof Error ? err.message : 'Gagal memuat testimoni';
             setError(msg);

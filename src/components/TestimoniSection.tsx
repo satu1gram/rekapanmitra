@@ -1,10 +1,11 @@
 // src/components/TestimoniSection.tsx
 
-import { useRef } from 'react';
+import { useRef, useEffect, useState } from 'react';
 import { useTestimonials } from '@/hooks/useTestimonials';
 import { useCarousel } from '@/hooks/useCarousel';
 import { useSwipe } from '@/hooks/useSwipe';
 import { TestimoniCard } from '@/components/TestimoniCard';
+import { KELUHAN_TAG_MAP } from '@/constants/keluhanConstants';
 
 // ── Skeleton ───────────────────────────────────────────────────
 function SkeletonCard() {
@@ -99,18 +100,45 @@ function PaginationDots({
 }
 
 // ── Komponen Utama ───────────────────────────────────────────────
-export function TestimoniSection() {
-    const { data, loading, error, refetch } = useTestimonials({ limit: 12 });
+export function TestimoniSection({ activeKeluhan = [] }: { activeKeluhan?: string[] }) {
+    const { data: allTestimoni, loading, error, refetch } = useTestimonials({ limit: 12 });
+    const [opacity, setOpacity] = useState(1);
 
     // Responsive: step 1 card per klik
     const VISIBLE_DESKTOP = 3;
 
+    // ── Filter Logic ──
+    const filtered = activeKeluhan.length === 0
+        ? allTestimoni
+        : allTestimoni.filter(t => {
+            const tags = (t as any).tags || [];
+            return tags.some((tag: string) =>
+                activeKeluhan.some(k => {
+                    // Normalisasi: hilangkan emoji (semua karakter non-alfanumerik di awal)
+                    const normalizedKey = k.replace(/^[^a-zA-Z0-9]+\s*/, '');
+                    return KELUHAN_TAG_MAP[normalizedKey]?.includes(tag);
+                })
+            );
+        });
+
+    const displayed = activeKeluhan.length > 0 ? filtered : allTestimoni;
+
     const carousel = useCarousel({
-        total: data.length,
+        total: displayed.length,
         visible: 1,
         autoPlay: false,
         loop: true,
     });
+
+    // Reset carousel and animate on activeKeluhan change
+    useEffect(() => {
+        setOpacity(0);
+        const timer = setTimeout(() => {
+            carousel.goTo(0);
+            setOpacity(1);
+        }, 300);
+        return () => clearTimeout(timer);
+    }, [activeKeluhan]);
 
     const swipe = useSwipe({
         onSwipeLeft: carousel.goNext,
@@ -153,6 +181,19 @@ export function TestimoniSection() {
                     <p className="text-gray-500 mt-3 max-w-xl mx-auto text-sm md:text-base">
                         Cerita nyata dari pengguna setia BP Group — bukan klaim kami 🌿
                     </p>
+
+                    {/* ── Active Filter Badge ── */}
+                    {activeKeluhan.length > 0 && (
+                        <div className="mt-6 flex justify-center animate-in fade-in slide-in-from-top-2 duration-300">
+                            <div className="bg-[#EBF7EF] text-[#3D7A4F] px-4 py-1.5 rounded-full text-sm font-semibold border border-[#D1EADC] flex items-center gap-2">
+                                <span className={`flex h-2 w-2 rounded-full ${filtered.length > 0 ? 'bg-[#3D7A4F]' : 'bg-amber-400'}`} />
+                                {filtered.length > 0
+                                    ? `Menampilkan testimoni: ${activeKeluhan.join(' & ')}`
+                                    : `Belum ada testimoni khusus untuk: ${activeKeluhan.join(' & ')}`
+                                }
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 {/* ── Error ── */}
@@ -178,8 +219,8 @@ export function TestimoniSection() {
                 )}
 
                 {/* ── Carousel ── */}
-                {!loading && !error && data.length > 0 && (
-                    <>
+                {!loading && !error && displayed.length > 0 && (
+                    <div style={{ opacity, transition: 'opacity 300ms ease-in-out' }}>
                         <div className="flex items-center gap-2 md:gap-4">
 
                             {/* Tombol Prev */}
@@ -204,7 +245,7 @@ export function TestimoniSection() {
                                     style={{ transform: getTranslate(), willChange: 'transform' }}
                                     aria-live="polite"
                                 >
-                                    {data.map((t, i) => (
+                                    {displayed.map((t, i) => (
                                         <div
                                             key={t.id}
                                             className="w-1/3 flex-shrink-0 px-5 flex items-stretch"
@@ -224,7 +265,7 @@ export function TestimoniSection() {
                                     style={{ transform: getMobileTranslate(), willChange: 'transform' }}
                                     aria-live="polite"
                                 >
-                                    {data.map((t, i) => (
+                                    {displayed.map((t, i) => (
                                         <div
                                             key={t.id}
                                             className="w-full flex-shrink-0 px-3 flex items-stretch"
@@ -248,20 +289,20 @@ export function TestimoniSection() {
 
                         {/* Pagination dots */}
                         <PaginationDots
-                            total={data.length}
+                            total={displayed.length}
                             current={carousel.currentIndex}
                             onDotClick={i => carousel.goTo(i)}
                         />
 
                         {/* Counter mobile only */}
                         <p className="text-center text-xs text-gray-400 mt-4 sm:hidden">
-                            {carousel.currentIndex + 1} dari {data.length} testimoni
+                            {carousel.currentIndex + 1} dari {displayed.length} testimoni
                         </p>
-                    </>
+                    </div>
                 )}
 
                 {/* ── Empty state ── */}
-                {!loading && !error && data.length === 0 && (
+                {!loading && !error && displayed.length === 0 && (
                     <div className="text-center py-12">
                         <p className="text-5xl mb-3">🌱</p>
                         <p className="text-gray-400 text-sm">Testimoni segera hadir</p>
