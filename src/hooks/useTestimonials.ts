@@ -4,6 +4,28 @@ import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import type { Testimoni } from '@/types/testimoni';
 
+// Fisher-Yates shuffle algorithm untuk randomisasi
+function shuffleArray<T>(array: T[]): T[] {
+    const shuffled = [...array];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
+}
+
+// Enhanced shuffle: featured testimonials tetap di awal, non-featured di-shuffle
+function shuffleTestimonials(testimonials: Testimoni[]): Testimoni[] {
+    const featured = testimonials.filter(t => t.is_featured);
+    const regular = testimonials.filter(t => !t.is_featured);
+    
+    // Shuffle hanya regular testimonials
+    const shuffledRegular = shuffleArray(regular);
+    
+    // Featured tetap di awal, regular di-shuffle di belakang
+    return [...featured, ...shuffledRegular];
+}
+
 const COLUMNS = [
     'id',
     'content',
@@ -43,7 +65,7 @@ export function useTestimonials(
 
         try {
             let query = supabase
-                .from('telegram_messages' as any) // Use 'as any' if types are not yet updated
+                .from('telegram_messages' as any)
                 .select(COLUMNS)
                 .eq('is_testimoni', true)
                 .eq('status', 'approved')
@@ -62,7 +84,7 @@ export function useTestimonials(
                 const content = (r.content || '').toLowerCase();
                 const produk = (r.produk || '').toLowerCase();
 
-                // Simple auto-tagging based on content if tags are missing from DB
+                // Auto-tagging based on content and product
                 const tags: string[] = r.tags || [];
                 if (tags.length === 0) {
                     if (content.includes('tidur') || content.includes('lelap') || content.includes('insomnia')) tags.push('susah_tidur', 'insomnia');
@@ -77,9 +99,9 @@ export function useTestimonials(
                     if (content.includes('rambut') || content.includes('rontok')) tags.push('rambut');
 
                     // Product based tagging
-                    if (produk.includes('british propolis')) tags.push('imun', 'stamina', 'pemulihan');
-                    if (produk.includes('brassic pro')) tags.push('susah_tidur', 'nyeri_sendi');
-                    if (produk.includes('brassic eye')) tags.push('mata');
+                    if (produk.includes('british propolis') || produk.includes('bp')) tags.push('imun', 'stamina', 'pemulihan');
+                    if (produk.includes('brassic pro') || produk.includes('bro')) tags.push('susah_tidur', 'nyeri_sendi');
+                    if (produk.includes('brassic eye') || produk.includes('bre')) tags.push('mata');
                     if (produk.includes('belgie')) tags.push('kulit', 'flek');
                     if (produk.includes('steffi')) tags.push('gula_darah', 'diabetes');
                 }
@@ -87,7 +109,12 @@ export function useTestimonials(
                 return { ...r, tags };
             });
 
-            setData(rows_mapped as Testimoni[]);
+            // Apply enhanced shuffle untuk randomisasi setiap fetch
+            const shuffledData = shuffleTestimonials(rows_mapped as Testimoni[]);
+            console.log('[useTestimonials] 🎲 Shuffled testimonials:', shuffledData.length, 'items');
+            console.log('[useTestimonials] ⭐ Featured count:', shuffledData.filter(t => t.is_featured).length);
+            console.log('[useTestimonials] 🔄 First 3 IDs after shuffle:', shuffledData.slice(0, 3).map(t => t.id));
+            setData(shuffledData);
         } catch (err: unknown) {
             const msg = err instanceof Error ? err.message : 'Gagal memuat testimoni';
             setError(msg);
