@@ -27,6 +27,7 @@ import { LoadingScreen } from '@/components/ui/LoadingScreen';
 import { toast } from 'sonner';
 import type { Tables } from '@/integrations/supabase/types';
 import { OrderForm } from './OrderForm';
+import { TambahOrderFlow } from '../order/TambahOrderFlow';
 import { OrderCard } from './OrderCard';
 import { PerformaPage } from './PerformaPage';
 import { OrderResultPage, OrderResult } from './OrderResultPage';
@@ -253,7 +254,7 @@ export function OrdersPage({ openAddForm = false, onAddFormClose }: OrdersPagePr
 
   if (showAddModal) {
     return (
-      <OrderForm
+      <TambahOrderFlow
         customers={customers}
         currentStock={currentStock}
         submitting={submitting}

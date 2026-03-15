@@ -13,6 +13,7 @@ import { LoadingScreen } from "@/components/ui/LoadingScreen";
 // Lazy-load each page → hemat data (code-splitting otomatis via Vite)
 const LandingPage = lazy(() => import("./pages/LandingPage"));
 const KatalogProdukPage = lazy(() => import("./pages/KatalogProdukPage"));
+const AIHealthAdvisorPage = lazy(() => import("./pages/AIHealthAdvisorPage"));
 const DashboardPage = lazy(() => import("./pages/DashboardPage"));
 const RiwayatPage = lazy(() => import("./pages/RiwayatPage"));
 const ProdukPage = lazy(() => import("./pages/ProdukPage"));
@@ -70,6 +71,11 @@ const App = () => (
             {/* Katalog public page */}
             <Route path="/katalog" element={
               <Suspense fallback={<PageLoader variant="katalog" />}><KatalogProdukPage /></Suspense>
+            } />
+
+            {/* AI Health Advisor page */}
+            <Route path="/ai-advisor" element={
+              <Suspense fallback={<PageLoader variant="katalog" />}><AIHealthAdvisorPage /></Suspense>
             } />
 
             {/* Auth route — tidak perlu shell */}

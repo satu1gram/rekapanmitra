@@ -121,7 +121,7 @@ export function OrderCard({
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1 min-w-0">
             <p className="font-bold text-slate-900 text-base leading-tight truncate">{order.customer_name}</p>
-            <p className="text-slate-500 text-sm mt-0.5">{order.customer_phone}</p>
+            <p className="text-slate-500 text-sm mt-0.5">{order.customer_phone || 'Tanpa Nomor'}</p>
           </div>
           <div className="flex items-center gap-2 shrink-0">
             <span className={cn('text-xs font-bold px-2.5 py-1 rounded-full', STATUS_STYLE[order.status] || STATUS_STYLE.pending)}>

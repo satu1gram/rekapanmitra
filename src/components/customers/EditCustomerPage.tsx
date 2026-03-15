@@ -39,9 +39,13 @@ export function EditCustomerPage({ customer, onBack, onSaved }: EditCustomerPage
   const [provinceName, setProvinceName] = useState('');
   const [city, setCity] = useState(customer.city || '');
 
-  const [status, setStatus] = useState<Status>(isMitraTier(customer.tier) ? 'mitra' : 'konsumen');
+  const [status, setStatus] = useState<Status>(customer.tier && isMitraTier(customer.tier) ? 'mitra' : 'konsumen');
   const [tier, setTier] = useState<TierType>(customer.tier as TierType || 'satuan');
-  const [createdAt, setCreatedAt] = useState(customer.created_at.split('T')[0]); // YYYY-MM-DD for input type="date"
+  const [createdAt, setCreatedAt] = useState(
+    customer.created_at 
+      ? customer.created_at.split('T')[0] 
+      : new Date().toISOString().split('T')[0]
+  ); // YYYY-MM-DD for input type="date"
   const [saving, setSaving] = useState(false);
 
   const { provinces, loadingProvinces, cities, loadingCities, fetchCities, setCities } = useIndonesianRegions();
@@ -65,35 +69,49 @@ export function EditCustomerPage({ customer, onBack, onSaved }: EditCustomerPage
   }, [provinces, province]);
 
   const handleSave = async () => {
-    if (!name.trim() || !phone.trim()) {
-      toast.error('Nama dan nomor WhatsApp wajib diisi');
+    if (!name.trim()) {
+      toast.error('Nama pelanggan wajib diisi');
       return;
     }
     if (!user) return;
 
+    const isNew = !customer.id;
     const finalTier: TierType = status === 'konsumen' ? 'satuan' : tier;
 
     setSaving(true);
     try {
-      const { data, error } = await supabase
-        .from('customers')
-        .update({
-          name: name.trim(),
-          phone: phone.trim(),
-          address: address.trim() || null,
-          province: province || null,
-          city: city || null,
-          tier: finalTier,
-          created_at: new Date(createdAt).toISOString(),
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', customer.id)
-        .select()
-        .single();
+      const payload: any = {
+        user_id: user.id,
+        name: name.trim(),
+        phone: phone.trim() || null,
+        address: address.trim() || null,
+        province: province || null,
+        city: city || null,
+        tier: finalTier,
+        created_at: new Date(createdAt).toISOString(),
+        updated_at: new Date().toISOString(),
+      };
 
-      if (error) throw error;
-      toast.success('Data pelanggan berhasil diperbarui');
-      onSaved(data);
+      let query = supabase.from('customers');
+      
+      if (isNew) {
+        const { data, error } = await query
+          .insert(payload)
+          .select()
+          .single();
+        if (error) throw error;
+        toast.success('Pelanggan berhasil ditambahkan');
+        onSaved(data);
+      } else {
+        const { data, error } = await query
+          .update(payload)
+          .eq('id', customer.id)
+          .select()
+          .single();
+        if (error) throw error;
+        toast.success('Data pelanggan berhasil diperbarui');
+        onSaved(data);
+      }
     } catch (err: any) {
       toast.error('Gagal memperbarui: ' + (err.message || 'Terjadi kesalahan'));
     } finally {
@@ -113,8 +131,12 @@ export function EditCustomerPage({ customer, onBack, onSaved }: EditCustomerPage
             <ArrowLeft className="h-5 w-5" />
           </button>
           <div>
-            <h1 className="text-xl font-extrabold text-foreground tracking-tight">Ubah Pelanggan</h1>
-            <p className="text-sm text-muted-foreground font-medium mt-0.5">Edit data & level mitra</p>
+            <h1 className="text-xl font-extrabold text-foreground tracking-tight">
+              {!customer.id ? 'Tambah Pelanggan' : 'Ubah Pelanggan'}
+            </h1>
+            <p className="text-sm text-muted-foreground font-medium mt-0.5">
+              {!customer.id ? 'Input data pelanggan baru' : 'Edit data & level mitra'}
+            </p>
           </div>
         </div>
         <button
@@ -149,7 +171,7 @@ export function EditCustomerPage({ customer, onBack, onSaved }: EditCustomerPage
 
           {/* Phone */}
           <div>
-            <label className="block text-sm font-bold text-foreground mb-2">No. WhatsApp</label>
+            <label className="block text-sm font-bold text-foreground mb-2">No. WhatsApp (Opsional)</label>
             <div className="flex items-center gap-2 bg-muted/30 rounded-xl p-3 border border-border">
               <Phone className="h-4 w-4 text-muted-foreground shrink-0" />
               <input

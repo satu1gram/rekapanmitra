@@ -54,8 +54,10 @@ export function useCustomers() {
   }) => {
     if (!user) throw new Error('User not authenticated');
 
-    // Check if customer exists
-    const existing = customers.find(c => c.phone === orderData.customerPhone);
+    // Check if customer exists (only if phone is provided)
+    const existing = orderData.customerPhone 
+      ? customers.find(c => c.phone === orderData.customerPhone)
+      : null;
 
     if (existing) {
       const newTier = getUpgradedTier(existing.tier as TierType, orderData.tier);
@@ -81,7 +83,7 @@ export function useCustomers() {
         .insert({
           user_id: user.id,
           name: orderData.customerName,
-          phone: orderData.customerPhone,
+          phone: orderData.customerPhone || null,
           address: orderData.customerAddress || null,
           province: orderData.province || null,
           city: orderData.city || null,
@@ -102,7 +104,7 @@ export function useCustomers() {
     return customers.find(c => c.phone === phone);
   };
 
-  const updateCustomer = async (id: string, updates: { name?: string; phone?: string; address?: string | null; created_at?: string }) => {
+  const updateCustomer = async (id: string, updates: { name?: string; phone?: string | null; address?: string | null; created_at?: string }) => {
     if (!user) throw new Error('User not authenticated');
     const { error } = await supabase
       .from('customers')

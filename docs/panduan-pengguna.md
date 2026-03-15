@@ -158,6 +158,16 @@ Buka menu **Akun** untuk:
 
 ---
 
+### 📊 Monitoring Penjualan (Khusus Admin)
+
+Jika Anda adalah pengelola (Admin), Anda memiliki akses ke menu **Monitoring** untuk memantau performa seluruh mitra:
+1.  Buka menu **Monitoring**.
+2.  Lihat **Total PCS** yang telah terjual oleh masing-masing mitra.
+3.  Pantau total omzet dan kapan terakhir kali mitra tersebut aktif melakukan transaksi.
+4.  Gunakan filter **Bulan Ini** atau **Minggu Ini** untuk melihat tren performa terkini.
+
+---
+
 ---
 
 ### 🧬 AI Health Advisor (Konsultasi Kesehatan)
