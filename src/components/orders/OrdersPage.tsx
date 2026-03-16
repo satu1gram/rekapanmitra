@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -68,6 +68,13 @@ export function OrdersPage({ openAddForm = false, onAddFormClose }: OrdersPagePr
   const [pickerYear, setPickerYear] = useState(now.getFullYear());
   const [expandedDays, setExpandedDays] = useState<Set<string>>(new Set());
   const [showAddModal, setShowAddModal] = useState(openAddForm);
+  
+  // Sync internal state with prop for external triggers (e.g. BottomNav)
+  useEffect(() => {
+    if (openAddForm) {
+      setShowAddModal(true);
+    }
+  }, [openAddForm]);
   const [submitting, setSubmitting] = useState(false);
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
   const [editingOrder, setEditingOrder] = useState<Order | null>(null);
@@ -92,7 +99,7 @@ export function OrdersPage({ openAddForm = false, onAddFormClose }: OrdersPagePr
     fetchOrderItems,
   } = useOrders();
   const { currentStock, reduceStock } = useStock();
-  const { customers, addOrUpdateCustomer } = useCustomers();
+  const { customers, addOrUpdateCustomer, refetch: refetchCustomers } = useCustomers();
   const { mitraLevel } = useProfile();
   const { getTotalExpenses, getExpensesByDateRange } = useGeneralExpenses();
   const { getTotalIncome, getIncomeByDateRange } = useGeneralIncome();
@@ -246,7 +253,13 @@ export function OrdersPage({ openAddForm = false, onAddFormClose }: OrdersPagePr
         <EditCustomerPage
           customer={editingCustomer}
           onBack={() => setEditingCustomer(null)}
-          onSaved={() => { setEditingCustomer(null); }}
+          onSaved={async (data) => {
+            await refetchCustomers();
+            setEditingCustomer(null);
+            if (!editingCustomer.id) {
+              (window as any)._lastAddedCustomerId = data.id;
+            }
+          }}
         />
       </div>
     );
@@ -259,8 +272,13 @@ export function OrdersPage({ openAddForm = false, onAddFormClose }: OrdersPagePr
         currentStock={currentStock}
         submitting={submitting}
         onSubmit={handleSubmit}
-        onCancel={() => setShowAddModal(false)}
+        onCancel={() => {
+          setShowAddModal(false);
+          (window as any)._lastAddedCustomerId = null;
+        }}
         onEditCustomer={(c) => { setEditingCustomer(c); }}
+        initialSelectedCustomerId={(window as any)._lastAddedCustomerId}
+        onRefetchCustomers={refetchCustomers}
       />
     );
   }

@@ -32,8 +32,8 @@ function isMitraTier(tier: string): boolean {
 
 export function EditCustomerPage({ customer, onBack, onSaved }: EditCustomerPageProps) {
   const { user } = useAuth();
-  const [name, setName] = useState(customer.name);
-  const [phone, setPhone] = useState(customer.phone);
+  const [name, setName] = useState(customer.name || '');
+  const [phone, setPhone] = useState(customer.phone || '');
   const [address, setAddress] = useState(customer.address || '');
   const [province, setProvince] = useState(customer.province || '');
   const [provinceName, setProvinceName] = useState('');
@@ -82,9 +82,9 @@ export function EditCustomerPage({ customer, onBack, onSaved }: EditCustomerPage
     try {
       const payload: any = {
         user_id: user.id,
-        name: name.trim(),
-        phone: phone.trim() || null,
-        address: address.trim() || null,
+        name: name?.trim() || '',
+        phone: phone?.trim() || null,
+        address: address?.trim() || null,
         province: province || null,
         city: city || null,
         tier: finalTier,

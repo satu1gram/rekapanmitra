@@ -10,6 +10,7 @@ interface Profile {
   phone: string | null;
   location: string | null;
   mitra_level: MitraLevel;
+  onboarding_completed: boolean | null;
   created_at: string;
   updated_at: string;
 }
@@ -26,6 +27,7 @@ export function useProfile() {
       return;
     }
 
+    setLoading(true);
     const { data, error } = await supabase
       .from('profiles')
       .select('*')

@@ -20,6 +20,8 @@ interface TambahOrderFlowProps {
   onSubmit: (data: any) => void;
   onCancel: () => void;
   onEditCustomer?: (customer: Customer) => void;
+  initialSelectedCustomerId?: string | null;
+  onRefetchCustomers?: () => Promise<void>;
 }
 
 export function TambahOrderFlow({
@@ -28,7 +30,9 @@ export function TambahOrderFlow({
   submitting,
   onSubmit,
   onCancel,
-  onEditCustomer
+  onEditCustomer,
+  initialSelectedCustomerId,
+  onRefetchCustomers
 }: TambahOrderFlowProps) {
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
@@ -38,37 +42,77 @@ export function TambahOrderFlow({
 
   const { products } = useProducts();
   const { mitraLevel } = useProfile();
+  
+  // Group products by category
+  const productCategories = useMemo(() => {
+    const categories: Record<string, Product[]> = {};
+    for (const p of products) {
+      if (!p.category) continue;
+      if (!categories[p.category]) categories[p.category] = [];
+      categories[p.category].push(p);
+    }
+    // Sort by package size descending so we can find the highest applicable tier
+    for (const cat of Object.keys(categories)) {
+      categories[cat].sort((a, b) => b.quantity_per_package - a.quantity_per_package);
+    }
+    return categories;
+  }, [products]);
 
-  // Mapped Data
+  // Derived cart items with tiered pricing logic
   const cartItems = useMemo(() => {
+    const totalSelectedQty = Object.values(cart).reduce((sum, q) => sum + q, 0);
+    
     return Object.entries(cart)
       .filter(([_, qty]) => qty > 0)
-      .map(([id, qty]) => {
-        const product = products.find(p => p.id === id);
-        return product ? { product, quantity: qty } : null;
+      .map(([categoryName, qty]) => {
+        const tiers = productCategories[categoryName] || [];
+        
+        // Find applicable tier based on TOTAL quantity across all categories
+        let applicableTier = tiers[tiers.length - 1]; // Default to smallest tier
+        for (const tier of tiers) {
+          if (totalSelectedQty >= tier.quantity_per_package) {
+            applicableTier = tier;
+            break;
+          }
+        }
+
+        if (!applicableTier) return null;
+
+        return {
+          product: applicableTier,
+          quantity: qty,
+          pricePerBottle: applicableTier.default_sell_price / (applicableTier.quantity_per_package || 1),
+          subtotal: qty * (applicableTier.default_sell_price / (applicableTier.quantity_per_package || 1))
+        };
       })
-      .filter((item): item is { product: Product; quantity: number } => item !== null);
-  }, [cart, products]);
+      .filter((item): item is { product: Product; quantity: number; pricePerBottle: number; subtotal: number } => item !== null);
+  }, [cart, productCategories]);
 
   const totalQty = useMemo(() => cartItems.reduce((acc, item) => acc + item.quantity, 0), [cartItems]);
-  const totalHarga = useMemo(() => cartItems.reduce((acc, item) => acc + (item.product.default_sell_price * item.quantity), 0), [cartItems]);
+  const totalHarga = useMemo(() => cartItems.reduce((acc, item) => acc + item.subtotal, 0), [cartItems]);
   const totalProfit = useMemo(() => {
-    // In this app, profit is margin = total_price - total_buy
-    // We'll use a placeholder or better: pass the profit calculation from the parent or use a default margin per bottle
-    const marginPerBottle = 70000; // Default margin for BP as fallback
+    // Standard margin logic: total_sell - total_buy
+    // Since we don't have explicit buy price in master_products yet, 
+    // we use a simplified estimation or specific margins if known.
+    // For now, let's keep it simple or use a default margin.
+    const marginPerBottle = 70000; 
     return cartItems.reduce((acc, item) => acc + (marginPerBottle * item.quantity), 0);
   }, [cartItems]);
 
   // Handlers
   const handleNext = () => {
-    if (step === 1 && selectedCustomer) setStep(2);
-    else if (step === 2 && totalQty > 0) setStep(3);
-    else if (step === 3) handleFinalSubmit();
+    if (step === 1) {
+      if (totalQty === 0) return;
+      setStep(2);
+    } else if (step === 2) {
+      if (!selectedCustomer) return;
+      setStep(3);
+    } else if (step === 3) handleFinalSubmit();
   };
 
   const handleBack = () => {
-    if (step === 2) setStep(1);
-    else if (step === 3) setStep(2);
+    if (step === 1) onCancel();
+    else setStep((prev) => (prev - 1) as any);
   };
 
   const handleChangeQty = (id: string, delta: number) => {
@@ -98,10 +142,10 @@ export function TambahOrderFlow({
       tier: selectedCustomer.tier || 'satuan',
       items: cartItems.map(item => ({
         productId: item.product.id,
-        productName: item.product.name,
+        productName: item.product.category, // Use category name for clarity in invoice
         quantity: item.quantity,
-        pricePerBottle: item.product.default_sell_price,
-        subtotal: item.product.default_sell_price * item.quantity
+        pricePerBottle: item.pricePerBottle,
+        subtotal: item.subtotal
       })),
       customerId: selectedCustomer.id,
       createdAt: new Date(orderDate).toISOString()
@@ -170,27 +214,26 @@ export function TambahOrderFlow({
         <StepIndicator currentStep={step} />
       </header>
 
-      <main className="flex-1 overflow-y-auto py-6">
+      <main className="flex-1 overflow-y-auto pt-6 pb-20">
         {step === 1 && (
+          <PilihProduk
+            productCategories={productCategories}
+            cart={cart}
+            onChangeQty={handleChangeQty}
+            onToggleCustomerMode={() => setStep(2)}
+            cartItems={cartItems}
+            totalHarga={totalHarga}
+            totalProfit={totalProfit}
+            totalQty={totalQty}
+          />
+        )}
+
+        {step === 2 && (
           <PilihPelanggan
             customers={customers}
             selectedCustomerId={selectedCustomer?.id || null}
             onSelect={(c) => setSelectedCustomer(c)}
             onAddNew={() => onEditCustomer?.({} as any)}
-          />
-        )}
-        
-        {step === 2 && selectedCustomer && (
-          <PilihProduk
-            selectedCustomer={selectedCustomer}
-            products={products}
-            cart={cart}
-            onChangeQty={handleChangeQty}
-            onDeleteProduct={handleDeleteProduct}
-            onToggleCustomerMode={() => setStep(1)}
-            totalHarga={totalHarga}
-            totalProfit={totalProfit}
-            totalQty={totalQty}
           />
         )}
 
@@ -206,14 +249,15 @@ export function TambahOrderFlow({
       </main>
 
       <BottomActionBar
-        onBack={step > 1 ? handleBack : undefined}
-        onNext={handleNext}
-        disabled={(step === 1 && !selectedCustomer) || (step === 2 && totalQty === 0) || submitting}
-        nextLabel={step === 3 ? 'Simpan Order' : 'Lanjut'}
-        nextIcon={submitting ? <ShoppingCart className="w-4 h-4 animate-bounce" /> : <ArrowRight className="w-4 h-4" />}
-        leftContent={step === 2 ? (
+        onBack={handleBack}
+        onNext={step === 3 ? handleFinalSubmit : handleNext}
+        nextLabel={step === 3 ? 'Kirim Pesanan' : 'Lanjutkan'}
+        disabled={step === 1 ? totalQty === 0 : step === 2 ? !selectedCustomer : false}
+        leftContent={step >= 1 && totalQty > 0 ? (
           <div className="flex flex-col">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Total Harga</span>
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">
+              {step === 1 ? 'Estimasi Total' : 'Total Pesanan'}
+            </span>
             <div className="flex items-center gap-2">
               <span className="text-[18px] font-black text-[#1E293B]">{formatCurrency(totalHarga)}</span>
               {totalProfit > 0 && (

@@ -35,17 +35,22 @@ export function useOnboarding() {
     const [saving, setSaving] = useState(false);
 
     useEffect(() => {
+        // Wait for profile loading to finish before making decisions
         if (profileLoading) return;
+
         if (!user) {
             setIsComplete(true); // not logged in — don't show wizard
             return;
         }
+
+        // If loading is done and profile is still null, it means no profile record exists
         if (profile === null) {
-            // Profile exists but returned null — new user, no record yet
-            setIsComplete(false);
+            setIsComplete(false); 
             return;
         }
-        setIsComplete((profile as any).onboarding_completed === true);
+
+        // Explicitly check the flag
+        setIsComplete(!!(profile as any).onboarding_completed);
     }, [user, profile, profileLoading]);
 
     const completeOnboarding = useCallback(async (data: OnboardingData) => {

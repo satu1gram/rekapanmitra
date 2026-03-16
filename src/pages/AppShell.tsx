@@ -10,6 +10,7 @@ export function AppShell() {
     const location = useLocation();
     const { isOnboardingComplete, isOnboardingLoading } = useOnboarding();
 
+    // Block rendering while loading auth OR onboarding status
     if (loading || isOnboardingLoading) {
         return <LoadingScreen fullScreen />;
     }
