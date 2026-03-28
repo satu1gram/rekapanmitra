@@ -164,6 +164,26 @@ async function setSession(chatId: string, state: string, pendingOrder: PendingOr
   });
 }
 
+// Lookup owner's mitra level dari profiles → untuk hitung buy_price (modal pemilik)
+const OWNER_BUY_PRICES: Record<string, number> = {
+  reseller: 217000,
+  agen:     198000,
+  agen_plus: 180000,
+  sap:      170000,
+  se:       150000,
+};
+
+async function getOwnerBuyPrice(userId: string): Promise<number> {
+  const { data } = await supabase
+    .from("profiles")
+    .select("mitra_level")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  const level = data?.mitra_level || "reseller";
+  return OWNER_BUY_PRICES[level] ?? 217000;
+}
+
 // Lookup customer dari DB berdasarkan phone → dapat type & tier/level mitra
 async function lookupCustomerLevel(
   phone: string,
@@ -467,7 +487,7 @@ async function handleConfirmation(
   );
 }
 
-async function handleOrderMessage(chatId: string, text: string, registration: { slug: string }) {
+async function handleOrderMessage(chatId: string, text: string, registration: { slug: string; user_id: string }) {
   await sendMessage(chatId, "⏳ Sedang memproses pesan...");
 
   let parsed: ParsedOrder | { error: string };
@@ -521,9 +541,10 @@ async function handleOrderMessage(chatId: string, text: string, registration: { 
   const totalQty = itemsWithPrice.reduce((sum, i) => sum + i.quantity, 0);
   const totalPrice = itemsWithPrice.reduce((sum, i) => sum + i.subtotal, 0);
 
-  // buy_price = harga mitra × qty (untuk perhitungan margin di dashboard)
-  const buyPricePerBottle = finalMitraLevel ? MITRA_PRICES[finalMitraLevel] : 0;
-  const buyPrice = buyPricePerBottle * totalQty;
+  // buy_price = modal pemilik toko (bukan harga jual ke customer)
+  // Ambil dari profiles.mitra_level pemilik toko
+  const ownerBuyPrice = await getOwnerBuyPrice(registration.user_id);
+  const buyPrice = ownerBuyPrice * totalQty;
 
   const pendingOrder: PendingOrder = {
     customer_name: parsed.customer_name,
