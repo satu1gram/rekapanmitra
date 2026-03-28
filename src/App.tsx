@@ -9,6 +9,7 @@ import { AuthPage } from "@/components/auth/AuthPage";
 import NotFound from "./pages/NotFound";
 import { lazy, Suspense } from "react";
 import { LoadingScreen } from "@/components/ui/LoadingScreen";
+import { PWAUpdatePrompt } from "@/components/PWAUpdatePrompt";
 
 // Lazy-load each page → hemat data (code-splitting otomatis via Vite)
 const LandingPage = lazy(() => import("./pages/LandingPage"));
@@ -40,6 +41,7 @@ const App = () => (
     <AuthProvider>
       <TooltipProvider>
         <Toaster />
+        <PWAUpdatePrompt />
         <Sonner
           position="top-center"
           duration={4000}
