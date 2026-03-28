@@ -285,19 +285,18 @@ async function matchProductsWithPrice(
   }
   const items = Array.from(itemMap.values());
 
-  // ─ Jika MITRA: pakai harga tetap per level, tidak perlu query DB produk ─
-  if (mitraLevel && mitraLevel in MITRA_PRICES) {
-    const flatPrice = MITRA_PRICES[mitraLevel];
-    return items.map((item) => ({
-      product_id: "",
-      product_name: item.product_name,
-      quantity: item.quantity,
-      price_per_bottle: flatPrice,
-      subtotal: flatPrice * item.quantity,
-    }));
-  }
+  // Map mitra level ke package_type di master_products
+  const MITRA_LEVEL_TO_PACKAGE: Record<MitraLevel, string> = {
+    reseller:  "3_botol",
+    agen:      "5_botol",
+    agen_plus: "10_botol",
+    sap:       "40_botol",
+    se:        "200_botol",
+  };
 
-  // ─ Jika KONSUMEN: pakai quantity-based tier pricing dari master_products ─
+  // Selalu query master_products untuk harga aktual per produk
+  // Mitra: gunakan package_type sesuai level mereka
+  // Konsumen: gunakan package_type sesuai total qty
   const { data: allProducts } = await supabase
     .from("master_products")
     .select("name, category, package_type, quantity_per_package, price")
@@ -305,7 +304,9 @@ async function matchProductsWithPrice(
 
   const products = allProducts || [];
   const totalQty = items.reduce((sum, i) => sum + i.quantity, 0);
-  const applicablePackageType = resolvePackageType(totalQty);
+  const applicablePackageType = mitraLevel
+    ? (MITRA_LEVEL_TO_PACKAGE[mitraLevel] ?? resolvePackageType(totalQty))
+    : resolvePackageType(totalQty);
 
   return items.map((item) => {
     const category = resolveCategory(item.product_name);
