@@ -335,7 +335,7 @@ async function matchProductsWithPrice(
   // Konsumen: gunakan package_type sesuai total qty
   const { data: allProducts } = await supabase
     .from("master_products")
-    .select("name, category, package_type, quantity_per_package, price")
+    .select("id, name, category, package_type, quantity_per_package, price")
     .eq("is_active", true);
 
   const products = allProducts || [];
@@ -360,7 +360,7 @@ async function matchProductsWithPrice(
     const subtotal = Math.round((pkgPrice / pkgQty) * item.quantity);
 
     return {
-      product_id: "",
+      product_id: matched?.id || "",
       product_name: item.product_name,
       quantity: item.quantity,
       price_per_bottle: pricePerBottle,
