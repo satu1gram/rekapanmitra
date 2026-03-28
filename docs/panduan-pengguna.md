@@ -189,6 +189,26 @@ Gunakan fitur AI untuk membantu pelanggan Anda memilih produk yang tepat:
 
 ---
 
+### 🤖 Menggunakan Bot Telegram (Baru!)
+
+Anda sekarang bisa membuat pesanan otomatis hanya dengan meneruskan pesan WhatsApp/Telegram pelanggan ke Bot Telegram kami.
+
+**Cara Setting:**
+1.  Buka menu **Akun** → **Toko Online** → Lihat **Slug** toko Anda (misal: `toko-budi`).
+2.  Buka **Bot Telegram** (hubungi admin untuk link bot).
+3.  Kirim perintah `/daftar toko-budi` untuk menghubungkan bot dengan toko Anda.
+4.  Ketik `/bantuan` untuk melihat panduan lengkap di dalam bot.
+
+**Cara Pakai:**
+1.  **Forward Pesan**: Teruskan pesan order dari pelanggan ke Bot.
+2.  **Ketik Bebas**: Anda juga bisa mengetik langsung, misal: *"pesan 2 bp green, 1 brassic eye an siti 0812345678"*.
+3.  **Konfirmasi**: Bot akan menampilkan ringkasan order dan harga.
+4.  **Ketik "Ya"**: Order akan otomatis masuk ke Dashboard Anda.
+
+> 💡 **Tips**: Pesanan melalui bot akan otomatis menghitung harga grosir (tier) yang paling menguntungkan bagi Anda.
+
+---
+
 ## ❓ Pertanyaan yang Sering Ditanyakan (FAQ)
 
 **Q: Apakah data saya aman?**  

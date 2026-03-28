@@ -1,0 +1,652 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+// ─── Config ───────────────────────────────────────────────────────────────────
+const TELEGRAM_BOT_TOKEN = Deno.env.get("TELEGRAM_BOT_TOKEN")!;
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+const SUPABASE_SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const GROQ_API_KEY = Deno.env.get("GROQ_API_KEY")!;
+
+const TELEGRAM_API = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}`;
+
+const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+
+// Log status env vars saat cold start (tanpa expose nilai aslinya)
+console.log("[startup] TELEGRAM_BOT_TOKEN set:", !!TELEGRAM_BOT_TOKEN);
+console.log("[startup] GROQ_API_KEY set:", !!GROQ_API_KEY, "| prefix:", GROQ_API_KEY?.slice(0, 7));
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+interface ParsedOrder {
+  customer_name: string | null;
+  customer_phone: string | null;
+  items: { product_name: string; quantity: number }[];
+  notes: string | null;
+}
+
+interface OrderItem {
+  product_id: string;
+  product_name: string;
+  quantity: number;
+  price_per_bottle: number;
+  subtotal: number;
+}
+
+interface PendingOrder {
+  customer_name: string | null;
+  customer_phone: string | null;
+  items: OrderItem[];
+  total_price: number;
+  notes: string | null;
+}
+
+// ─── Telegram Helpers ─────────────────────────────────────────────────────────
+async function sendMessage(chatId: string | number, text: string) {
+  if (!TELEGRAM_BOT_TOKEN) {
+    console.error("[sendMessage] TELEGRAM_BOT_TOKEN is not set!");
+    return;
+  }
+  const res = await fetch(`${TELEGRAM_API}/sendMessage`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ chat_id: chatId, text, parse_mode: "HTML" }),
+  });
+  if (!res.ok) {
+    const errBody = await res.text();
+    console.error(`[sendMessage] Telegram API error ${res.status}:`, errBody);
+  }
+}
+
+// ─── AI Parsing ───────────────────────────────────────────────────────────────
+const ORDER_PARSE_PROMPT = `Kamu adalah parser order untuk toko produk kesehatan BP Group.
+Tugasmu: ekstrak informasi order dari pesan pelanggan.
+
+DAFTAR PRODUK (gunakan nama ini persis):
+- British Propolis (reguler, imunitas dewasa)
+- British Propolis Green (untuk anak)
+- British Propolis Blue (untuk wanita)
+- Brassic Pro (insomnia, nyeri sendi)
+- Brassic Eye (kesehatan mata)
+- Belgie Facial Wash (gel pembersih wajah)
+- Belgie Night Cream (krim malam)
+- Belgie Day Cream (krim siang)
+- Belgie Anti Aging Serum (serum wajah)
+- Belgie Hair Tonic (tonik rambut)
+- Steffi Pro (diabetes, pengganti gula)
+- BP Norway (omega 3, otak & jantung)
+
+ATURAN MAPPING NAMA PRODUK:
+- "bp" / "british propolis" / "bp reguler" / "reg" / "bp merah" / "bp dewasa" → British Propolis
+- "bp green" / "bp hijau" / "green" / "bp kids" / "kids" → British Propolis Green
+- "bp blue" / "bp biru" / "blue" → British Propolis Blue
+- "brassic pro" / "brassicpro" / "bro" → Brassic Pro
+- "brassic eye" / "brassiceye" / "bree" → Brassic Eye
+- "fw" / "facial wash" / "sabun muka" → Belgie Facial Wash
+- "nc" / "night cream" / "krim malam" → Belgie Night Cream
+- "dc" / "day cream" / "krim siang" → Belgie Day Cream
+- "serum" / "anti aging serum" → Belgie Anti Aging Serum
+- "ht" / "hair tonic" / "tonik" → Belgie Hair Tonic
+- "steffi" / "steffi pro" → Steffi Pro
+- "norway" / "bp norway" → BP Norway
+
+ATURAN:
+1. customer_phone: format 08xxx atau +62xxx, ambil angka saja
+2. Jika tidak ada nama/HP, isi null
+3. HANYA masukkan produk dengan quantity > 0, abaikan yang 0
+4. notes: hanya catatan khusus (misal "bonus", "kirim sore"), BUKAN info pembayaran/rekening/alamat
+5. Jika pesan BUKAN order produk, kembalikan {"error": "bukan pesan order"}
+
+Kembalikan HANYA JSON valid tanpa markdown atau teks lain:
+{
+  "customer_name": "string atau null",
+  "customer_phone": "string atau null",
+  "items": [
+    {"product_name": "nama produk dari daftar di atas", "quantity": angka}
+  ],
+  "notes": "string atau null"
+}`;
+
+async function parseOrderWithAI(text: string): Promise<ParsedOrder | { error: string }> {
+  const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${GROQ_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "llama-3.1-8b-instant",
+      messages: [
+        { role: "system", content: ORDER_PARSE_PROMPT },
+        { role: "user", content: text },
+      ],
+      temperature: 0.1,
+      max_tokens: 512,
+    }),
+  });
+
+  if (!response.ok) {
+    const errBody = await response.text();
+    console.error(`[groq] error ${response.status}:`, errBody);
+    throw new Error(`AI gateway error: ${response.status}`);
+  }
+
+  const data = await response.json();
+  let rawText = (data?.choices?.[0]?.message?.content || "").trim();
+
+  // Strip markdown fences jika ada
+  if (rawText.startsWith("```")) {
+    rawText = rawText.replace(/^```(?:json)?\n?/, "").replace(/\n?```$/, "");
+  }
+
+  // Fallback: cari JSON object dalam teks jika model menambahkan teks sebelum/sesudah JSON
+  if (!rawText.startsWith("{")) {
+    const match = rawText.match(/\{[\s\S]*\}/);
+    if (match) rawText = match[0];
+  }
+
+  return JSON.parse(rawText);
+}
+
+// ─── DB Helpers ───────────────────────────────────────────────────────────────
+async function getRegistration(chatId: string) {
+  const { data } = await supabase
+    .from("telegram_bot_registrations")
+    .select("slug, store_name, user_id")
+    .eq("chat_id", chatId)
+    .maybeSingle();
+  return data;
+}
+
+async function getSession(chatId: string) {
+  const { data } = await supabase
+    .from("telegram_bot_sessions")
+    .select("state, pending_order")
+    .eq("chat_id", chatId)
+    .maybeSingle();
+  return data;
+}
+
+async function setSession(chatId: string, state: string, pendingOrder: PendingOrder | null = null) {
+  await supabase.from("telegram_bot_sessions").upsert({
+    chat_id: chatId,
+    state,
+    pending_order: pendingOrder,
+    updated_at: new Date().toISOString(),
+  });
+}
+
+// ─── Product Name → DB Category Mapping ──────────────────────────────────────
+const PRODUCT_TO_CATEGORY: Record<string, string> = {
+  "british propolis": "BP",
+  "british propolis green": "KID",
+  "british propolis blue": "BLUE",
+  "brassic pro": "BRO",
+  "brassic eye": "BRE",
+  "belgie facial wash": "BELGIE_FW",
+  "belgie night cream": "BELGIE_NC",
+  "belgie day cream": "BELGIE_DC",
+  "belgie anti aging serum": "BELGIE_SERUM",
+  "belgie hair tonic": "BELGIE_HT",
+  "steffi pro": "STEFFI",
+  "bp norway": "NORWAY",
+};
+
+function resolveCategory(productName: string): string {
+  const lower = productName.toLowerCase().trim();
+  // Direct match
+  for (const [key, cat] of Object.entries(PRODUCT_TO_CATEGORY)) {
+    if (lower === key || lower.includes(key)) return cat;
+  }
+  // Keyword fallback
+  if (lower.includes("green") || lower.includes("kid") || lower.includes("hijau")) return "KID";
+  if (lower.includes("blue") || lower.includes("biru")) return "BLUE";
+  if (lower.includes("norway")) return "NORWAY";
+  if (lower.includes("facial wash") || lower.includes("fw")) return "BELGIE_FW";
+  if (lower.includes("night cream") || lower.includes("nc")) return "BELGIE_NC";
+  if (lower.includes("day cream") || lower.includes("dc")) return "BELGIE_DC";
+  if (lower.includes("serum")) return "BELGIE_SERUM";
+  if (lower.includes("hair tonic") || lower.includes("ht")) return "BELGIE_HT";
+  if (lower.includes("bro") || lower.includes("brassic pro")) return "BRO";
+  if (lower.includes("bre") || lower.includes("brassic eye")) return "BRE";
+  if (lower.includes("belgie")) return "BELGIE_FW"; // Default Belgie
+  if (lower.includes("steffi")) return "STEFFI";
+  return "BP"; // default
+}
+
+// Tier thresholds: total qty >= min → gunakan package_type ini
+const TIER_THRESHOLDS = [
+  { min: 200, package_type: "200_botol" },
+  { min: 40, package_type: "40_botol" },
+  { min: 10, package_type: "10_botol" },
+  { min: 5, package_type: "5_botol" },
+  { min: 3, package_type: "3_botol" },
+  { min: 1, package_type: "satuan" },
+];
+
+function resolvePackageType(totalQty: number): string {
+  for (const tier of TIER_THRESHOLDS) {
+    if (totalQty >= tier.min) return tier.package_type;
+  }
+  return "satuan";
+}
+
+// ─── Product Matching ─────────────────────────────────────────────────────────
+async function matchProductsWithPrice(
+  rawItems: { product_name: string; quantity: number }[]
+): Promise<OrderItem[]> {
+  // Filter qty 0, lalu deduplicate produk yang sama
+  const itemMap = new Map<string, { product_name: string; quantity: number }>();
+  for (const item of rawItems) {
+    if (!item.quantity || item.quantity <= 0) continue; // skip qty 0
+    const key = resolveCategory(item.product_name);
+    if (itemMap.has(key)) {
+      itemMap.get(key)!.quantity += item.quantity;
+    } else {
+      itemMap.set(key, { product_name: item.product_name, quantity: item.quantity });
+    }
+  }
+  const items = Array.from(itemMap.values());
+
+  // Ambil semua master_products (semua tier)
+  const { data: allProducts } = await supabase
+    .from("master_products")
+    .select("name, category, package_type, quantity_per_package, price")
+    .eq("is_active", true);
+
+  const products = allProducts || [];
+
+  // Hitung total qty lintas semua produk (sama seperti logika di app)
+  const totalQty = items.reduce((sum, i) => sum + i.quantity, 0);
+  const applicablePackageType = resolvePackageType(totalQty);
+
+  return items.map((item) => {
+    const category = resolveCategory(item.product_name);
+
+    // Cari produk dengan kategori & package_type yang sesuai
+    const matched = products.find(
+      (p: any) => p.category === category && p.package_type === applicablePackageType
+    ) || products.find(
+      (p: any) => p.category === category && p.package_type === "satuan"
+    );
+
+    const price = matched
+      ? Math.floor(Number(matched.price) / Number(matched.quantity_per_package))
+      : 250000;
+
+    return {
+      product_id: "", // selalu kosong → RPC simpan sebagai NULL, hindari FK violation
+      product_name: item.product_name,
+      quantity: item.quantity,
+      price_per_bottle: price,
+      subtotal: price * item.quantity,
+    };
+  });
+}
+
+// ─── Format currency ──────────────────────────────────────────────────────────
+function formatRp(amount: number): string {
+  return `Rp ${amount.toLocaleString("id-ID")}`;
+}
+
+// ─── Command Handlers ─────────────────────────────────────────────────────────
+async function handleStart(chatId: string, slug: string | undefined) {
+  if (!slug) {
+    await sendMessage(
+      chatId,
+      "Halo! 👋 Saya bot <b>Rekapan Mitra</b>.\n\n" +
+      "Saya membantu kamu membuat order otomatis dari pesan pelanggan.\n\n" +
+      "Untuk mulai, hubungkan bot dengan toko kamu:\n" +
+      "<code>/daftar [slug_toko]</code>\n\n" +
+      "Slug toko bisa dilihat di menu <b>Toko Online</b> di aplikasi Rekapan.\n\n" +
+      "Ketik /bantuan untuk info lebih lanjut."
+    );
+    return;
+  }
+
+  const { data: store } = await supabase
+    .from("store_settings")
+    .select("user_id, store_name, is_active")
+    .eq("slug", slug)
+    .maybeSingle();
+
+  if (!store || !store.is_active) {
+    await sendMessage(
+      chatId,
+      `❌ Toko dengan slug <code>${slug}</code> tidak ditemukan atau tidak aktif.\n\n` +
+      "Pastikan:\n" +
+      "• Slug sudah benar (cek di menu Toko Online)\n" +
+      "• Toko sudah diaktifkan di aplikasi Rekapan"
+    );
+    return;
+  }
+
+  await supabase.from("telegram_bot_registrations").upsert({
+    chat_id: chatId,
+    user_id: store.user_id,
+    slug,
+    store_name: store.store_name,
+    updated_at: new Date().toISOString(),
+  });
+
+  await setSession(chatId, "idle");
+
+  await sendMessage(
+    chatId,
+    `✅ Berhasil terhubung ke toko <b>${store.store_name}</b>!\n\n` +
+    "Cara pakai:\n" +
+    "• Forward atau ketik pesan order dari pelanggan\n" +
+    "• Saya akan parse & minta konfirmasi sebelum order dibuat\n\n" +
+    "Contoh pesan order:\n" +
+    "<i>min order 2 bp green sama 1 brassic eye, a.n Siti Wahyuni 08123456789</i>\n\n" +
+    "Ketik /bantuan untuk lihat panduan lengkap."
+  );
+}
+
+async function handleBantuan(chatId: string) {
+  await sendMessage(
+    chatId,
+    "📋 <b>Panduan Bot Rekapan Mitra</b>\n\n" +
+    "<b>Perintah:</b>\n" +
+    "/daftar [slug] — Hubungkan bot ke toko kamu\n" +
+    "/bantuan — Tampilkan panduan ini\n" +
+    "/batal — Batalkan order yang sedang diproses\n\n" +
+    "<b>Produk yang dikenali:</b>\n" +
+    "• BP / British Propolis\n" +
+    "• BP Green / British Propolis Green\n" +
+    "• BP Blue / British Propolis Blue\n" +
+    "• Brassic Pro\n" +
+    "• Brassic Eye\n" +
+    "• Belgie (skincare)\n" +
+    "• Steffi Pro\n" +
+    "• BP Norway\n\n" +
+    "<b>Contoh format pesan:</b>\n" +
+    "<i>order 2 bp green, 1 brassic eye\n" +
+    "a.n Budi Santoso\n" +
+    "08123456789</i>"
+  );
+}
+
+async function handleConfirmation(
+  chatId: string,
+  text: string,
+  session: { state: string; pending_order: PendingOrder | null },
+  registration: { slug: string; store_name: string }
+) {
+  const pendingOrder = session.pending_order;
+
+  if (text.toLowerCase() === "ya" || text.toLowerCase() === "y") {
+    if (!pendingOrder) {
+      await setSession(chatId, "idle");
+      await sendMessage(chatId, "Tidak ada order yang menunggu konfirmasi.");
+      return;
+    }
+
+    const payload = {
+      slug: registration.slug,
+      customer_name: pendingOrder.customer_name || "Pelanggan",
+      customer_phone: pendingOrder.customer_phone || "-",
+      customer_address: "",
+      items: pendingOrder.items,
+    };
+
+    const { data: result, error } = await (supabase as any).rpc("submit_public_order", {
+      payload,
+    });
+
+    await setSession(chatId, "idle");
+
+    if (error || !result?.success) {
+      await sendMessage(
+        chatId,
+        `❌ Gagal membuat order.\n\nError: ${result?.error || error?.message || "Unknown error"}\n\nCoba lagi atau hubungi admin.`
+      );
+      return;
+    }
+
+    const shortId = result.order_id?.slice(0, 8) ?? "???";
+    const itemLines = pendingOrder.items
+      .map((i) => `• ${i.product_name} x${i.quantity} = ${formatRp(i.subtotal)}`)
+      .join("\n");
+
+    await sendMessage(
+      chatId,
+      `🎉 <b>Order Berhasil Dibuat!</b>\n\n` +
+      `🧾 ID: <code>${shortId}...</code>\n` +
+      `👤 ${pendingOrder.customer_name || "Pelanggan"}\n` +
+      `📱 ${pendingOrder.customer_phone || "-"}\n\n` +
+      `<b>Produk:</b>\n${itemLines}\n\n` +
+      `💰 <b>Total: ${formatRp(pendingOrder.total_price)}</b>\n\n` +
+      `Status: <i>menunggu bayar</i>\n` +
+      `Cek detail di aplikasi Rekapan ✅`
+    );
+    return;
+  }
+
+  if (
+    text.toLowerCase() === "tidak" ||
+    text.toLowerCase() === "batal" ||
+    text.toLowerCase() === "n"
+  ) {
+    await setSession(chatId, "idle");
+    await sendMessage(chatId, "❌ Order dibatalkan.");
+    return;
+  }
+
+  // Respon lain saat menunggu konfirmasi
+  await sendMessage(
+    chatId,
+    "⏳ Masih ada order yang menunggu konfirmasi.\n\n" +
+    "Ketik <b>ya</b> untuk buat order atau <b>batal</b> untuk batalkan."
+  );
+}
+
+async function handleOrderMessage(chatId: string, text: string, registration: { slug: string }) {
+  await sendMessage(chatId, "⏳ Sedang memproses pesan...");
+
+  let parsed: ParsedOrder | { error: string };
+  try {
+    parsed = await parseOrderWithAI(text);
+  } catch (e) {
+    console.error("AI parsing failed:", e);
+    await sendMessage(
+      chatId,
+      "❌ Gagal memproses pesan. Pastikan koneksi stabil dan coba lagi."
+    );
+    return;
+  }
+
+  if ("error" in parsed) {
+    await sendMessage(
+      chatId,
+      "🤔 Pesan ini tidak terdeteksi sebagai order produk.\n\n" +
+      "Contoh format yang bisa saya proses:\n" +
+      "<i>min order 2 bp green sama 1 brassic eye\n" +
+      "a.n Siti Wahyuni 08123456789</i>\n\n" +
+      "Atau forward langsung pesan dari pelanggan."
+    );
+    return;
+  }
+
+  if (!parsed.items || parsed.items.length === 0) {
+    await sendMessage(
+      chatId,
+      "❌ Tidak ditemukan produk dalam pesan.\n\n" +
+      "Pastikan nama produk dan jumlah disebutkan dengan jelas."
+    );
+    return;
+  }
+
+  // Cocokkan produk dengan harga dari master_products (dengan tier logic)
+  const itemsWithPrice = await matchProductsWithPrice(parsed.items);
+  const totalQty = itemsWithPrice.reduce((sum, i) => sum + i.quantity, 0);
+  const totalPrice = itemsWithPrice.reduce((sum, i) => sum + i.subtotal, 0);
+  const tierLabel: Record<string, string> = {
+    "satuan": "Satuan", "3_botol": "Reseller (3+)", "5_botol": "Agen (5+)",
+    "10_botol": "Agen Plus (10+)", "40_botol": "SAP (40+)", "200_botol": "SE (200+)",
+  };
+  const appliedTier = tierLabel[resolvePackageType(totalQty)] || "Satuan";
+
+  const pendingOrder: PendingOrder = {
+    customer_name: parsed.customer_name,
+    customer_phone: parsed.customer_phone,
+    items: itemsWithPrice,
+    total_price: totalPrice,
+    notes: parsed.notes,
+  };
+
+  // Nama pelanggan WAJIB — kalau tidak terdeteksi, tanya dulu
+  if (!parsed.customer_name?.trim()) {
+    await setSession(chatId, "waiting_customer_name", pendingOrder);
+    await sendMessage(
+      chatId,
+      "⚠️ <b>Nama pelanggan tidak terdeteksi.</b>\n\n" +
+      "Ketik nama pelanggannya:"
+    );
+    return;
+  }
+
+  await showConfirmation(chatId, pendingOrder, appliedTier, totalQty);
+}
+
+// ─── Helper: tampilkan pesan konfirmasi ───────────────────────────────────────
+async function showConfirmation(
+  chatId: string,
+  pendingOrder: PendingOrder,
+  appliedTier: string,
+  totalQty: number
+) {
+  const itemLines = pendingOrder.items
+    .map((i) => `• ${i.product_name} x${i.quantity} — ${formatRp(i.price_per_bottle)}/btl = ${formatRp(i.subtotal)}`)
+    .join("\n");
+
+  const confirmMsg =
+    `📦 <b>Konfirmasi Order</b>\n\n` +
+    `👤 Nama: ${pendingOrder.customer_name}\n` +
+    `📱 HP: ${pendingOrder.customer_phone || "<i>tidak terdeteksi</i>"}\n\n` +
+    `<b>Produk:</b>\n${itemLines}\n\n` +
+    `🏷 Tier: <b>${appliedTier}</b> (total ${totalQty} botol)\n` +
+    `💰 <b>Total: ${formatRp(pendingOrder.total_price)}</b>\n` +
+    (pendingOrder.notes ? `\n📝 Catatan: ${pendingOrder.notes}\n` : "") +
+    `\nKetik <b>ya</b> untuk buat order atau <b>batal</b> untuk batalkan.`;
+
+  await setSession(chatId, "confirm_order", pendingOrder);
+  await sendMessage(chatId, confirmMsg);
+}
+
+// ─── Handler: menunggu nama pelanggan ─────────────────────────────────────────
+async function handleWaitingCustomerName(
+  chatId: string,
+  text: string,
+  session: { state: string; pending_order: PendingOrder | null }
+) {
+  const name = text.trim();
+  if (!name || name.length < 2) {
+    await sendMessage(chatId, "⚠️ Nama tidak valid. Ketik nama pelanggannya:");
+    return;
+  }
+
+  const pendingOrder = session.pending_order;
+  if (!pendingOrder) {
+    await setSession(chatId, "idle");
+    await sendMessage(chatId, "❌ Sesi habis. Kirim ulang pesan order-nya.");
+    return;
+  }
+
+  // Update nama di pending order
+  const updatedOrder: PendingOrder = { ...pendingOrder, customer_name: name };
+  const totalQty = updatedOrder.items.reduce((sum, i) => sum + i.quantity, 0);
+  const tierLabel: Record<string, string> = {
+    "satuan": "Satuan", "3_botol": "Reseller (3+)", "5_botol": "Agen (5+)",
+    "10_botol": "Agen Plus (10+)", "40_botol": "SAP (40+)", "200_botol": "SE (200+)",
+  };
+  const appliedTier = tierLabel[resolvePackageType(totalQty)] || "Satuan";
+
+  await showConfirmation(chatId, updatedOrder, appliedTier, totalQty);
+}
+
+// ─── Main Handler ─────────────────────────────────────────────────────────────
+serve(async (req) => {
+  // Health check
+  if (req.method === "GET") {
+    return new Response(JSON.stringify({ ok: true, service: "telegram-bot" }), {
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  if (req.method !== "POST") {
+    return new Response("Method not allowed", { status: 405 });
+  }
+
+  try {
+    const update = await req.json();
+    const message = update.message || update.edited_message;
+
+    // Abaikan update selain pesan teks
+    if (!message) return new Response("OK");
+
+    const chatId = String(message.chat.id);
+    const text = (message.text || message.caption || "").trim();
+
+    // ─── Commands ────────────────────────────────────────────────────────────
+    if (text.startsWith("/start") || text.startsWith("/daftar")) {
+      const parts = text.split(" ");
+      const slug = parts[1]?.toLowerCase().trim();
+      await handleStart(chatId, slug);
+      return new Response("OK");
+    }
+
+    if (text.startsWith("/bantuan") || text.startsWith("/help")) {
+      await handleBantuan(chatId);
+      return new Response("OK");
+    }
+
+    if (text.startsWith("/batal") || text.startsWith("/batalkan")) {
+      await setSession(chatId, "idle");
+      await sendMessage(chatId, "❌ Order dibatalkan.");
+      return new Response("OK");
+    }
+
+    // ─── Cek registrasi ──────────────────────────────────────────────────────
+    const registration = await getRegistration(chatId);
+    if (!registration) {
+      await sendMessage(
+        chatId,
+        "Kamu belum terdaftar! 👋\n\n" +
+        "Kirim perintah berikut untuk menghubungkan bot dengan toko kamu:\n" +
+        "<code>/daftar [slug_toko]</code>\n\n" +
+        "Slug toko ada di menu <b>Toko Online</b> di aplikasi Rekapan."
+      );
+      return new Response("OK");
+    }
+
+    // ─── Cek session state ───────────────────────────────────────────────────
+    const session = await getSession(chatId);
+    const state = session?.state || "idle";
+
+    if (state === "confirm_order") {
+      await handleConfirmation(chatId, text, session!, registration);
+      return new Response("OK");
+    }
+
+    if (state === "waiting_customer_name") {
+      await handleWaitingCustomerName(chatId, text, session!);
+      return new Response("OK");
+    }
+
+    // ─── Parse pesan sebagai order ───────────────────────────────────────────
+    if (!text) {
+      await sendMessage(
+        chatId,
+        "Maaf, saya hanya bisa memproses pesan teks.\n\n" +
+        "Forward atau ketik pesan order dari pelanggan."
+      );
+      return new Response("OK");
+    }
+
+    await handleOrderMessage(chatId, text, registration);
+    return new Response("OK");
+  } catch (e) {
+    console.error("telegram-bot unhandled error:", e);
+    // Selalu return 200 ke Telegram agar tidak di-retry terus
+    return new Response("OK");
+  }
+});

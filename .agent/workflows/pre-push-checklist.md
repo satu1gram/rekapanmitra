@@ -22,7 +22,7 @@ Buka dan perbarui file dokumentasi teknis jika ada perubahan pada:
 
 | File | Lokasi |
 |---|---|
-| Dokumentasi Teknis | `/Users/salinovakbar/.gemini/antigravity/brain/108c3bcc-9b71-447f-bc06-821b7568a31c/dokumentasi_teknis_rekapan_mitra.md` |
+| Dokumentasi Teknis | `/Users/salinovakbar/.gemini/antigravity/brain/e2051e8e-c206-4aed-a96f-719a7e683f5d/docs/dokumentasi_teknis_v2.3.md` |
 | Panduan Pengguna | `/Users/salinovakbar/Downloads/rekapan/docs/panduan-pengguna.md` |
 
 **Bagian yang perlu dicek di Dokumentasi Teknis:**

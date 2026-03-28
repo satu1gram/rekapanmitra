@@ -22,19 +22,19 @@ export function BottomActionBar({
   return (
     <div className="fixed bottom-[4.5rem] left-0 right-0 bg-white/90 backdrop-blur-xl border-t border-slate-100 px-6 py-4 z-[45] shadow-[0_-12px_32px_rgba(0,0,0,0.08)] animate-in slide-in-from-bottom duration-300">
       <div className="max-w-md mx-auto flex items-center justify-between gap-4">
-        {leftContent ? (
+        {onBack && (
+          <button
+            onClick={onBack}
+            className="w-12 h-12 rounded-2xl border border-slate-200 flex items-center justify-center text-slate-600 active:bg-slate-50 transition-all shadow-sm active:scale-90 shrink-0"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+        )}
+
+        {leftContent && (
           <div className="flex-1">
             {leftContent}
           </div>
-        ) : (
-          onBack && (
-            <button
-              onClick={onBack}
-              className="w-12 h-12 rounded-2xl border border-slate-200 flex items-center justify-center text-slate-600 active:bg-slate-50 transition-all shadow-sm active:scale-90"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </button>
-          )
         )}
         
         {onNext && (
