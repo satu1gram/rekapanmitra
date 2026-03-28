@@ -82,8 +82,33 @@ async function sendMessage(chatId: string | number, text: string) {
   }
 }
 
+// ─── Pre-processing: tanggal & bonus ─────────────────────────────────────────
+const BULAN_ID: Record<string, number> = {
+  januari:1, februari:2, maret:3, april:4, mei:5, juni:6,
+  juli:7, agustus:8, september:9, oktober:10, november:11, desember:12,
+  jan:1, feb:2, mar:3, apr:4, jun:6, jul:7, agt:8, sep:9, okt:10, nov:11, des:12,
+};
+
+// Ekstrak tanggal Indonesia dari teks → "yyyy-mm-dd" atau null
+function extractDateID(text: string): string | null {
+  const m = text.toLowerCase().match(
+    /(\d{1,2})\s+(januari|februari|maret|april|mei|juni|juli|agustus|september|oktober|november|desember|jan|feb|mar|apr|jun|jul|agt|sep|okt|nov|des)\s+(\d{4})/
+  );
+  if (!m) return null;
+  const d = m[1].padStart(2, "0");
+  const mo = String(BULAN_ID[m[2]]).padStart(2, "0");
+  return `${m[3]}-${mo}-${d}`;
+}
+
+// Hapus baris yang mengandung kata bonus/gratis/free/hadiah sebelum dikirim ke AI
+function stripBonusLines(text: string): string {
+  return text
+    .split("\n")
+    .filter(line => !/\b(bonus|gratis|free|hadiah|promo)\b/i.test(line))
+    .join("\n");
+}
+
 // ─── AI Parsing ───────────────────────────────────────────────────────────────
-// Prompt kompak ~200 token (hemat ~60% vs versi sebelumnya)
 const ORDER_PARSE_PROMPT = `Parse order BP Group. Output JSON only, no markdown.
 
 PRODUCTS: British Propolis|British Propolis Green|British Propolis Blue|Brassic Pro|Brassic Eye|Belgie Facial Wash|Belgie Night Cream|Belgie Day Cream|Belgie Anti Aging Serum|Belgie Hair Tonic|Steffi Pro|BP Norway
@@ -92,12 +117,16 @@ ALIASES: bp/reg/merah→British Propolis, green/kids/hijau→British Propolis Gr
 
 MITRA LEVELS: reseller|agen|agen_plus(agen+/agen plus)|sap(spesial agen plus)|se(special entrepreneur)
 
-RULES: qty>0 only, SKIP items marked as bonus/gratis/free, phone=08xxx/+62xxx digits only, order_date=yyyy-mm-dd if date mentioned else null, notes=special notes only (not payment/address info), non-order→{"error":"bukan pesan order"}
+RULES: qty>0 only, phone=08xxx/+62xxx digits only, notes=special notes only (not payment/address info), non-order→{"error":"bukan pesan order"}
 
 OUTPUT:
-{"customer_name":str|null,"customer_phone":str|null,"customer_type":"mitra"|"konsumen","mitra_level":"reseller"|"agen"|"agen_plus"|"sap"|"se"|null,"order_date":str|null,"items":[{"product_name":str,"quantity":int}],"notes":str|null}`;
+{"customer_name":str|null,"customer_phone":str|null,"customer_type":"mitra"|"konsumen","mitra_level":"reseller"|"agen"|"agen_plus"|"sap"|"se"|null,"items":[{"product_name":str,"quantity":int}],"notes":str|null}`;
 
 async function parseOrderWithAI(text: string): Promise<ParsedOrder | { error: string }> {
+  // Pre-process: hapus baris bonus, ekstrak tanggal sebelum kirim ke AI
+  const extractedDate = extractDateID(text);
+  const cleanText = stripBonusLines(text);
+
   const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
     method: "POST",
     headers: {
@@ -108,7 +137,7 @@ async function parseOrderWithAI(text: string): Promise<ParsedOrder | { error: st
       model: "llama-3.1-8b-instant",
       messages: [
         { role: "system", content: ORDER_PARSE_PROMPT },
-        { role: "user", content: `Today: ${new Date().toISOString().slice(0, 10)}\n\n${text}` },
+        { role: "user", content: cleanText },
       ],
       temperature: 0.1,
       max_tokens: 512,
@@ -135,7 +164,14 @@ async function parseOrderWithAI(text: string): Promise<ParsedOrder | { error: st
     if (match) rawText = match[0];
   }
 
-  return JSON.parse(rawText);
+  const parsed = JSON.parse(rawText);
+
+  // Override order_date dengan hasil ekstraksi regex dari teks asli (lebih akurat dari AI)
+  if (!("error" in parsed)) {
+    parsed.order_date = extractedDate;
+  }
+
+  return parsed;
 }
 
 // ─── DB Helpers ───────────────────────────────────────────────────────────────
