@@ -108,7 +108,7 @@ async function parseOrderWithAI(text: string): Promise<ParsedOrder | { error: st
       model: "llama-3.1-8b-instant",
       messages: [
         { role: "system", content: ORDER_PARSE_PROMPT },
-        { role: "user", content: text },
+        { role: "user", content: `Today: ${new Date().toISOString().slice(0, 10)}\n\n${text}` },
       ],
       temperature: 0.1,
       max_tokens: 512,
