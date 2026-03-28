@@ -206,8 +206,10 @@ const PRODUCT_TO_CATEGORY: Record<string, string> = {
 
 function resolveCategory(productName: string): string {
   const lower = productName.toLowerCase().trim();
-  // Direct match
-  for (const [key, cat] of Object.entries(PRODUCT_TO_CATEGORY)) {
+  // Sort by key length descending so more specific keys (e.g. "british propolis green")
+  // are matched before shorter prefixes (e.g. "british propolis")
+  const sortedEntries = Object.entries(PRODUCT_TO_CATEGORY).sort((a, b) => b[0].length - a[0].length);
+  for (const [key, cat] of sortedEntries) {
     if (lower === key || lower.includes(key)) return cat;
   }
   // Keyword fallback
