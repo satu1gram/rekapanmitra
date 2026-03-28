@@ -109,13 +109,17 @@ export default defineConfig(({ mode }) => ({
     rollupOptions: {
       output: {
         manualChunks(id) {
-          if (id.includes("node_modules")) {
-            if (id.includes("@radix-ui")) return "vendor-ui";
-            if (id.includes("lucide-react")) return "vendor-icons";
-            if (id.includes("react") || id.includes("react-dom") || id.includes("react-router-dom")) return "vendor-core";
-            if (id.includes("@supabase") || id.includes("@tanstack")) return "vendor-api";
-            return "vendor";
-          }
+          if (!id.includes("node_modules")) return;
+          // Pisahkan tiap library React agar tidak circular
+          if (id.includes("react-dom")) return "vendor-react-dom";
+          if (id.includes("react-router-dom")) return "vendor-router";
+          if (id.includes("/react/") || id.includes("/react@")) return "vendor-react";
+          if (id.includes("@radix-ui")) return "vendor-ui";
+          if (id.includes("lucide-react")) return "vendor-icons";
+          if (id.includes("recharts")) return "vendor-charts";
+          if (id.includes("@supabase")) return "vendor-supabase";
+          if (id.includes("@tanstack")) return "vendor-query";
+          return "vendor";
         },
       },
     },
