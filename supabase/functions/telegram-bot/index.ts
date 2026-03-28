@@ -23,6 +23,7 @@ interface ParsedOrder {
   customer_phone: string | null;
   customer_type: "mitra" | "konsumen";
   mitra_level: MitraLevel | null;
+  order_date: string | null; // ISO date string yyyy-mm-dd jika disebut dalam pesan
   items: { product_name: string; quantity: number }[];
   notes: string | null;
 }
@@ -40,6 +41,7 @@ interface PendingOrder {
   customer_phone: string | null;
   customer_type: "mitra" | "konsumen";
   mitra_level: MitraLevel | null;
+  order_date: string | null; // ISO date yyyy-mm-dd
   items: OrderItem[];
   total_price: number;
   buy_price: number;
@@ -90,10 +92,10 @@ ALIASES: bp/reg/merah→British Propolis, green/kids/hijau→British Propolis Gr
 
 MITRA LEVELS: reseller|agen|agen_plus(agen+/agen plus)|sap(spesial agen plus)|se(special entrepreneur)
 
-RULES: qty>0 only, phone=08xxx/+62xxx digits only, notes=special notes only (not payment/address info), non-order→{"error":"bukan pesan order"}
+RULES: qty>0 only, phone=08xxx/+62xxx digits only, order_date=yyyy-mm-dd if date mentioned else null, notes=special notes only (not payment/address info), non-order→{"error":"bukan pesan order"}
 
 OUTPUT:
-{"customer_name":str|null,"customer_phone":str|null,"customer_type":"mitra"|"konsumen","mitra_level":"reseller"|"agen"|"agen_plus"|"sap"|"se"|null,"items":[{"product_name":str,"quantity":int}],"notes":str|null}`;
+{"customer_name":str|null,"customer_phone":str|null,"customer_type":"mitra"|"konsumen","mitra_level":"reseller"|"agen"|"agen_plus"|"sap"|"se"|null,"order_date":str|null,"items":[{"product_name":str,"quantity":int}],"notes":str|null}`;
 
 async function parseOrderWithAI(text: string): Promise<ParsedOrder | { error: string }> {
   const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
@@ -433,6 +435,7 @@ async function handleConfirmation(
       customer_type: pendingOrder.customer_type || "konsumen",
       tier: pendingOrder.mitra_level || "satuan",
       buy_price: pendingOrder.buy_price || 0,
+      order_date: pendingOrder.order_date || null,
       items: pendingOrder.items,
     };
 
@@ -551,6 +554,7 @@ async function handleOrderMessage(chatId: string, text: string, registration: { 
     customer_phone: parsed.customer_phone,
     customer_type: finalCustomerType,
     mitra_level: finalMitraLevel,
+    order_date: parsed.order_date || null,
     items: itemsWithPrice,
     total_price: totalPrice,
     buy_price: buyPrice,
@@ -591,8 +595,13 @@ async function showConfirmation(chatId: string, pendingOrder: PendingOrder, tota
     tierLine = `🏷 Tier: <b>${appliedTier}</b> (total ${totalQty} botol)`;
   }
 
+  const dateLabel = pendingOrder.order_date
+    ? new Date(pendingOrder.order_date + "T00:00:00+07:00").toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })
+    : "Hari ini";
+
   const confirmMsg =
     `📦 <b>Konfirmasi Order</b>\n\n` +
+    `📅 Tanggal: ${dateLabel}\n` +
     `👤 Nama: ${pendingOrder.customer_name}\n` +
     `📱 HP: ${pendingOrder.customer_phone || "<i>tidak terdeteksi</i>"}\n` +
     `👥 Tipe: ${pendingOrder.mitra_level ? "Mitra" : "Konsumen"}\n\n` +
