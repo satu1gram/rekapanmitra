@@ -92,7 +92,7 @@ ALIASES: bp/reg/merah→British Propolis, green/kids/hijau→British Propolis Gr
 
 MITRA LEVELS: reseller|agen|agen_plus(agen+/agen plus)|sap(spesial agen plus)|se(special entrepreneur)
 
-RULES: qty>0 only, phone=08xxx/+62xxx digits only, order_date=yyyy-mm-dd if date mentioned else null, notes=special notes only (not payment/address info), non-order→{"error":"bukan pesan order"}
+RULES: qty>0 only, SKIP items marked as bonus/gratis/free, phone=08xxx/+62xxx digits only, order_date=yyyy-mm-dd if date mentioned else null, notes=special notes only (not payment/address info), non-order→{"error":"bukan pesan order"}
 
 OUTPUT:
 {"customer_name":str|null,"customer_phone":str|null,"customer_type":"mitra"|"konsumen","mitra_level":"reseller"|"agen"|"agen_plus"|"sap"|"se"|null,"order_date":str|null,"items":[{"product_name":str,"quantity":int}],"notes":str|null}`;
@@ -316,16 +316,19 @@ async function matchProductsWithPrice(
       (p: any) => p.category === category && p.package_type === "satuan"
     );
 
-    const price = matched
-      ? Math.floor(Number(matched.price) / Number(matched.quantity_per_package))
-      : 250000;
+    // Hitung subtotal dari harga paket langsung agar tidak ada sisa pembulatan
+    // Contoh: 3_botol price=650.000, qty_per_pkg=3, beli 3 → subtotal=650.000 tepat
+    const pkgPrice = matched ? Number(matched.price) : 250000;
+    const pkgQty   = matched ? Number(matched.quantity_per_package) : 1;
+    const pricePerBottle = Math.round(pkgPrice / pkgQty);
+    const subtotal = Math.round((pkgPrice / pkgQty) * item.quantity);
 
     return {
       product_id: "",
       product_name: item.product_name,
       quantity: item.quantity,
-      price_per_bottle: price,
-      subtotal: price * item.quantity,
+      price_per_bottle: pricePerBottle,
+      subtotal,
     };
   });
 }
