@@ -64,7 +64,7 @@
     "tailwind-merge": "^2.6.0",
     "tailwindcss-animate": "^1.0.7",
     "vaul": "^0.9.9",
-    "vite-plugin-pwa": "^0.19.8",
+    "vite-plugin-pwa": "^1.2.0",
     "zod": "^3.25.76"
   },
   "devDependencies": {
@@ -92,5 +92,8 @@
     "vite": "^6.4.1",
     "vite-plugin-compression": "^0.5.1",
     "vitest": "^3.2.4"
+  },
+  "overrides": {
+    "serialize-javascript": "^7.0.5"
   }
 }

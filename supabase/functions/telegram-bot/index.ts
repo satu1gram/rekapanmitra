@@ -16,9 +16,13 @@ console.log("[startup] TELEGRAM_BOT_TOKEN set:", !!TELEGRAM_BOT_TOKEN);
 console.log("[startup] GROQ_API_KEY set:", !!GROQ_API_KEY, "| prefix:", GROQ_API_KEY?.slice(0, 7));
 
 // ─── Types ────────────────────────────────────────────────────────────────────
+type MitraLevel = "reseller" | "agen" | "agen_plus" | "sap" | "se";
+
 interface ParsedOrder {
   customer_name: string | null;
   customer_phone: string | null;
+  customer_type: "mitra" | "konsumen";
+  mitra_level: MitraLevel | null;
   items: { product_name: string; quantity: number }[];
   notes: string | null;
 }
@@ -34,10 +38,30 @@ interface OrderItem {
 interface PendingOrder {
   customer_name: string | null;
   customer_phone: string | null;
+  customer_type: "mitra" | "konsumen";
+  mitra_level: MitraLevel | null;
   items: OrderItem[];
   total_price: number;
+  buy_price: number;
   notes: string | null;
 }
+
+// Harga tetap per botol sesuai level mitra (dari MITRA_LEVELS di src/types/index.ts)
+const MITRA_PRICES: Record<MitraLevel, number> = {
+  reseller: 217000,
+  agen:     198000,
+  agen_plus: 180000,
+  sap:      170000,
+  se:       150000,
+};
+
+const MITRA_LEVEL_LABEL: Record<MitraLevel, string> = {
+  reseller:  "Reseller",
+  agen:      "Agen",
+  agen_plus: "Agen Plus",
+  sap:       "Spesial Agen Plus (SAP)",
+  se:        "Special Entrepreneur (SE)",
+};
 
 // ─── Telegram Helpers ─────────────────────────────────────────────────────────
 async function sendMessage(chatId: string | number, text: string) {
@@ -57,53 +81,19 @@ async function sendMessage(chatId: string | number, text: string) {
 }
 
 // ─── AI Parsing ───────────────────────────────────────────────────────────────
-const ORDER_PARSE_PROMPT = `Kamu adalah parser order untuk toko produk kesehatan BP Group.
-Tugasmu: ekstrak informasi order dari pesan pelanggan.
+// Prompt kompak ~200 token (hemat ~60% vs versi sebelumnya)
+const ORDER_PARSE_PROMPT = `Parse order BP Group. Output JSON only, no markdown.
 
-DAFTAR PRODUK (gunakan nama ini persis):
-- British Propolis (reguler, imunitas dewasa)
-- British Propolis Green (untuk anak)
-- British Propolis Blue (untuk wanita)
-- Brassic Pro (insomnia, nyeri sendi)
-- Brassic Eye (kesehatan mata)
-- Belgie Facial Wash (gel pembersih wajah)
-- Belgie Night Cream (krim malam)
-- Belgie Day Cream (krim siang)
-- Belgie Anti Aging Serum (serum wajah)
-- Belgie Hair Tonic (tonik rambut)
-- Steffi Pro (diabetes, pengganti gula)
-- BP Norway (omega 3, otak & jantung)
+PRODUCTS: British Propolis|British Propolis Green|British Propolis Blue|Brassic Pro|Brassic Eye|Belgie Facial Wash|Belgie Night Cream|Belgie Day Cream|Belgie Anti Aging Serum|Belgie Hair Tonic|Steffi Pro|BP Norway
 
-ATURAN MAPPING NAMA PRODUK:
-- "bp" / "british propolis" / "bp reguler" / "reg" / "bp merah" / "bp dewasa" → British Propolis
-- "bp green" / "bp hijau" / "green" / "bp kids" / "kids" → British Propolis Green
-- "bp blue" / "bp biru" / "blue" → British Propolis Blue
-- "brassic pro" / "brassicpro" / "bro" → Brassic Pro
-- "brassic eye" / "brassiceye" / "bree" → Brassic Eye
-- "fw" / "facial wash" / "sabun muka" → Belgie Facial Wash
-- "nc" / "night cream" / "krim malam" → Belgie Night Cream
-- "dc" / "day cream" / "krim siang" → Belgie Day Cream
-- "serum" / "anti aging serum" → Belgie Anti Aging Serum
-- "ht" / "hair tonic" / "tonik" → Belgie Hair Tonic
-- "steffi" / "steffi pro" → Steffi Pro
-- "norway" / "bp norway" → BP Norway
+ALIASES: bp/reg/merah→British Propolis, green/kids/hijau→British Propolis Green, blue/biru→British Propolis Blue, bro→Brassic Pro, bre/eye→Brassic Eye, fw/facial wash→Belgie Facial Wash, nc/night cream→Belgie Night Cream, dc/day cream→Belgie Day Cream, serum→Belgie Anti Aging Serum, ht/hair tonic→Belgie Hair Tonic, steffi→Steffi Pro, norway→BP Norway
 
-ATURAN:
-1. customer_phone: format 08xxx atau +62xxx, ambil angka saja
-2. Jika tidak ada nama/HP, isi null
-3. HANYA masukkan produk dengan quantity > 0, abaikan yang 0
-4. notes: hanya catatan khusus (misal "bonus", "kirim sore"), BUKAN info pembayaran/rekening/alamat
-5. Jika pesan BUKAN order produk, kembalikan {"error": "bukan pesan order"}
+MITRA LEVELS: reseller|agen|agen_plus(agen+/agen plus)|sap(spesial agen plus)|se(special entrepreneur)
 
-Kembalikan HANYA JSON valid tanpa markdown atau teks lain:
-{
-  "customer_name": "string atau null",
-  "customer_phone": "string atau null",
-  "items": [
-    {"product_name": "nama produk dari daftar di atas", "quantity": angka}
-  ],
-  "notes": "string atau null"
-}`;
+RULES: qty>0 only, phone=08xxx/+62xxx digits only, notes=special notes only (not payment/address info), non-order→{"error":"bukan pesan order"}
+
+OUTPUT:
+{"customer_name":str|null,"customer_phone":str|null,"customer_type":"mitra"|"konsumen","mitra_level":"reseller"|"agen"|"agen_plus"|"sap"|"se"|null,"items":[{"product_name":str,"quantity":int}],"notes":str|null}`;
 
 async function parseOrderWithAI(text: string): Promise<ParsedOrder | { error: string }> {
   const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
@@ -174,6 +164,30 @@ async function setSession(chatId: string, state: string, pendingOrder: PendingOr
   });
 }
 
+// Lookup customer dari DB berdasarkan phone → dapat type & tier/level mitra
+async function lookupCustomerLevel(
+  phone: string,
+  userId: string
+): Promise<{ customer_type: "mitra" | "konsumen"; mitra_level: MitraLevel | null }> {
+  if (!phone) return { customer_type: "konsumen", mitra_level: null };
+
+  const { data } = await supabase
+    .from("customers")
+    .select("type, tier")
+    .eq("user_id", userId)
+    .eq("phone", phone)
+    .maybeSingle();
+
+  if (!data) return { customer_type: "konsumen", mitra_level: null };
+
+  const isMitra = data.type?.toLowerCase() === "mitra";
+  const level = isMitra && data.tier in MITRA_PRICES
+    ? (data.tier as MitraLevel)
+    : null;
+
+  return { customer_type: isMitra ? "mitra" : "konsumen", mitra_level: level };
+}
+
 // ─── Product Name → DB Category Mapping ──────────────────────────────────────
 const PRODUCT_TO_CATEGORY: Record<string, string> = {
   "british propolis": "BP",
@@ -231,12 +245,13 @@ function resolvePackageType(totalQty: number): string {
 
 // ─── Product Matching ─────────────────────────────────────────────────────────
 async function matchProductsWithPrice(
-  rawItems: { product_name: string; quantity: number }[]
+  rawItems: { product_name: string; quantity: number }[],
+  mitraLevel: MitraLevel | null
 ): Promise<OrderItem[]> {
   // Filter qty 0, lalu deduplicate produk yang sama
   const itemMap = new Map<string, { product_name: string; quantity: number }>();
   for (const item of rawItems) {
-    if (!item.quantity || item.quantity <= 0) continue; // skip qty 0
+    if (!item.quantity || item.quantity <= 0) continue;
     const key = resolveCategory(item.product_name);
     if (itemMap.has(key)) {
       itemMap.get(key)!.quantity += item.quantity;
@@ -246,22 +261,30 @@ async function matchProductsWithPrice(
   }
   const items = Array.from(itemMap.values());
 
-  // Ambil semua master_products (semua tier)
+  // ─ Jika MITRA: pakai harga tetap per level, tidak perlu query DB produk ─
+  if (mitraLevel && mitraLevel in MITRA_PRICES) {
+    const flatPrice = MITRA_PRICES[mitraLevel];
+    return items.map((item) => ({
+      product_id: "",
+      product_name: item.product_name,
+      quantity: item.quantity,
+      price_per_bottle: flatPrice,
+      subtotal: flatPrice * item.quantity,
+    }));
+  }
+
+  // ─ Jika KONSUMEN: pakai quantity-based tier pricing dari master_products ─
   const { data: allProducts } = await supabase
     .from("master_products")
     .select("name, category, package_type, quantity_per_package, price")
     .eq("is_active", true);
 
   const products = allProducts || [];
-
-  // Hitung total qty lintas semua produk (sama seperti logika di app)
   const totalQty = items.reduce((sum, i) => sum + i.quantity, 0);
   const applicablePackageType = resolvePackageType(totalQty);
 
   return items.map((item) => {
     const category = resolveCategory(item.product_name);
-
-    // Cari produk dengan kategori & package_type yang sesuai
     const matched = products.find(
       (p: any) => p.category === category && p.package_type === applicablePackageType
     ) || products.find(
@@ -273,7 +296,7 @@ async function matchProductsWithPrice(
       : 250000;
 
     return {
-      product_id: "", // selalu kosong → RPC simpan sebagai NULL, hindari FK violation
+      product_id: "",
       product_name: item.product_name,
       quantity: item.quantity,
       price_per_bottle: price,
@@ -385,6 +408,9 @@ async function handleConfirmation(
       customer_name: pendingOrder.customer_name || "Pelanggan",
       customer_phone: pendingOrder.customer_phone || "-",
       customer_address: "",
+      customer_type: pendingOrder.customer_type || "konsumen",
+      tier: pendingOrder.mitra_level || "satuan",
+      buy_price: pendingOrder.buy_price || 0,
       items: pendingOrder.items,
     };
 
@@ -475,21 +501,36 @@ async function handleOrderMessage(chatId: string, text: string, registration: { 
     return;
   }
 
-  // Cocokkan produk dengan harga dari master_products (dengan tier logic)
-  const itemsWithPrice = await matchProductsWithPrice(parsed.items);
+  // ─ Tentukan mitra level: DB lookup (lebih akurat) > hasil AI > default konsumen ─
+  let finalMitraLevel = parsed.mitra_level;
+  let finalCustomerType = parsed.customer_type || "konsumen";
+
+  if (parsed.customer_phone && registration.user_id) {
+    const dbInfo = await lookupCustomerLevel(parsed.customer_phone, registration.user_id);
+    if (dbInfo.mitra_level) {
+      // DB lebih dipercaya daripada deteksi teks
+      finalMitraLevel = dbInfo.mitra_level;
+      finalCustomerType = "mitra";
+    }
+  }
+
+  // Cocokkan produk + hitung harga sesuai level
+  const itemsWithPrice = await matchProductsWithPrice(parsed.items, finalMitraLevel);
   const totalQty = itemsWithPrice.reduce((sum, i) => sum + i.quantity, 0);
   const totalPrice = itemsWithPrice.reduce((sum, i) => sum + i.subtotal, 0);
-  const tierLabel: Record<string, string> = {
-    "satuan": "Satuan", "3_botol": "Reseller (3+)", "5_botol": "Agen (5+)",
-    "10_botol": "Agen Plus (10+)", "40_botol": "SAP (40+)", "200_botol": "SE (200+)",
-  };
-  const appliedTier = tierLabel[resolvePackageType(totalQty)] || "Satuan";
+
+  // buy_price = harga mitra × qty (untuk perhitungan margin di dashboard)
+  const buyPricePerBottle = finalMitraLevel ? MITRA_PRICES[finalMitraLevel] : 0;
+  const buyPrice = buyPricePerBottle * totalQty;
 
   const pendingOrder: PendingOrder = {
     customer_name: parsed.customer_name,
     customer_phone: parsed.customer_phone,
+    customer_type: finalCustomerType,
+    mitra_level: finalMitraLevel,
     items: itemsWithPrice,
     total_price: totalPrice,
+    buy_price: buyPrice,
     notes: parsed.notes,
   };
 
@@ -504,26 +545,36 @@ async function handleOrderMessage(chatId: string, text: string, registration: { 
     return;
   }
 
-  await showConfirmation(chatId, pendingOrder, appliedTier, totalQty);
+  await showConfirmation(chatId, pendingOrder, totalQty);
 }
 
 // ─── Helper: tampilkan pesan konfirmasi ───────────────────────────────────────
-async function showConfirmation(
-  chatId: string,
-  pendingOrder: PendingOrder,
-  appliedTier: string,
-  totalQty: number
-) {
+async function showConfirmation(chatId: string, pendingOrder: PendingOrder, totalQty: number) {
   const itemLines = pendingOrder.items
     .map((i) => `• ${i.product_name} x${i.quantity} — ${formatRp(i.price_per_bottle)}/btl = ${formatRp(i.subtotal)}`)
     .join("\n");
 
+  // Baris tier/level
+  let tierLine: string;
+  if (pendingOrder.mitra_level) {
+    const label = MITRA_LEVEL_LABEL[pendingOrder.mitra_level];
+    tierLine = `🏷 Level: <b>${label}</b> (harga mitra flat)`;
+  } else {
+    const tierLabel: Record<string, string> = {
+      satuan: "Satuan", "3_botol": "Reseller (3+)", "5_botol": "Agen (5+)",
+      "10_botol": "Agen Plus (10+)", "40_botol": "SAP (40+)", "200_botol": "SE (200+)",
+    };
+    const appliedTier = tierLabel[resolvePackageType(totalQty)] || "Satuan";
+    tierLine = `🏷 Tier: <b>${appliedTier}</b> (total ${totalQty} botol)`;
+  }
+
   const confirmMsg =
     `📦 <b>Konfirmasi Order</b>\n\n` +
     `👤 Nama: ${pendingOrder.customer_name}\n` +
-    `📱 HP: ${pendingOrder.customer_phone || "<i>tidak terdeteksi</i>"}\n\n` +
+    `📱 HP: ${pendingOrder.customer_phone || "<i>tidak terdeteksi</i>"}\n` +
+    `👥 Tipe: ${pendingOrder.mitra_level ? "Mitra" : "Konsumen"}\n\n` +
     `<b>Produk:</b>\n${itemLines}\n\n` +
-    `🏷 Tier: <b>${appliedTier}</b> (total ${totalQty} botol)\n` +
+    `${tierLine}\n` +
     `💰 <b>Total: ${formatRp(pendingOrder.total_price)}</b>\n` +
     (pendingOrder.notes ? `\n📝 Catatan: ${pendingOrder.notes}\n` : "") +
     `\nKetik <b>ya</b> untuk buat order atau <b>batal</b> untuk batalkan.`;
@@ -551,16 +602,11 @@ async function handleWaitingCustomerName(
     return;
   }
 
-  // Update nama di pending order
+  // Update nama di pending order, pertahankan mitra level yang sudah dideteksi
   const updatedOrder: PendingOrder = { ...pendingOrder, customer_name: name };
   const totalQty = updatedOrder.items.reduce((sum, i) => sum + i.quantity, 0);
-  const tierLabel: Record<string, string> = {
-    "satuan": "Satuan", "3_botol": "Reseller (3+)", "5_botol": "Agen (5+)",
-    "10_botol": "Agen Plus (10+)", "40_botol": "SAP (40+)", "200_botol": "SE (200+)",
-  };
-  const appliedTier = tierLabel[resolvePackageType(totalQty)] || "Satuan";
 
-  await showConfirmation(chatId, updatedOrder, appliedTier, totalQty);
+  await showConfirmation(chatId, updatedOrder, totalQty);
 }
 
 // ─── Main Handler ─────────────────────────────────────────────────────────────

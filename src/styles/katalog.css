@@ -2028,33 +2028,6 @@ section {
 
 
 /* ─── INGREDIENT CARDS (Modern Travel Card Style) ─── */
-
-/* Badge on top-left of product card */
-.ingredient-badge {
-    position: absolute;
-    top: 12px;
-    left: 12px;
-    z-index: 10;
-    background: rgba(255, 255, 255, 0.92);
-    backdrop-filter: blur(6px);
-    border-radius: 20px;
-    padding: 4px 10px;
-    font-size: 11px;
-    font-weight: 700;
-    color: var(--text);
-    white-space: nowrap;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-}
-
-@media (max-width: 768px) {
-    .ingredient-badge {
-        font-size: 10px;
-        padding: 3px 8px;
-        top: 8px;
-        left: 8px;
-    }
-}
-
 .ingredient-card {
     position: relative;
     border-radius: 28px;

@@ -401,9 +401,9 @@ export default function KatalogProdukPage() {
 
                     {/* Section Header */}
                     <div className="world-section-header fade-in">
-                        <span className="tag">Produk Unggulan 2025</span>
-                        <h2>Produk British Propolis<br /><em>dari Komunitas Quantum Millionaire</em></h2>
-                        <p>Dipilih dari bahan alami terbaik dunia — 100% Halal MUI, teruji BPOM, dan terbukti efektif untuk ribuan keluarga Indonesia.</p>
+                        <span className="tag">Katalog 2025</span>
+                        <h2>Semua Produk <em>Quantum Millionaire</em></h2>
+                        <p>12 produk pilihan dari bahan alami terbaik dunia — BPOM, Halal, dan terbukti efektif.</p>
                         <div className="produk-quick-stats">
                             <div className="pqs-item"><span>12</span><small>Produk</small></div>
                             <div className="pqs-div" />
@@ -561,17 +561,15 @@ export default function KatalogProdukPage() {
                         </div>
                     ) : null}
 
-                    {/* Produk Unggulan Showcase */}
+                    {/* Bahan Unggulan */}
                     <div className="brand-hero fade-in" style={{ marginTop: '80px', padding: '0' }}>
                         <div className="brand-hero-left">
-                            <span className="section-tag">Produk British Propolis</span>
-                            <h2 className="brand-title">Pilihan Keluarga<br /><em>Sehat Indonesia</em></h2>
-                            <p className="brand-desc">
-                                Komunitas Quantum Millionaire menghadirkan lini produk British Propolis asli dari Inggris — diformulasikan untuk seluruh anggota keluarga, dari anak-anak hingga dewasa.
-                            </p>
+                            <span className="section-tag">Bahan Pilihan Dunia</span>
+                            <h2 className="brand-title">Healthy Living <em>Guide</em></h2>
+                            <p className="brand-desc">Semua produk Quantum Millionaire dipilih dari bahan alami terbaik dunia, diproses halal, dan teruji BPOM.</p>
                             <div className="brand-stats">
                                 {[
-                                    { num: '12+', label: 'Varian Produk' },
+                                    { num: '12+', label: 'Produk Unggulan' },
                                     { num: '10rb+', label: 'Keluarga Terlayani' },
                                     { num: '2018', label: 'Berdiri Sejak' },
                                 ].map(s => (
@@ -585,13 +583,12 @@ export default function KatalogProdukPage() {
                         <div className="brand-hero-right">
                             <div className="brand-img-grid ingredient-grid">
                                 {[
-                                    { src: '/images/produk/bp.webp',      badge: '⭐ Terlaris',   title: 'British Propolis',       desc: 'Imunitas & Pemulihan Tubuh' },
-                                    { src: '/images/produk/bpgreen.webp', badge: '👶 Untuk Anak',  title: 'British Propolis Green', desc: 'Perisai Imunitas Si Kecil' },
-                                    { src: '/images/produk/bpblue.webp',  badge: '🆕 Terbaru',    title: 'British Propolis Blue',  desc: 'Khusus Wanita & Hormon' },
-                                    { src: '/images/produk/brassicpro.webp', badge: '💊 Suplemen', title: 'Brassic Pro',            desc: 'Bebas Nyeri Sendi & Insomnia' },
+                                    { src: '/images/katalog/propolis-400.webp', title: 'British Propolis', desc: '100% Ekstrak Asli Inggris' },
+                                    { src: '/images/katalog/moringa-400.webp', title: 'Moringa Oleifera', desc: 'Superfood Anti Inflamasi' },
+                                    { src: '/images/katalog/salmon-400.webp', title: 'Salmon Omega-3', desc: 'Tinggi DHA dari Norwegia' },
+                                    { src: '/images/katalog/collagen-400.webp', title: 'Marine Collagen', desc: 'Anti Aging Alami' },
                                 ].map(item => (
                                     <div key={item.title} className="brand-img-card ingredient-card">
-                                        <div className="ingredient-badge">{item.badge}</div>
                                         <img src={item.src} alt={item.title} className="ingredient-img" />
                                         <div className="ingredient-info">
                                             <span className="title">{item.title}</span>
