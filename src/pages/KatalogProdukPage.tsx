@@ -559,6 +559,12 @@ export default function KatalogProdukPage() {
                                                         </span>
                                                     ))}
                                                 </div>
+                                                {product.nomorRegistrasi && (
+                                                    <div className="card-registrasi">
+                                                        <span className="material-symbols-rounded" style={{ fontSize: '13px' }}>verified_user</span>
+                                                        <span>No. Reg: <strong>{product.nomorRegistrasi}</strong></span>
+                                                    </div>
+                                                )}
                                                 <div className="card-footer" style={{ flexDirection: 'column', gap: '12px', alignItems: 'stretch' }}>
                                                     <div className="price-wrap" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', width: '100%', marginBottom: '4px' }}>
                                                         <div>
@@ -567,6 +573,20 @@ export default function KatalogProdukPage() {
                                                         </div>
                                                         <span className="price-note">{product.priceNote}</span>
                                                     </div>
+                                                    {product.hargaTier && product.hargaTier.length > 0 && (
+                                                        <div className="price-tier-table">
+                                                            <div className="price-tier-header">
+                                                                <span className="material-symbols-rounded" style={{ fontSize: '14px' }}>sell</span>
+                                                                Harga Mitra
+                                                            </div>
+                                                            {product.hargaTier.map((tier, i) => (
+                                                                <div key={i} className="price-tier-row">
+                                                                    <span className="tier-label">{tier.label} <span className="tier-qty">({tier.minQty})</span></span>
+                                                                    <span className="tier-price">{tier.harga}</span>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    )}
                                                     <a href={getWaLink(waMsg)} target="_blank" rel="noopener noreferrer"
                                                         className="btn-cta-wa" style={{ width: '100%', justifyContent: 'center' }}>
                                                         <span className="material-symbols-rounded" style={{ marginRight: '8px' }}>chat_bubble</span>
@@ -634,21 +654,99 @@ export default function KatalogProdukPage() {
                     <div className="bisnis-keuntungan-section fade-in">
                         <div className="world-section-header" style={{ marginBottom: '32px' }}>
                             <span className="tag">Mengapa Bergabung?</span>
-                            <h3>Keuntungan Menjadi Mitra <em>Quantum Millionaire</em></h3>
+                            <h3>Hak & Keuntungan Mitra <em>Quantum Millionaire</em></h3>
                         </div>
                         <div className="bisnis-cards-grid">
                             {[
-                                { icon: '💰', title: 'Komisi Menarik', desc: '— Konten dari Anda akan diisi di sini —', placeholder: true },
-                                { icon: '📦', title: 'Produk Siap Jual', desc: '— Konten dari Anda akan diisi di sini —', placeholder: true },
-                                { icon: '🤝', title: 'Support & Training', desc: '— Konten dari Anda akan diisi di sini —', placeholder: true },
-                                { icon: '📱', title: 'Tools Digital', desc: '— Konten dari Anda akan diisi di sini —', placeholder: true },
-                                { icon: '🌐', title: 'Komunitas Aktif', desc: '— Konten dari Anda akan diisi di sini —', placeholder: true },
-                                { icon: '📈', title: 'Potensi Tak Terbatas', desc: '— Konten dari Anda akan diisi di sini —', placeholder: true },
+                                { icon: '💰', title: 'Harga Kemitraan', desc: 'Dapatkan harga khusus mitra mulai dari Rp 150.000/botol — jauh lebih hemat dari harga eceran.' },
+                                { icon: '🎓', title: 'Pembinaan Langsung', desc: 'Dibimbing langsung oleh Mas Ippho, para Leader, dan Mentor berpengalaman sampai menghasilkan.' },
+                                { icon: '📱', title: 'Bahan Promosi Harian', desc: 'Setiap hari mendapatkan materi promosi siap pakai untuk langsung dibagikan ke calon pelanggan.' },
+                                { icon: '📚', title: 'Akses Pendidikan', desc: 'Akses penuh ke materi Knowledge & Skill untuk meningkatkan kemampuan bisnis dan produk.' },
+                                { icon: '🌐', title: 'Komunitas & Grup WA', desc: 'Bergabung ke komunitas aktif dan grup-grup WhatsApp untuk saling support dan sharing.' },
+                                { icon: '📈', title: 'Potensi Untung Besar', desc: 'Untung hingga Rp 100.000/botol dengan potensi maksimal Rp 20.000.000 dari paket SE 200 Botol.' },
                             ].map((item, i) => (
-                                <div key={i} className={`bisnis-card ${item.placeholder ? 'bisnis-card-placeholder' : ''}`}>
+                                <div key={i} className="bisnis-card">
                                     <div className="bisnis-card-icon">{item.icon}</div>
                                     <div className="bisnis-card-title">{item.title}</div>
                                     <div className="bisnis-card-desc">{item.desc}</div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Paket Bisnis Mitra */}
+                    <div className="bisnis-paket-section fade-in">
+                        <div className="world-section-header" style={{ marginBottom: '32px' }}>
+                            <span className="tag">Pilih Paket Kemitraan</span>
+                            <h3>Mulai Bisnis dengan <em>Membeli Produk BP</em></h3>
+                            <p style={{ color: 'var(--text-muted)', fontSize: '14px', marginTop: '8px' }}>
+                                Pembelian paket bisa di-MIX produknya (BP/Brassic/Norway/Steffi). Produk Belgie = Rp 195.000/botol.
+                            </p>
+                        </div>
+                        <div className="bisnis-paket-grid">
+                            {[
+                                {
+                                    nama: 'Paket SE',
+                                    jumlah: '200 Botol',
+                                    hargaPaket: 'Rp 30.000.000',
+                                    modal: 'Rp 150.000',
+                                    jual: 'Rp 250.000',
+                                    untung: 'Rp 100.000',
+                                    potensi: 'Rp 20.000.000',
+                                    highlight: true,
+                                },
+                                {
+                                    nama: 'Paket SAP',
+                                    jumlah: '40 Botol',
+                                    hargaPaket: 'Rp 7.200.000',
+                                    modal: 'Rp 180.000',
+                                    jual: 'Rp 250.000',
+                                    untung: 'Rp 70.000',
+                                    potensi: 'Rp 2.800.000',
+                                    highlight: false,
+                                },
+                                {
+                                    nama: 'Paket AP',
+                                    jumlah: '10 Botol',
+                                    hargaPaket: 'Rp 1.800.000',
+                                    modal: 'Rp 180.000',
+                                    jual: 'Rp 250.000',
+                                    untung: 'Rp 70.000',
+                                    potensi: 'Rp 700.000',
+                                    highlight: false,
+                                },
+                            ].map((paket, i) => (
+                                <div key={i} className={`bisnis-paket-card ${paket.highlight ? 'paket-highlight' : ''}`}>
+                                    {paket.highlight && <div className="paket-best-badge">Paling Untung</div>}
+                                    <div className="paket-header">
+                                        <div className="paket-nama">{paket.nama}</div>
+                                        <div className="paket-jumlah">{paket.jumlah}</div>
+                                    </div>
+                                    <div className="paket-harga-utama">{paket.hargaPaket}</div>
+                                    <div className="paket-detail-table">
+                                        <div className="paket-row">
+                                            <span>Modal per botol</span>
+                                            <strong>{paket.modal}</strong>
+                                        </div>
+                                        <div className="paket-row">
+                                            <span>Harga jual satuan</span>
+                                            <strong>{paket.jual}</strong>
+                                        </div>
+                                        <div className="paket-row paket-row-untung">
+                                            <span>Untung per botol</span>
+                                            <strong>{paket.untung}</strong>
+                                        </div>
+                                        <div className="paket-row paket-row-potensi">
+                                            <span>Potensi untung max</span>
+                                            <strong>{paket.potensi}</strong>
+                                        </div>
+                                    </div>
+                                    <a href={getWaLink(`Halo kak, saya tertarik dengan ${paket.nama} (${paket.jumlah}) seharga ${paket.hargaPaket}. Bisa info lebih lanjut?`)}
+                                        target="_blank" rel="noopener noreferrer"
+                                        className="paket-cta-btn">
+                                        <WaIcon size={16} />
+                                        Ambil {paket.nama}
+                                    </a>
                                 </div>
                             ))}
                         </div>
@@ -662,9 +760,9 @@ export default function KatalogProdukPage() {
                         </div>
                         <div className="bisnis-steps-grid">
                             {[
-                                { step: '01', icon: 'chat_bubble', title: 'Hubungi Kami', desc: 'Chat WhatsApp & ceritakan minatmu bergabung sebagai mitra Quantum Millionaire.' },
-                                { step: '02', icon: 'assignment', title: 'Daftar & Orientasi', desc: '— Detail proses pendaftaran akan diisi dari bahan Anda —' },
-                                { step: '03', icon: 'rocket_launch', title: 'Mulai Berbisnis', desc: '— Langkah selanjutnya setelah bergabung akan diisi dari bahan Anda —' },
+                                { step: '01', icon: 'chat_bubble', title: 'Hubungi Kami', desc: 'Chat WhatsApp & ceritakan minatmu. Tim kami bantu pilihkan paket yang cocok (SE/SAP/AP).' },
+                                { step: '02', icon: 'shopping_cart', title: 'Pilih & Beli Paket', desc: 'Pilih paket kemitraan (bisa MIX produk). Langsung dapat harga mitra dan akses komunitas.' },
+                                { step: '03', icon: 'rocket_launch', title: 'Dibimbing Sampai Cuan', desc: 'Dapat pembinaan, bahan promosi harian, masuk grup WA, dan akses pendidikan bisnis sampai menghasilkan.' },
                             ].map((item, i) => (
                                 <div key={i} className="bisnis-step-card">
                                     <div className="bisnis-step-num">{item.step}</div>
@@ -711,7 +809,7 @@ export default function KatalogProdukPage() {
                 </div>
                 <p style={{ fontSize: '14px', lineHeight: '1.6', color: 'var(--text-muted)' }}>
                     Komunitas Bisnis Quantum Millionaire<br />
-                    © 2025 Quantum Millionaire
+                    © 2025–2026 Quantum Millionaire
                 </p>
             </footer>
 

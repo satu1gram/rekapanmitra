@@ -11,6 +11,8 @@ export interface ProductData {
     price: string;
     priceNote: string;
     oldPrice?: string;
+    nomorRegistrasi?: string;
+    hargaTier?: { label: string; minQty: string; harga: string }[];
     bgStyle: 'green' | 'teal' | 'gold' | 'blue' | 'red' | 'purple';
     emoji: string;
     image?: string;
@@ -36,6 +38,12 @@ export const KATALOG_PRODUCTS: ProductData[] = [
         ],
         price: "Rp 250.000",
         priceNote: "Per Botol 6 ML",
+        nomorRegistrasi: "TR183610771",
+        hargaTier: [
+            { label: 'Reseller', minQty: 'min. 3 pcs', harga: 'Rp 216.000' },
+            { label: 'Agen', minQty: 'min. 5 pcs', harga: 'Rp 198.000' },
+            { label: 'Star', minQty: 'min. 10 pcs', harga: 'Rp 180.000' },
+        ],
         bgStyle: "green",
         emoji: "medication_liquid",
         image: "/images/produk/bp.webp"
@@ -59,6 +67,12 @@ export const KATALOG_PRODUCTS: ProductData[] = [
         ],
         price: "Rp 250.000",
         priceNote: "Per Botol 6 ML",
+        nomorRegistrasi: "TR193631981",
+        hargaTier: [
+            { label: 'Reseller', minQty: 'min. 3 pcs', harga: 'Rp 216.000' },
+            { label: 'Agen', minQty: 'min. 5 pcs', harga: 'Rp 198.000' },
+            { label: 'Star', minQty: 'min. 10 pcs', harga: 'Rp 180.000' },
+        ],
         bgStyle: "teal",
         emoji: "child_care",
         image: "/images/produk/bpgreen.webp"
@@ -82,6 +96,11 @@ export const KATALOG_PRODUCTS: ProductData[] = [
         ],
         price: "Rp 250.000",
         priceNote: "Per Botol 6 ML",
+        hargaTier: [
+            { label: 'Reseller', minQty: 'min. 3 pcs', harga: 'Rp 216.000' },
+            { label: 'Agen', minQty: 'min. 5 pcs', harga: 'Rp 198.000' },
+            { label: 'Star', minQty: 'min. 10 pcs', harga: 'Rp 180.000' },
+        ],
         bgStyle: "purple",
         emoji: "female",
         image: "/images/produk/bpblue.webp"
@@ -105,6 +124,12 @@ export const KATALOG_PRODUCTS: ProductData[] = [
         ],
         price: "Rp 250.000",
         priceNote: "1 Botol 40 Kapsul",
+        nomorRegistrasi: "TR203341281",
+        hargaTier: [
+            { label: 'Reseller', minQty: 'min. 3 pcs', harga: 'Rp 216.000' },
+            { label: 'Agen', minQty: 'min. 5 pcs', harga: 'Rp 198.000' },
+            { label: 'Star', minQty: 'min. 10 pcs', harga: 'Rp 180.000' },
+        ],
         bgStyle: "gold",
         emoji: "healing",
         image: "/images/produk/brassicpro.webp"
@@ -115,7 +140,7 @@ export const KATALOG_PRODUCTS: ProductData[] = [
         badgeText: "Suplemen Mata",
         badgeColor: "blue",
         name: "Brassic Eye",
-        tagline: "Perlidungan Mata Era Gadget",
+        tagline: "Perlindungan Mata Era Gadget",
         description: "Ekstrak Bilberry dan Gynura. Solusi untuk mata cepat lelah, iritasi merah, hingga keluhan rabun akibat paparan layar hp/laptop rutin tiap hari.",
         benefits: [
             "Menghilangkan penat pada mata lelah",
@@ -128,6 +153,12 @@ export const KATALOG_PRODUCTS: ProductData[] = [
         ],
         price: "Rp 250.000",
         priceNote: "1 Botol 40 Kapsul",
+        nomorRegistrasi: "TR203342441",
+        hargaTier: [
+            { label: 'Reseller', minQty: 'min. 3 pcs', harga: 'Rp 216.000' },
+            { label: 'Agen', minQty: 'min. 5 pcs', harga: 'Rp 198.000' },
+            { label: 'Star', minQty: 'min. 10 pcs', harga: 'Rp 180.000' },
+        ],
         bgStyle: "blue",
         emoji: "visibility",
         image: "/images/produk/brassiceye.webp"
@@ -141,7 +172,7 @@ export const KATALOG_PRODUCTS: ProductData[] = [
         tagline: "DHA Otak & Kesehatan Jantung",
         description: "100% Atlantic Salmon Oil dari perairan Norwegia. Kaya Omega-3 dan Astaxanthin, menutrisi otak secara maksimal agar cepat respon dan fokus.",
         benefits: [
-            "Menaingkatkan fokus & respon mental",
+            "Meningkatkan fokus & respon mental",
             "Nutrisi pembuluh darah & jantung",
             "DHA tinggi bantu tumbuh kembang otak"
         ],
@@ -152,6 +183,12 @@ export const KATALOG_PRODUCTS: ProductData[] = [
         ],
         price: "Rp 250.000",
         priceNote: "40 Soft Capsules",
+        nomorRegistrasi: "TR233005481",
+        hargaTier: [
+            { label: 'Reseller', minQty: 'min. 3 pcs', harga: 'Rp 216.000' },
+            { label: 'Agen', minQty: 'min. 5 pcs', harga: 'Rp 198.000' },
+            { label: 'Star', minQty: 'min. 10 pcs', harga: 'Rp 180.000' },
+        ],
         bgStyle: "blue",
         emoji: "psychology",
         image: "/images/produk/norway.webp"
@@ -294,6 +331,7 @@ export const KATALOG_PRODUCTS: ProductData[] = [
         price: "Rp 195.000",
         priceNote: "🔥 Harga Promo",
         oldPrice: "Rp 250.000",
+        nomorRegistrasi: "MD 272824001500528",
         bgStyle: "blue",
         emoji: "local_cafe",
         image: "/images/produk/steffi.webp"

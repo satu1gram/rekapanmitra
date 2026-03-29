@@ -1283,6 +1283,63 @@ nav {
     color: var(--text-muted);
 }
 
+.card-registrasi {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    color: var(--green);
+    background: var(--green-pale);
+    border: 1px solid rgba(58, 125, 68, 0.15);
+    border-radius: 6px;
+    padding: 4px 10px;
+    margin-top: 8px;
+}
+.card-registrasi strong {
+    font-weight: 600;
+    letter-spacing: 0.3px;
+}
+
+.price-tier-table {
+    background: var(--green-soft);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 10px;
+    margin-top: 2px;
+}
+.price-tier-header {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--green-dark);
+    margin-bottom: 6px;
+}
+.price-tier-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 3px 0;
+    font-size: 12px;
+    border-top: 1px dashed var(--border);
+}
+.price-tier-row:first-of-type {
+    border-top: none;
+}
+.tier-label {
+    color: var(--text-muted);
+    font-weight: 500;
+}
+.tier-qty {
+    font-size: 10px;
+    color: var(--text-light);
+}
+.tier-price {
+    font-weight: 700;
+    color: var(--green-dark);
+}
+
 .card-footer {
     display: flex;
     align-items: center;
