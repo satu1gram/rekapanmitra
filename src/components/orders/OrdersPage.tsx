@@ -98,7 +98,7 @@ export function OrdersPage({ openAddForm = false, onAddFormClose }: OrdersPagePr
     deleteOrderExpense,
     fetchOrderItems,
   } = useOrders();
-  const { currentStock, reduceStock } = useStock();
+  const { currentStock } = useStock();
   const { customers, addOrUpdateCustomer, refetch: refetchCustomers } = useCustomers();
   const { mitraLevel } = useProfile();
   const { getTotalExpenses, getExpensesByDateRange } = useGeneralExpenses();
@@ -164,11 +164,6 @@ export function OrdersPage({ openAddForm = false, onAddFormClose }: OrdersPagePr
     items: OrderItem[]; transferProofUrl?: string; customerId?: string; createdAt?: string;
   }) => {
     const totalQuantity = data.items.reduce((sum, item) => sum + item.quantity, 0);
-    if (totalQuantity > currentStock) {
-      setShowAddModal(false); onAddFormClose?.();
-      setOrderResult({ success: false, errorMessage: `Stok tidak cukup. Anda mencoba pesanan sebanyak ${totalQuantity} botol (Tersisa ${currentStock} pcs).` });
-      return;
-    }
     setSubmitting(true);
     const totalPrice = data.items.reduce((sum, item) => sum + item.subtotal, 0);
     const totalBuy = MITRA_LEVELS[mitraLevel].buyPricePerBottle * totalQuantity;
@@ -188,9 +183,6 @@ export function OrdersPage({ openAddForm = false, onAddFormClose }: OrdersPagePr
           subtotal: i.subtotal,
         })),
       });
-      reduceStock(totalQuantity, order.id, data.createdAt).catch(err =>
-        console.error('reduceStock failed (order already saved):', err)
-      );
       addOrUpdateCustomer({
         customerName: data.customerName,
         customerPhone: data.customerPhone,

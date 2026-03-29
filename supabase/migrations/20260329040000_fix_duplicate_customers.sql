@@ -73,20 +73,20 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 DECLARE
-  v_user_id      UUID;
-  v_order_id     UUID;
-  v_customer_id  UUID;
-  v_item         jsonb;
-  v_total_qty    INT := 0;
-  v_total_price  NUMERIC := 0;
-  v_tier         TEXT;
-  v_buy_price    NUMERIC := 0;
-  v_margin       NUMERIC := 0;
-  v_created_at   TIMESTAMPTZ;
-  v_phone        TEXT;
-  v_name         TEXT;
-  v_type         TEXT;
-  v_product_id   UUID;
+  v_user_id       UUID;
+  v_order_id      UUID;
+  v_customer_id   UUID;
+  v_item          jsonb;
+  v_total_qty     INT := 0;
+  v_total_price   NUMERIC := 0;
+  v_tier          TEXT;
+  v_buy_price     NUMERIC := 0;
+  v_margin        NUMERIC := 0;
+  v_created_at    TIMESTAMPTZ;
+  v_phone         TEXT;
+  v_name          TEXT;
+  v_type          TEXT;
+  v_product_id    UUID;
 BEGIN
   -- 1. Ambil user_id dari slug
   SELECT user_id INTO v_user_id
@@ -247,29 +247,6 @@ BEGIN
       (v_item->>'subtotal')::numeric
     );
   END LOOP;
-
-  -- ═══════════════════════════════════════════════════════════
-  -- 9. STOCK DEDUCTION
-  -- ═══════════════════════════════════════════════════════════
-  BEGIN
-    INSERT INTO public.stock_entries (
-      user_id, type, quantity, order_id, created_at
-    ) VALUES (
-      v_user_id, 'out', v_total_qty, v_order_id, v_created_at
-    );
-
-    UPDATE public.user_stock
-      SET current_stock = GREATEST(current_stock - v_total_qty, 0)
-      WHERE user_id = v_user_id;
-
-    IF NOT FOUND THEN
-      INSERT INTO public.user_stock (user_id, current_stock)
-        VALUES (v_user_id, 0)
-        ON CONFLICT (user_id) DO NOTHING;
-    END IF;
-  EXCEPTION WHEN OTHERS THEN
-    RAISE WARNING 'Stock deduction failed: %', SQLERRM;
-  END;
 
   RETURN jsonb_build_object('success', true, 'order_id', v_order_id::text);
 

@@ -205,10 +205,6 @@ export function OrderForm({ customers, currentStock, submitting, onSubmit, onCan
       toast.error('Tambahkan minimal 1 produk dengan jumlah > 0');
       return;
     }
-    if (totalQuantity > currentStock) {
-      toast.error(`Stok tidak cukup. Anda mencoba pesanan ${totalQuantity} botol. Tersisa ${currentStock} pcs`);
-      return;
-    }
     setShowReview(true);
   };
 

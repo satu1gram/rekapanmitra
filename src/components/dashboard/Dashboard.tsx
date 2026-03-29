@@ -37,7 +37,7 @@ interface DashboardProps {
 
 export function Dashboard({ onNavigate }: DashboardProps) {
   const { loading: ordersLoading, orders } = useOrders();
-  const { currentStock, isLowStock, loading: stockLoading } = useStock();
+  const { stockEntries, loading: stockLoading } = useStock();
   const { loading: expensesLoading, getMonthExpenses, getTotalExpenses } = useGeneralExpenses();
   const { loading: incomeLoading, getMonthIncome, getTotalIncome } = useGeneralIncome();
   const { targets, getTarget, setTarget } = useTargets();
@@ -68,6 +68,16 @@ export function Dashboard({ onNavigate }: DashboardProps) {
   const displayedProfit = includeBiaya ? monthNetProfit : monthProfit;
   const monthQty = monthOrders.reduce((sum, o) => sum + o.quantity, 0);
 
+  // Restok bulan ini (stock_entries type='in' di bulan berjalan)
+  const monthRestockQty = useMemo(() => stockEntries
+    .filter(e => {
+      if (e.type !== 'in') return false;
+      const d = new Date((e as any).created_at || (e as any).createdAt);
+      return d.getFullYear() === thisYear && d.getMonth() === thisMonth;
+    })
+    .reduce((sum, e) => sum + e.quantity, 0),
+  [stockEntries, thisYear, thisMonth]);
+
   const currentTarget = getTarget(thisYear, thisMonth);
   const prevTarget = getTarget(
     thisMonth === 0 ? thisYear - 1 : thisYear,
@@ -82,7 +92,7 @@ export function Dashboard({ onNavigate }: DashboardProps) {
     ? Math.min(Math.round((monthQty / currentTarget.targetQty) * 100), 100)
     : 0;
   const stockPct = currentTarget && currentTarget.targetStock > 0
-    ? Math.min(Math.round((currentStock / currentTarget.targetStock) * 100), 100)
+    ? Math.min(Math.round((monthRestockQty / currentTarget.targetStock) * 100), 100)
     : 0;
   const omsetPct = currentTarget && currentTarget.targetProfit > 0
     ? Math.min(Math.round((monthRevenue / (currentTarget.targetProfit * 1.5)) * 100), 100)
@@ -174,16 +184,6 @@ export function Dashboard({ onNavigate }: DashboardProps) {
 
       <main className="flex-1 px-4 py-4 space-y-3 pb-4">
 
-        {/* Low Stock Alert */}
-        {isLowStock && (
-          <div className="flex items-center gap-3 bg-red-50 border-2 border-red-200 rounded-2xl p-3">
-            <AlertTriangle className="h-4 w-4 text-red-500 shrink-0" />
-            <div className="flex-1">
-              <p className="text-xs font-black text-red-700 uppercase tracking-wide">Stok Rendah!</p>
-              <p className="text-xs text-red-500">Stok tersisa {currentStock} (minimal {LOW_STOCK_THRESHOLD})</p>
-            </div>
-          </div>
-        )}
 
         {/* ═══════ NO TARGET STATE ═══════ */}
         {!currentTarget ? (
@@ -398,41 +398,30 @@ export function Dashboard({ onNavigate }: DashboardProps) {
                 )}
               </div>
 
-              {/* Stok */}
+              {/* Restok Bulan Ini */}
               <button
                 onClick={() => onNavigate('stock')}
-                className={cn(
-                  'col-span-2 bg-white p-5 rounded-[1.75rem] border-2 shadow-sm flex items-center justify-between active:bg-slate-50 active:scale-[0.99] transition-all text-left',
-                  isLowStock ? 'border-red-200' : 'border-slate-100'
-                )}
+                className="col-span-2 bg-white p-5 rounded-[1.75rem] border-2 border-slate-100 shadow-sm flex items-center justify-between active:bg-slate-50 active:scale-[0.99] transition-all text-left"
               >
                 <div className="flex items-center gap-4 flex-1">
-                  <div className={cn(
-                    'w-12 h-12 rounded-2xl flex items-center justify-center shrink-0',
-                    isLowStock ? 'bg-red-50' : 'bg-slate-100'
-                  )}>
-                    <Package className={cn('h-6 w-6', isLowStock ? 'text-red-600' : 'text-slate-600')} />
+                  <div className="w-12 h-12 rounded-2xl bg-emerald-50 flex items-center justify-center shrink-0">
+                    <Package className="h-6 w-6 text-emerald-600" />
                   </div>
                   <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-0.5">
-                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Stok Tersedia</span>
-                      {isLowStock && (
-                        <span className="text-[9px] font-black bg-red-100 text-red-600 px-1.5 py-0.5 rounded-md">Sisa Sedikit</span>
-                      )}
-                    </div>
-                    <p className={cn('text-4xl font-black tracking-tighter leading-none', isLowStock ? 'text-red-600' : 'text-slate-900')}>
-                      {currentStock} <span className="text-2xl">Item</span>
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Restok Bulan Ini</span>
+                    <p className="text-4xl font-black tracking-tighter leading-none text-slate-900 mt-0.5">
+                      {monthRestockQty} <span className="text-2xl">botol</span>
                     </p>
                     {currentTarget.targetStock > 0 && (
-                      <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden mt-2">
-                        <div
-                          className={cn('h-full rounded-full', stockPct >= 80 ? 'bg-red-400' : 'bg-slate-400')}
-                          style={{ width: `${Math.min(stockPct, 100)}%` }}
-                        />
-                      </div>
-                    )}
-                    {currentTarget.targetStock > 0 && (
-                      <p className="text-[10px] text-slate-400 mt-0.5">Target: {currentTarget.targetStock} item</p>
+                      <>
+                        <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden mt-2">
+                          <div
+                            className="h-full rounded-full bg-emerald-400"
+                            style={{ width: `${Math.min(stockPct, 100)}%` }}
+                          />
+                        </div>
+                        <p className="text-[10px] text-slate-400 mt-0.5">Target: {currentTarget.targetStock} botol</p>
+                      </>
                     )}
                   </div>
                 </div>

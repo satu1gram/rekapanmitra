@@ -148,6 +148,8 @@ async function parseOrderWithAI(text: string): Promise<ParsedOrder | { error: st
   if (!response.ok) {
     const errBody = await response.text();
     console.error(`[groq] error ${response.status}:`, errBody);
+    if (response.status === 429) throw new Error("GROQ_RATE_LIMIT");
+    if (response.status === 503) throw new Error("GROQ_UNAVAILABLE");
     throw new Error(`AI gateway error: ${response.status}`);
   }
 
@@ -211,6 +213,7 @@ const OWNER_BUY_PRICES: Record<string, number> = {
   sap:      170000,
   se:       150000,
 };
+
 
 async function getOwnerBuyPrice(userId: string): Promise<number> {
   const { data } = await supabase
@@ -564,12 +567,27 @@ async function handleOrderMessage(chatId: string, text: string, registration: { 
   let parsed: ParsedOrder | { error: string };
   try {
     parsed = await parseOrderWithAI(text);
-  } catch (e) {
+  } catch (e: any) {
     console.error("AI parsing failed:", e);
-    await sendMessage(
-      chatId,
-      "❌ Gagal memproses pesan. Pastikan koneksi stabil dan coba lagi."
-    );
+    if (e?.message === "GROQ_RATE_LIMIT") {
+      await sendMessage(
+        chatId,
+        "⚠️ <b>Kuota AI Habis</b>\n\n" +
+        "Limit permintaan ke AI (Groq) sudah tercapai untuk saat ini.\n\n" +
+        "Silakan coba lagi dalam beberapa menit, atau hubungi admin untuk upgrade kuota."
+      );
+    } else if (e?.message === "GROQ_UNAVAILABLE") {
+      await sendMessage(
+        chatId,
+        "⚠️ <b>Layanan AI Sedang Tidak Tersedia</b>\n\n" +
+        "Server AI (Groq) sedang tidak dapat diakses. Coba lagi dalam beberapa menit."
+      );
+    } else {
+      await sendMessage(
+        chatId,
+        "❌ Gagal memproses pesan. Pastikan koneksi stabil dan coba lagi."
+      );
+    }
     return;
   }
 
@@ -634,7 +652,6 @@ async function handleOrderMessage(chatId: string, text: string, registration: { 
   const totalPrice = itemsWithPrice.reduce((sum, i) => sum + i.subtotal, 0);
 
   // buy_price = modal pemilik toko (bukan harga jual ke customer)
-  // Ambil dari profiles.mitra_level pemilik toko
   const ownerBuyPrice = await getOwnerBuyPrice(registration.user_id);
   const buyPrice = ownerBuyPrice * totalQty;
 
