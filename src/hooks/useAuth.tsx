@@ -19,15 +19,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
-
-    // Listen for auth changes — use functional updates to preserve object reference
-    // when the same user is set again (e.g. INITIAL_SESSION after getSession resolves)
+    // Supabase v2 recommendation: rely solely on onAuthStateChange.
+    // The VERY FIRST event fired is always INITIAL_SESSION which contains the
+    // persisted session from localStorage — no separate getSession() call needed.
+    // Using both in parallel caused a race condition where a SIGNED_OUT event
+    // could set loading=false with user=null before the stored session was read,
+    // forcing users to log in again after killing the PWA.
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(prev => {
         const nextId = session?.user?.id ?? null;
