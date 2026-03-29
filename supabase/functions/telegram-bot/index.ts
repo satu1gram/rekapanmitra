@@ -222,28 +222,45 @@ async function getOwnerBuyPrice(userId: string): Promise<number> {
   return OWNER_BUY_PRICES[level] ?? 217000;
 }
 
-// Lookup customer dari DB berdasarkan phone → dapat type & tier/level mitra
+// Lookup customer dari DB berdasarkan phone (prioritas) atau name (fallback)
+// → dapat type & tier/level mitra yang sudah tersimpan sebelumnya
 async function lookupCustomerLevel(
-  phone: string,
+  phone: string | null,
+  name: string | null,
   userId: string
-): Promise<{ customer_type: "mitra" | "konsumen"; mitra_level: MitraLevel | null }> {
-  if (!phone) return { customer_type: "konsumen", mitra_level: null };
+): Promise<{ customer_type: "mitra" | "konsumen"; mitra_level: MitraLevel | null; found: boolean }> {
+  let data: { type: string; tier: string } | null = null;
 
-  const { data } = await supabase
-    .from("customers")
-    .select("type, tier")
-    .eq("user_id", userId)
-    .eq("phone", phone)
-    .maybeSingle();
+  // 1. Cari by phone dulu (lebih spesifik)
+  if (phone) {
+    const result = await supabase
+      .from("customers")
+      .select("type, tier")
+      .eq("user_id", userId)
+      .eq("phone", phone)
+      .maybeSingle();
+    data = result.data;
+  }
 
-  if (!data) return { customer_type: "konsumen", mitra_level: null };
+  // 2. Fallback: cari by name (case-insensitive) jika belum ketemu
+  if (!data && name) {
+    const result = await supabase
+      .from("customers")
+      .select("type, tier")
+      .eq("user_id", userId)
+      .ilike("name", name.trim())
+      .maybeSingle();
+    data = result.data;
+  }
+
+  if (!data) return { customer_type: "konsumen", mitra_level: null, found: false };
 
   const isMitra = data.type?.toLowerCase() === "mitra";
   const level = isMitra && data.tier in MITRA_PRICES
     ? (data.tier as MitraLevel)
     : null;
 
-  return { customer_type: isMitra ? "mitra" : "konsumen", mitra_level: level };
+  return { customer_type: isMitra ? "mitra" : "konsumen", mitra_level: level, found: true };
 }
 
 // ─── Product Name → DB Category Mapping ──────────────────────────────────────
@@ -570,12 +587,26 @@ async function handleOrderMessage(chatId: string, text: string, registration: { 
   let finalMitraLevel = parsed.mitra_level;
   let finalCustomerType = parsed.customer_type || "konsumen";
 
-  if (parsed.customer_phone && registration.user_id) {
-    const dbInfo = await lookupCustomerLevel(parsed.customer_phone, registration.user_id);
-    if (dbInfo.mitra_level) {
-      // DB lebih dipercaya daripada deteksi teks
-      finalMitraLevel = dbInfo.mitra_level;
-      finalCustomerType = "mitra";
+  // Lookup by phone OR name — mencegah duplikat dan ambil status customer yang ada
+  if ((parsed.customer_phone || parsed.customer_name) && registration.user_id) {
+    const dbInfo = await lookupCustomerLevel(
+      parsed.customer_phone,
+      parsed.customer_name,
+      registration.user_id
+    );
+    if (dbInfo.found) {
+      // Customer sudah ada di DB:
+      // - Jika AI mendeteksi mitra_level eksplisit dari teks → pakai AI (order level baru)
+      // - Jika AI tidak mendeteksi level (default konsumen) → pertahankan status DB
+      if (parsed.mitra_level) {
+        // Pesan menyebut level secara eksplisit → update ke level baru
+        finalMitraLevel = parsed.mitra_level;
+        finalCustomerType = "mitra";
+      } else {
+        // Tidak ada info level di pesan → gunakan status DB yang sudah ada
+        finalMitraLevel = dbInfo.mitra_level;
+        finalCustomerType = dbInfo.customer_type;
+      }
     }
   }
 
@@ -644,7 +675,7 @@ async function showConfirmation(chatId: string, pendingOrder: PendingOrder, tota
     `📅 Tanggal: ${dateLabel}\n` +
     `👤 Nama: ${pendingOrder.customer_name}\n` +
     `📱 HP: ${pendingOrder.customer_phone || "<i>tidak terdeteksi</i>"}\n` +
-    `👥 Tipe: ${pendingOrder.mitra_level ? "Mitra" : "Konsumen"}\n\n` +
+    `👥 Tipe: ${pendingOrder.customer_type === "mitra" ? "Mitra" : "Konsumen"}\n\n` +
     `<b>Produk:</b>\n${itemLines}\n\n` +
     `${tierLine}\n` +
     `💰 <b>Total: ${formatRp(pendingOrder.total_price)}</b>\n` +
