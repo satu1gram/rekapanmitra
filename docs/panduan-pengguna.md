@@ -116,11 +116,11 @@ Link toko Anda: `https://[alamat-aplikasi]/toko/[slug-anda]`
 Salin link ini dan bagikan ke grup WhatsApp pelanggan atau taruh di bio Instagram Anda!
 
 **Tampilan toko untuk pelanggan:**
-- Pelanggan pilih produk yang diinginkan
-- Harga otomatis menyesuaikan jumlah belanja
-- Pelanggan isi nama, nomor WA, dan alamat
-- Lihat ringkasan pesanan → konfirmasi → selesai!
-- Nomor rekening ditampilkan dengan tombol **salin** (sekali klik langsung tersalin)
+- **Katalog Profesional**: Tampilan produk yang bersih dengan foto berkualitas tinggi dan deskripsi lengkap.
+- **Visual British Propolis Premium**: Informasi manfaat dan statistik produk ditampilkan secara elegan.
+- **Pemesanan Mudah**: Pelanggan pilih produk yang diinginkan, harga otomatis menyesuaikan jumlah belanja.
+- **Checkout Cepat**: Pelanggan isi nama, nomor WA, dan alamat, lalu konfirmasi pesanan.
+- **Info Pembayaran**: Nomor rekening ditampilkan dengan tombol **salin** untuk kemudahan transfer.
 
 ---
 
