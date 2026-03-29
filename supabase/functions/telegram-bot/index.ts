@@ -46,6 +46,7 @@ interface PendingOrder {
   total_price: number;
   buy_price: number;
   notes: string | null;
+  is_existing_customer: boolean; // true jika customer sudah ada di DB
 }
 
 // Harga tetap per botol sesuai level mitra (dari MITRA_LEVELS di src/types/index.ts)
@@ -223,19 +224,24 @@ async function getOwnerBuyPrice(userId: string): Promise<number> {
 }
 
 // Lookup customer dari DB berdasarkan phone (prioritas) atau name (fallback)
-// → dapat type & tier/level mitra yang sudah tersimpan sebelumnya
+// → dapat type, tier/level, dan phone tersimpan
 async function lookupCustomerLevel(
   phone: string | null,
   name: string | null,
   userId: string
-): Promise<{ customer_type: "mitra" | "konsumen"; mitra_level: MitraLevel | null; found: boolean }> {
-  let data: { type: string; tier: string } | null = null;
+): Promise<{
+  customer_type: "mitra" | "konsumen";
+  mitra_level: MitraLevel | null;
+  found: boolean;
+  db_phone: string | null; // phone yang tersimpan di DB (jika ada)
+}> {
+  let data: { type: string; tier: string; phone: string | null } | null = null;
 
   // 1. Cari by phone dulu (lebih spesifik)
   if (phone) {
     const result = await supabase
       .from("customers")
-      .select("type, tier")
+      .select("type, tier, phone")
       .eq("user_id", userId)
       .eq("phone", phone)
       .maybeSingle();
@@ -246,21 +252,26 @@ async function lookupCustomerLevel(
   if (!data && name) {
     const result = await supabase
       .from("customers")
-      .select("type, tier")
+      .select("type, tier, phone")
       .eq("user_id", userId)
       .ilike("name", name.trim())
       .maybeSingle();
     data = result.data;
   }
 
-  if (!data) return { customer_type: "konsumen", mitra_level: null, found: false };
+  if (!data) return { customer_type: "konsumen", mitra_level: null, found: false, db_phone: null };
 
   const isMitra = data.type?.toLowerCase() === "mitra";
   const level = isMitra && data.tier in MITRA_PRICES
     ? (data.tier as MitraLevel)
     : null;
 
-  return { customer_type: isMitra ? "mitra" : "konsumen", mitra_level: level, found: true };
+  return {
+    customer_type: isMitra ? "mitra" : "konsumen",
+    mitra_level: level,
+    found: true,
+    db_phone: data.phone || null,
+  };
 }
 
 // ─── Product Name → DB Category Mapping ──────────────────────────────────────
@@ -583,27 +594,34 @@ async function handleOrderMessage(chatId: string, text: string, registration: { 
     return;
   }
 
-  // ─ Tentukan mitra level: DB lookup (lebih akurat) > hasil AI > default konsumen ─
+  // ─ Lookup customer di DB dulu (by phone → by name) ──────────────────────────
   let finalMitraLevel = parsed.mitra_level;
   let finalCustomerType = parsed.customer_type || "konsumen";
+  let finalPhone = parsed.customer_phone;
+  let isExistingCustomer = false;
 
-  // Lookup by phone OR name — mencegah duplikat dan ambil status customer yang ada
   if ((parsed.customer_phone || parsed.customer_name) && registration.user_id) {
     const dbInfo = await lookupCustomerLevel(
       parsed.customer_phone,
       parsed.customer_name,
       registration.user_id
     );
+
     if (dbInfo.found) {
-      // Customer sudah ada di DB:
-      // - Jika AI mendeteksi mitra_level eksplisit dari teks → pakai AI (order level baru)
-      // - Jika AI tidak mendeteksi level (default konsumen) → pertahankan status DB
+      isExistingCustomer = true;
+
+      // Jika phone tidak ada di pesan tapi ada di DB → gunakan phone dari DB
+      if (!finalPhone && dbInfo.db_phone) {
+        finalPhone = dbInfo.db_phone;
+      }
+
+      // Tentukan level:
+      // - Jika pesan menyebut level eksplisit (AI mendeteksi mitra_level) → pakai AI
+      // - Jika tidak ada level di pesan → pertahankan status DB
       if (parsed.mitra_level) {
-        // Pesan menyebut level secara eksplisit → update ke level baru
         finalMitraLevel = parsed.mitra_level;
         finalCustomerType = "mitra";
       } else {
-        // Tidak ada info level di pesan → gunakan status DB yang sudah ada
         finalMitraLevel = dbInfo.mitra_level;
         finalCustomerType = dbInfo.customer_type;
       }
@@ -622,7 +640,7 @@ async function handleOrderMessage(chatId: string, text: string, registration: { 
 
   const pendingOrder: PendingOrder = {
     customer_name: parsed.customer_name,
-    customer_phone: parsed.customer_phone,
+    customer_phone: finalPhone,        // phone dari pesan atau dari DB
     customer_type: finalCustomerType,
     mitra_level: finalMitraLevel,
     order_date: parsed.order_date || null,
@@ -630,6 +648,7 @@ async function handleOrderMessage(chatId: string, text: string, registration: { 
     total_price: totalPrice,
     buy_price: buyPrice,
     notes: parsed.notes,
+    is_existing_customer: isExistingCustomer,
   };
 
   // Nama pelanggan WAJIB — kalau tidak terdeteksi, tanya dulu
@@ -666,16 +685,27 @@ async function showConfirmation(chatId: string, pendingOrder: PendingOrder, tota
     tierLine = `🏷 Tier: <b>${appliedTier}</b> (total ${totalQty} botol)`;
   }
 
+  // Format tanggal dengan timeZone WIB agar tidak geser 1 hari akibat UTC server
   const dateLabel = pendingOrder.order_date
-    ? new Date(pendingOrder.order_date + "T00:00:00+07:00").toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })
+    ? new Date(pendingOrder.order_date + "T12:00:00+07:00").toLocaleDateString("id-ID", {
+        day: "numeric", month: "long", year: "numeric", timeZone: "Asia/Jakarta"
+      })
     : "Hari ini";
+
+  // Label tipe + status existing/baru
+  const customerStatusLabel = pendingOrder.is_existing_customer
+    ? "<i>(pelanggan lama)</i>"
+    : "<i>(pelanggan baru)</i>";
+  const tipeLabel = pendingOrder.customer_type === "mitra"
+    ? `Mitra ${customerStatusLabel}`
+    : `Konsumen ${customerStatusLabel}`;
 
   const confirmMsg =
     `📦 <b>Konfirmasi Order</b>\n\n` +
     `📅 Tanggal: ${dateLabel}\n` +
     `👤 Nama: ${pendingOrder.customer_name}\n` +
     `📱 HP: ${pendingOrder.customer_phone || "<i>tidak terdeteksi</i>"}\n` +
-    `👥 Tipe: ${pendingOrder.customer_type === "mitra" ? "Mitra" : "Konsumen"}\n\n` +
+    `👥 Tipe: ${tipeLabel}\n\n` +
     `<b>Produk:</b>\n${itemLines}\n\n` +
     `${tierLine}\n` +
     `💰 <b>Total: ${formatRp(pendingOrder.total_price)}</b>\n` +
@@ -705,7 +735,7 @@ async function handleWaitingCustomerName(
     return;
   }
 
-  // Update nama di pending order, pertahankan mitra level yang sudah dideteksi
+  // Update nama di pending order, pertahankan semua field lain termasuk is_existing_customer
   const updatedOrder: PendingOrder = { ...pendingOrder, customer_name: name };
   const totalQty = updatedOrder.items.reduce((sum, i) => sum + i.quantity, 0);
 
