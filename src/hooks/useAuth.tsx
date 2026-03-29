@@ -19,12 +19,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Supabase v2 recommendation: rely solely on onAuthStateChange.
-    // The VERY FIRST event fired is always INITIAL_SESSION which contains the
-    // persisted session from localStorage — no separate getSession() call needed.
-    // Using both in parallel caused a race condition where a SIGNED_OUT event
-    // could set loading=false with user=null before the stored session was read,
-    // forcing users to log in again after killing the PWA.
+    // Listen for auth state changes — INITIAL_SESSION fires first with
+    // the persisted session from our resilient storage (localStorage + IndexedDB).
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(prev => {
         const nextId = session?.user?.id ?? null;
@@ -39,7 +35,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    // When the PWA returns to foreground (after being killed / suspended),
+    // the network may not have been ready during cold start, causing Supabase
+    // to fire SIGNED_OUT. Re-check the session once the app is visible again.
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        supabase.auth.getSession().then(({ data: { session: s } }) => {
+          if (s) {
+            setUser(s.user);
+            setSession(s);
+          }
+        });
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      subscription.unsubscribe();
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, []);
 
   const signUp = async (email: string, password: string, name: string) => {
