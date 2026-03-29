@@ -39,7 +39,11 @@ BEGIN
         AND LOWER(TRIM(name)) = r.lname
         AND id != keep_id
     LOOP
-      -- Gabungkan statistik
+      -- Langkah 1: NULL-kan phone di duplikat dulu
+      -- agar unique constraint (user_id, phone) tidak konflik saat kita update keep_id
+      UPDATE public.customers SET phone = NULL WHERE id = dup.id;
+
+      -- Langkah 2: Merge stats + ambil phone ke record yang dipertahankan
       UPDATE public.customers
         SET total_orders = total_orders + dup.total_orders,
             total_spent  = total_spent  + dup.total_spent,
@@ -48,12 +52,12 @@ BEGIN
             updated_at   = now()
         WHERE id = keep_id;
 
-      -- Re-link orders ke record yang dipertahankan
+      -- Langkah 3: Re-link orders ke record yang dipertahankan
       UPDATE public.orders
         SET customer_id = keep_id
         WHERE customer_id = dup.id;
 
-      -- Hapus duplikat
+      -- Langkah 4: Hapus duplikat (phone sudah NULL, aman dihapus)
       DELETE FROM public.customers WHERE id = dup.id;
     END LOOP;
   END LOOP;
