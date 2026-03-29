@@ -58,7 +58,7 @@ export function useGeneralIncome() {
       })));
     }
     setLoading(false);
-  }, [user]);
+  }, [user?.id]);
 
   useEffect(() => {
     fetchIncome();

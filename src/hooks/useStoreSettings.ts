@@ -145,7 +145,7 @@ export function useStoreSettings() {
         }
 
         setLoading(false);
-    }, [user]);
+    }, [user?.id]);
 
     useEffect(() => {
         fetchSettings();

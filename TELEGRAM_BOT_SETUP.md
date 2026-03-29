@@ -34,7 +34,7 @@ Order masuk ke dashboard Rekapan ✅
 supabase login
 
 # Deploy function
-supabase functions deploy telegram-bot --project-ref mplnfciugxojlpurxiwk
+supabase functions deploy telegram-bot --project-ref kqoitztjohxjnjoxctoz
 ```
 
 ### 3. Set Environment Variables di Supabase
@@ -51,7 +51,7 @@ Buka **Supabase Dashboard → Project Settings → Edge Functions → Secrets**,
 ### 4. Jalankan Migration Database
 
 ```bash
-supabase db push --project-ref mplnfciugxojlpurxiwk
+supabase db push --project-ref kqoitztjohxjnjoxctoz
 ```
 
 Atau jalankan manual di **Supabase SQL Editor**:

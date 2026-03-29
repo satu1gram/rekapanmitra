@@ -26,10 +26,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(false);
     });
 
-    // Listen for auth changes
+    // Listen for auth changes — use functional updates to preserve object reference
+    // when the same user is set again (e.g. INITIAL_SESSION after getSession resolves)
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      setUser(session?.user ?? null);
+      setUser(prev => {
+        const nextId = session?.user?.id ?? null;
+        const prevId = prev?.id ?? null;
+        return nextId === prevId ? prev : (session?.user ?? null);
+      });
+      setSession(prev => {
+        const nextToken = session?.access_token ?? null;
+        const prevToken = prev?.access_token ?? null;
+        return nextToken === prevToken ? prev : session;
+      });
       setLoading(false);
     });
 

@@ -36,7 +36,7 @@ export function useOrders() {
 
     setOrders(data || []);
     setLoading(false);
-  }, [user]);
+  }, [user?.id]);
 
   useEffect(() => {
     fetchOrders();

@@ -36,6 +36,15 @@ interface OrderItem {
   subtotal: number;
 }
 
+interface PendingRestock {
+  _type: "restock";
+  qty: number;
+  buy_price_per_bottle: number | null;
+  total_buy_price: number | null;
+  tier: MitraLevel;
+  restock_date: string | null;
+}
+
 interface PendingOrder {
   customer_name: string | null;
   customer_phone: string | null;
@@ -107,6 +116,42 @@ function stripBonusLines(text: string): string {
     .split("\n")
     .filter(line => !/\b(bonus|gratis|free|hadiah|promo)\b/i.test(line))
     .join("\n");
+}
+
+// ─── Restock Detection ────────────────────────────────────────────────────────
+
+// Deteksi apakah pesan adalah restok (tanpa AI)
+function detectRestock(text: string): boolean {
+  const lower = text.toLowerCase().trim();
+  if (lower.startsWith("/restok")) return true;
+  return /\b(restok|re-?stok|repeat\s*order|terima\s+\d|\bro\b)\b/i.test(lower)
+      || /\btambah\s+stok\b/i.test(lower)
+      || /\bstok\s+masuk\b/i.test(lower);
+}
+
+// Parse qty + harga dari pesan restok
+function parseRestockMessage(text: string, defaultBuyPrice: number): {
+  qty: number;
+  buy_price_per_bottle: number;
+  restock_date: string | null;
+} {
+  // Qty: angka sebelum/sesudah "botol", atau angka pertama yang ditemukan
+  const qtyMatch = text.match(/(\d+)\s*botol/i)
+    || text.match(/botol\s*(\d+)/i)
+    || text.match(/\b(\d+)\b/);
+  const qty = qtyMatch ? parseInt(qtyMatch[1]) : 0;
+
+  // Harga: angka setelah "harga", "rp", "@", "modal"
+  const priceMatch = text.match(/(?:harga|modal|rp\.?|@)\s*(\d[\d.,]*)/i);
+  let buy_price_per_bottle = defaultBuyPrice;
+  if (priceMatch) {
+    const raw = priceMatch[1].replace(/[.,]/g, "");
+    const parsed = parseInt(raw);
+    // Jika < 1000, anggap ribuan (150 → 150.000)
+    buy_price_per_bottle = parsed < 1000 ? parsed * 1000 : parsed;
+  }
+
+  return { qty, buy_price_per_bottle, restock_date: extractDateID(text) };
 }
 
 // ─── AI Parsing ───────────────────────────────────────────────────────────────
@@ -196,7 +241,7 @@ async function getSession(chatId: string) {
   return data;
 }
 
-async function setSession(chatId: string, state: string, pendingOrder: PendingOrder | null = null) {
+async function setSession(chatId: string, state: string, pendingOrder: PendingOrder | PendingRestock | null = null) {
   await supabase.from("telegram_bot_sessions").upsert({
     chat_id: chatId,
     state,
@@ -466,7 +511,8 @@ async function handleBantuan(chatId: string) {
     "<b>Perintah:</b>\n" +
     "/daftar [slug] — Hubungkan bot ke toko kamu\n" +
     "/bantuan — Tampilkan panduan ini\n" +
-    "/batal — Batalkan order yang sedang diproses\n\n" +
+    "/batal — Batalkan proses yang sedang berjalan\n" +
+    "/restok [qty] — Catat restok masuk\n\n" +
     "<b>Produk yang dikenali:</b>\n" +
     "• BP / British Propolis\n" +
     "• BP Green / British Propolis Green\n" +
@@ -476,10 +522,13 @@ async function handleBantuan(chatId: string) {
     "• Belgie (skincare)\n" +
     "• Steffi Pro\n" +
     "• BP Norway\n\n" +
-    "<b>Contoh format pesan:</b>\n" +
+    "<b>Contoh order:</b>\n" +
     "<i>order 2 bp green, 1 brassic eye\n" +
-    "a.n Budi Santoso\n" +
-    "08123456789</i>"
+    "a.n Budi Santoso 08123456789</i>\n\n" +
+    "<b>Contoh restok:</b>\n" +
+    "<i>/restok 50 botol @170rb</i>\n" +
+    "<i>restok 30 botol 1 maret 2026</i>\n" +
+    "<i>terima 20 botol</i>"
   );
 }
 
@@ -733,6 +782,158 @@ async function showConfirmation(chatId: string, pendingOrder: PendingOrder, tota
   await sendMessage(chatId, confirmMsg);
 }
 
+// ─── Handler: pesan restok ────────────────────────────────────────────────────
+async function handleRestockMessage(chatId: string, text: string, registration: { slug: string; user_id: string }) {
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("mitra_level")
+    .eq("user_id", registration.user_id)
+    .maybeSingle();
+
+  const ownerTier = ((profile?.mitra_level as MitraLevel) in OWNER_BUY_PRICES
+    ? profile!.mitra_level as MitraLevel
+    : "reseller") as MitraLevel;
+  const defaultBuyPrice = OWNER_BUY_PRICES[ownerTier] ?? 217000;
+
+  const { qty, buy_price_per_bottle, restock_date } = parseRestockMessage(text, defaultBuyPrice);
+
+  if (!qty || qty <= 0) {
+    await sendMessage(
+      chatId,
+      "⚠️ <b>Jumlah restok tidak terdeteksi.</b>\n\n" +
+      "Contoh format yang bisa saya proses:\n" +
+      "<i>restok 50 botol</i>\n" +
+      "<i>/restok 30 botol @170rb</i>\n" +
+      "<i>terima 20 botol 1 maret 2026</i>"
+    );
+    return;
+  }
+
+  const total_buy_price = buy_price_per_bottle * qty;
+
+  const pendingRestock: PendingRestock = {
+    _type: "restock",
+    qty,
+    buy_price_per_bottle,
+    total_buy_price,
+    tier: ownerTier,
+    restock_date,
+  };
+
+  const dateLabel = restock_date
+    ? new Date(restock_date + "T12:00:00+07:00").toLocaleDateString("id-ID", {
+        day: "numeric", month: "long", year: "numeric", timeZone: "Asia/Jakarta",
+      })
+    : "Hari ini";
+
+  await setSession(chatId, "confirm_restock", pendingRestock);
+  await sendMessage(
+    chatId,
+    `📦 <b>Konfirmasi Restok</b>\n\n` +
+    `📅 Tanggal: ${dateLabel}\n` +
+    `📊 Jumlah: <b>${qty} botol</b>\n` +
+    `💲 Harga modal/btl: ${formatRp(buy_price_per_bottle)}\n` +
+    `💰 <b>Total modal: ${formatRp(total_buy_price)}</b>\n\n` +
+    `Ketik <b>ya</b> untuk catat restok atau <b>batal</b> untuk batalkan.`
+  );
+}
+
+// ─── Handler: konfirmasi restok ───────────────────────────────────────────────
+async function handleRestockConfirmation(
+  chatId: string,
+  text: string,
+  session: { state: string; pending_order: unknown },
+  registration: { user_id: string }
+) {
+  if (text.toLowerCase() === "ya" || text.toLowerCase() === "y") {
+    const pr = session.pending_order as PendingRestock | null;
+    if (!pr || (pr as any)._type !== "restock") {
+      await setSession(chatId, "idle");
+      await sendMessage(chatId, "Tidak ada restok yang menunggu konfirmasi.");
+      return;
+    }
+
+    const insertData: Record<string, unknown> = {
+      user_id: registration.user_id,
+      type: "in",
+      quantity: pr.qty,
+      tier: pr.tier,
+      buy_price_per_bottle: pr.buy_price_per_bottle,
+      total_buy_price: pr.total_buy_price,
+      notes: "via Telegram Bot",
+    };
+
+    if (pr.restock_date) {
+      insertData.created_at = pr.restock_date + "T12:00:00+07:00";
+    }
+
+    const { error: entryError } = await supabase
+      .from("stock_entries")
+      .insert(insertData);
+
+    if (entryError) {
+      await setSession(chatId, "idle");
+      await sendMessage(
+        chatId,
+        `❌ Gagal mencatat restok.\n\nError: ${entryError.message}\n\nCoba lagi atau hubungi admin.`
+      );
+      return;
+    }
+
+    // Update user_stock: increment current_stock
+    const { data: userStockData } = await supabase
+      .from("user_stock")
+      .select("current_stock")
+      .eq("user_id", registration.user_id)
+      .maybeSingle();
+
+    if (userStockData) {
+      await supabase
+        .from("user_stock")
+        .update({ current_stock: (userStockData.current_stock || 0) + pr.qty })
+        .eq("user_id", registration.user_id);
+    } else {
+      await supabase
+        .from("user_stock")
+        .insert({ user_id: registration.user_id, current_stock: pr.qty });
+    }
+
+    await setSession(chatId, "idle");
+
+    const dateLabel = pr.restock_date
+      ? new Date(pr.restock_date + "T12:00:00+07:00").toLocaleDateString("id-ID", {
+          day: "numeric", month: "long", year: "numeric", timeZone: "Asia/Jakarta",
+        })
+      : "Hari ini";
+
+    await sendMessage(
+      chatId,
+      `✅ <b>Restok Berhasil Dicatat!</b>\n\n` +
+      `📅 Tanggal: ${dateLabel}\n` +
+      `📊 Jumlah: <b>${pr.qty} botol</b>\n` +
+      `💰 Total modal: ${formatRp(pr.total_buy_price ?? 0)}\n\n` +
+      `Data tersimpan di aplikasi Rekapan ✅`
+    );
+    return;
+  }
+
+  if (
+    text.toLowerCase() === "tidak" ||
+    text.toLowerCase() === "batal" ||
+    text.toLowerCase() === "n"
+  ) {
+    await setSession(chatId, "idle");
+    await sendMessage(chatId, "❌ Restok dibatalkan.");
+    return;
+  }
+
+  await sendMessage(
+    chatId,
+    "⏳ Masih ada restok yang menunggu konfirmasi.\n\n" +
+    "Ketik <b>ya</b> untuk catat atau <b>batal</b> untuk batalkan."
+  );
+}
+
 // ─── Handler: menunggu nama pelanggan ─────────────────────────────────────────
 async function handleWaitingCustomerName(
   chatId: string,
@@ -797,7 +998,20 @@ serve(async (req) => {
 
     if (text.startsWith("/batal") || text.startsWith("/batalkan")) {
       await setSession(chatId, "idle");
-      await sendMessage(chatId, "❌ Order dibatalkan.");
+      await sendMessage(chatId, "❌ Proses dibatalkan.");
+      return new Response("OK");
+    }
+
+    if (text.startsWith("/restok")) {
+      const registration = await getRegistration(chatId);
+      if (!registration) {
+        await sendMessage(
+          chatId,
+          "Kamu belum terdaftar! Kirim <code>/daftar [slug_toko]</code> untuk mulai."
+        );
+        return new Response("OK");
+      }
+      await handleRestockMessage(chatId, text, registration);
       return new Response("OK");
     }
 
@@ -823,6 +1037,11 @@ serve(async (req) => {
       return new Response("OK");
     }
 
+    if (state === "confirm_restock") {
+      await handleRestockConfirmation(chatId, text, session!, registration);
+      return new Response("OK");
+    }
+
     if (state === "waiting_customer_name") {
       await handleWaitingCustomerName(chatId, text, session!);
       return new Response("OK");
@@ -835,6 +1054,12 @@ serve(async (req) => {
         "Maaf, saya hanya bisa memproses pesan teks.\n\n" +
         "Forward atau ketik pesan order dari pelanggan."
       );
+      return new Response("OK");
+    }
+
+    // Deteksi restok sebelum kirim ke AI
+    if (detectRestock(text)) {
+      await handleRestockMessage(chatId, text, registration);
       return new Response("OK");
     }
 

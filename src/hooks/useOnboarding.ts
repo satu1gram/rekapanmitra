@@ -123,7 +123,7 @@ export function useOnboarding() {
         } finally {
             setSaving(false);
         }
-    }, [user]);
+    }, [user?.id]);
 
     return {
         isOnboardingComplete: isComplete,

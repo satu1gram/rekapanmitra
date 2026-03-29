@@ -30,7 +30,7 @@ export function useCustomers() {
       setCustomers(data || []);
     }
     setLoading(false);
-  }, [user]);
+  }, [user?.id]);
 
   useEffect(() => {
     fetchCustomers();

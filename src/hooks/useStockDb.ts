@@ -47,7 +47,7 @@ export function useStock() {
     }
 
     setLoading(false);
-  }, [user]);
+  }, [user?.id]);
 
   useEffect(() => {
     fetchStock();

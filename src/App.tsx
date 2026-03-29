@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
+import { ProfileProvider } from "@/contexts/ProfileContext";
 import { AppShell } from "./pages/AppShell";
 import { AuthPage } from "@/components/auth/AuthPage";
 import NotFound from "./pages/NotFound";
@@ -39,6 +40,7 @@ function PageLoader({ variant }: { variant?: 'default' | 'katalog' | 'dashboard'
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
+      <ProfileProvider>
       <TooltipProvider>
         <Toaster />
         <PWAUpdatePrompt />
@@ -114,6 +116,7 @@ const App = () => (
           </Routes>
         </BrowserRouter>
       </TooltipProvider>
+      </ProfileProvider>
     </AuthProvider>
   </QueryClientProvider>
 );

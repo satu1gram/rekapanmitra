@@ -63,7 +63,7 @@ export function useTargets() {
             }))
         );
         setLoading(false);
-    }, [user]);
+    }, [user?.id]);
 
     useEffect(() => { fetchTargets(); }, [fetchTargets]);
 

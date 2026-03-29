@@ -55,7 +55,7 @@ export function useGeneralExpenses() {
       })));
     }
     setLoading(false);
-  }, [user]);
+  }, [user?.id]);
 
   useEffect(() => {
     fetchExpenses();

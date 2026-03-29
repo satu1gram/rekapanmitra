@@ -399,30 +399,58 @@ export default function KatalogProdukPage() {
 
                 <div className="container">
 
-                    {/* Section Header */}
-                    <div className="world-section-header fade-in">
-                        <span className="tag">Katalog 2025</span>
-                        <h2>Semua Produk <em>Quantum Millionaire</em></h2>
-                        <p>12 produk pilihan dari bahan alami terbaik dunia — BPOM, Halal, dan terbukti efektif.</p>
-                        <div className="produk-quick-stats">
-                            <div className="pqs-item"><span>12</span><small>Produk</small></div>
-                            <div className="pqs-div" />
-                            <div className="pqs-item"><span>4</span><small>Kategori</small></div>
-                            <div className="pqs-div" />
-                            <div className="pqs-item"><span>100%</span><small>Halal & BPOM</small></div>
-                            <div className="pqs-div" />
-                            <div className="pqs-item"><span>10rb+</span><small>Pengguna</small></div>
+                    {/* ─── Merged Catalog Hero ─── */}
+                    <div className="brand-hero catalog-merged-hero fade-in">
+                        <div className="brand-hero-left">
+                            <span className="section-tag">Healthy Living Guide</span>
+                            <h2 className="brand-title">
+                                Semua Produk <em>British Propolis</em>
+                                <span className="brand-subtitle">(Komunitas Bisnis Quantum Millionaire)</span>
+                            </h2>
+                            <p className="brand-desc">
+                                Hasil terbaik dari lebah habitat 4 musim di East Yorkshire, Inggris dengan kadar Flavonoid superior. Suplemen premium yang telah teruji BPOM/FDA, diproses Halal (MUI/HMC), dan terbukti efektif untuk kesehatan keluarga secara internasional.
+                            </p>
+                            <div className="brand-stats">
+                                {[
+                                    { num: '12+', label: 'Produk Unggulan' },
+                                    { num: '4', label: 'Kategori Utama' },
+                                    { num: '10rb+', label: 'Keluarga Terlayani' },
+                                    { num: '2018', label: 'Berdiri Sejak' },
+                                ].map(s => (
+                                    <div key={s.label}>
+                                        <span className="bstat-num">{s.num}</span>
+                                        <div className="bstat-label">{s.label}</div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                        <div className="brand-hero-right">
+                            <div className="brand-img-grid ingredient-grid">
+                                {[
+                                    { src: '/images/katalog/propolis-400.webp', title: 'British Propolis', desc: '100% Ekstrak Asli Inggris' },
+                                    { src: '/images/katalog/moringa-400.webp', title: 'Moringa Oleifera', desc: 'Superfood Anti Inflamasi' },
+                                    { src: '/images/katalog/salmon-400.webp', title: 'Salmon Omega-3', desc: 'Tinggi DHA dari Norwegia' },
+                                    { src: '/images/katalog/collagen-400.webp', title: 'Marine Collagen', desc: 'Anti Aging Alami' },
+                                ].map(item => (
+                                    <div key={item.title} className="brand-img-card ingredient-card">
+                                        <img src={item.src} alt={item.title} className="ingredient-img" />
+                                        <div className="ingredient-info">
+                                            <span className="title">{item.title}</span>
+                                            <span className="desc">{item.desc}</span>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
                         </div>
                     </div>
 
-                    {/* Trust Bar */}
+                    {/* Trust Bar (Inline under Hero) */}
                     <div className="trust-bar trust-bar-inline fade-in">
                         {[
-                            { icon: 'verified_user', text: 'BADAN POM' },
+                            { icon: 'verified_user', text: 'BPOM RI' },
                             { icon: 'verified', text: 'Halal MUI' },
-                            { icon: 'eco', text: '100% Alami' },
-                            { icon: 'public', text: 'Standar Internasional' },
-                            { icon: 'local_shipping', text: 'Kirim se-Indonesia' },
+                            { icon: 'security', text: 'FDA USA Registered' },
+                            { icon: 'workspace_premium', text: 'HMC UK Halal certified' },
                         ].map((item, i) => (
                             <React.Fragment key={i}>
                                 {i > 0 && <div className="trust-sep" />}
@@ -561,44 +589,6 @@ export default function KatalogProdukPage() {
                         </div>
                     ) : null}
 
-                    {/* Bahan Unggulan */}
-                    <div className="brand-hero fade-in" style={{ marginTop: '80px', padding: '0' }}>
-                        <div className="brand-hero-left">
-                            <span className="section-tag">Bahan Pilihan Dunia</span>
-                            <h2 className="brand-title">Healthy Living <em>Guide</em></h2>
-                            <p className="brand-desc">Semua produk Quantum Millionaire dipilih dari bahan alami terbaik dunia, diproses halal, dan teruji BPOM.</p>
-                            <div className="brand-stats">
-                                {[
-                                    { num: '12+', label: 'Produk Unggulan' },
-                                    { num: '10rb+', label: 'Keluarga Terlayani' },
-                                    { num: '2018', label: 'Berdiri Sejak' },
-                                ].map(s => (
-                                    <div key={s.label}>
-                                        <span className="bstat-num">{s.num}</span>
-                                        <div className="bstat-label">{s.label}</div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                        <div className="brand-hero-right">
-                            <div className="brand-img-grid ingredient-grid">
-                                {[
-                                    { src: '/images/katalog/propolis-400.webp', title: 'British Propolis', desc: '100% Ekstrak Asli Inggris' },
-                                    { src: '/images/katalog/moringa-400.webp', title: 'Moringa Oleifera', desc: 'Superfood Anti Inflamasi' },
-                                    { src: '/images/katalog/salmon-400.webp', title: 'Salmon Omega-3', desc: 'Tinggi DHA dari Norwegia' },
-                                    { src: '/images/katalog/collagen-400.webp', title: 'Marine Collagen', desc: 'Anti Aging Alami' },
-                                ].map(item => (
-                                    <div key={item.title} className="brand-img-card ingredient-card">
-                                        <img src={item.src} alt={item.title} className="ingredient-img" />
-                                        <div className="ingredient-info">
-                                            <span className="title">{item.title}</span>
-                                            <span className="desc">{item.desc}</span>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
                 </div>
 
                 <div className="world-divider">
