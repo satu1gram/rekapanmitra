@@ -787,10 +787,16 @@
     background: white;
     border-top: 1px solid var(--border);
     box-shadow: 0 -4px 20px rgba(0,0,0,0.08);
-    display: flex;
+    display: none; /* hidden by default; shown only in mobile media query */
     align-items: stretch;
     height: 64px;
     padding-bottom: env(safe-area-inset-bottom);
+}
+
+@media (max-width: 768px) {
+    .mobile-sticky-bar {
+        display: flex !important;
+    }
 }
 
 .mobile-bar-btn {
@@ -1021,7 +1027,7 @@
 /* Individual inline reco card */
 .inline-reco-card {
     display: flex;
-    align-items: center;
+    align-items: stretch; /* stretch so img & btn fill full card height */
     gap: 0;
     background: white;
     border: 1px solid var(--border);
@@ -1039,8 +1045,8 @@
 /* Image area */
 .inline-reco-img {
     width: 80px;
-    height: 80px;
     min-width: 80px;
+    height: auto; /* stretch to card height */
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1108,7 +1114,8 @@
     justify-content: center;
     gap: 5px;
     padding: 0 16px;
-    height: 80px;
+    height: auto; /* stretch to card height */
+    min-height: 80px;
     background: #25D366;
     color: white;
     font-size: 11px;
@@ -1157,8 +1164,8 @@
 @media (max-width: 768px) {
     .inline-reco-img {
         width: 70px;
-        height: 70px;
         min-width: 70px;
+        height: auto;
         border-radius: 15px 0 0 15px;
     }
 
@@ -1168,7 +1175,8 @@
 
     .inline-reco-wa-btn {
         padding: 0 12px;
-        height: 70px;
+        height: auto;
+        min-height: 70px;
         font-size: 10px;
         gap: 4px;
         border-radius: 0 15px 15px 0;
