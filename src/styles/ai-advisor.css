@@ -1047,6 +1047,7 @@
     overflow: hidden;
     position: relative;
     flex-shrink: 0;
+    border-radius: 15px 0 0 15px; /* match card radius, left corners only */
 }
 
 .inline-reco-img img {
@@ -1116,6 +1117,7 @@
     flex-shrink: 0;
     transition: background 0.2s;
     border-left: 1px solid rgba(255,255,255,0.2);
+    border-radius: 0 15px 15px 0; /* match card radius, right corners only */
 }
 
 .inline-reco-wa-btn:hover {
@@ -1157,6 +1159,7 @@
         width: 70px;
         height: 70px;
         min-width: 70px;
+        border-radius: 15px 0 0 15px;
     }
 
     .inline-reco-name {
@@ -1168,6 +1171,7 @@
         height: 70px;
         font-size: 10px;
         gap: 4px;
+        border-radius: 0 15px 15px 0;
     }
 
     .inline-reco-body {
