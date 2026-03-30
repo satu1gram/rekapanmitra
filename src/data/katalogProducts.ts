@@ -42,7 +42,7 @@ export const KATALOG_PRODUCTS: ProductData[] = [
         hargaTier: [
             { label: 'Reseller', minQty: 'min. 3 pcs', harga: 'Rp 216.000' },
             { label: 'Agen', minQty: 'min. 5 pcs', harga: 'Rp 198.000' },
-            { label: 'Star', minQty: 'min. 10 pcs', harga: 'Rp 180.000' },
+            { label: 'Agen Plus', minQty: 'min. 10 pcs', harga: 'Rp 180.000' },
         ],
         bgStyle: "green",
         emoji: "medication_liquid",
@@ -71,7 +71,7 @@ export const KATALOG_PRODUCTS: ProductData[] = [
         hargaTier: [
             { label: 'Reseller', minQty: 'min. 3 pcs', harga: 'Rp 216.000' },
             { label: 'Agen', minQty: 'min. 5 pcs', harga: 'Rp 198.000' },
-            { label: 'Star', minQty: 'min. 10 pcs', harga: 'Rp 180.000' },
+            { label: 'Agen Plus', minQty: 'min. 10 pcs', harga: 'Rp 180.000' },
         ],
         bgStyle: "teal",
         emoji: "child_care",
@@ -99,7 +99,7 @@ export const KATALOG_PRODUCTS: ProductData[] = [
         hargaTier: [
             { label: 'Reseller', minQty: 'min. 3 pcs', harga: 'Rp 216.000' },
             { label: 'Agen', minQty: 'min. 5 pcs', harga: 'Rp 198.000' },
-            { label: 'Star', minQty: 'min. 10 pcs', harga: 'Rp 180.000' },
+            { label: 'Agen Plus', minQty: 'min. 10 pcs', harga: 'Rp 180.000' },
         ],
         bgStyle: "purple",
         emoji: "female",
@@ -128,7 +128,7 @@ export const KATALOG_PRODUCTS: ProductData[] = [
         hargaTier: [
             { label: 'Reseller', minQty: 'min. 3 pcs', harga: 'Rp 216.000' },
             { label: 'Agen', minQty: 'min. 5 pcs', harga: 'Rp 198.000' },
-            { label: 'Star', minQty: 'min. 10 pcs', harga: 'Rp 180.000' },
+            { label: 'Agen Plus', minQty: 'min. 10 pcs', harga: 'Rp 180.000' },
         ],
         bgStyle: "gold",
         emoji: "healing",
@@ -157,7 +157,7 @@ export const KATALOG_PRODUCTS: ProductData[] = [
         hargaTier: [
             { label: 'Reseller', minQty: 'min. 3 pcs', harga: 'Rp 216.000' },
             { label: 'Agen', minQty: 'min. 5 pcs', harga: 'Rp 198.000' },
-            { label: 'Star', minQty: 'min. 10 pcs', harga: 'Rp 180.000' },
+            { label: 'Agen Plus', minQty: 'min. 10 pcs', harga: 'Rp 180.000' },
         ],
         bgStyle: "blue",
         emoji: "visibility",
@@ -187,7 +187,7 @@ export const KATALOG_PRODUCTS: ProductData[] = [
         hargaTier: [
             { label: 'Reseller', minQty: 'min. 3 pcs', harga: 'Rp 216.000' },
             { label: 'Agen', minQty: 'min. 5 pcs', harga: 'Rp 198.000' },
-            { label: 'Star', minQty: 'min. 10 pcs', harga: 'Rp 180.000' },
+            { label: 'Agen Plus', minQty: 'min. 10 pcs', harga: 'Rp 180.000' },
         ],
         bgStyle: "blue",
         emoji: "psychology",

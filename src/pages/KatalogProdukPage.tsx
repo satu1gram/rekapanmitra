@@ -670,7 +670,7 @@ export default function KatalogProdukPage() {
                         </div>
                         <div className="bisnis-cards-grid">
                             {[
-                                { icon: '💰', title: 'Harga Kemitraan', desc: 'Dapatkan harga khusus mitra mulai dari Rp 150.000/botol — jauh lebih hemat dari harga eceran.' },
+                                { icon: '💰', title: 'Harga Kemitraan', desc: 'Dapatkan harga khusus mitra mulai dari Rp 180.000/botol — jauh lebih hemat dari harga eceran.' },
                                 { icon: '🎓', title: 'Pembinaan Langsung', desc: 'Dibimbing langsung oleh Mas Ippho, para Leader, dan Mentor berpengalaman sampai menghasilkan.' },
                                 { icon: '📱', title: 'Bahan Promosi Harian', desc: 'Setiap hari mendapatkan materi promosi siap pakai untuk langsung dibagikan ke calon pelanggan.' },
                                 { icon: '📚', title: 'Akses Pendidikan', desc: 'Akses penuh ke materi Knowledge & Skill untuk meningkatkan kemampuan bisnis dan produk.' },
@@ -710,11 +710,11 @@ export default function KatalogProdukPage() {
                                 {
                                     nama: 'Paket SAP',
                                     jumlah: '40 Botol',
-                                    hargaPaket: 'Rp 7.200.000',
-                                    modal: 'Rp 180.000',
+                                    hargaPaket: 'Rp 6.800.000',
+                                    modal: 'Rp 170.000',
                                     jual: 'Rp 250.000',
-                                    untung: 'Rp 70.000',
-                                    potensi: 'Rp 2.800.000',
+                                    untung: 'Rp 80.000',
+                                    potensi: 'Rp 3.200.000',
                                     highlight: false,
                                 },
                                 {
