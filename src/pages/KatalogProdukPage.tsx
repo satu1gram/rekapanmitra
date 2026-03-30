@@ -300,14 +300,14 @@ export default function KatalogProdukPage() {
                         <div className="ai-result-container">
 
                             {/* Empati */}
-                            <div className="advisor-empati-block fade-in">
+                            <div className="advisor-empati-block">
                                 <span className="advisor-empati-icon">💚</span>
                                 <p className="advisor-empati-text">{aiResult.empati}</p>
                             </div>
 
                             {/* Tips Gaya Hidup */}
                             {aiResult.tips_gaya_hidup.length > 0 && (
-                                <div className="advisor-tips-block fade-in">
+                                <div className="advisor-tips-block">
                                     <div className="advisor-tips-label">
                                         <span className="material-symbols-rounded">tips_and_updates</span>
                                         Tips Gaya Hidup untuk Kamu
@@ -325,7 +325,7 @@ export default function KatalogProdukPage() {
 
                             {/* ── Produk Rekomendasi Inline ── */}
                             {recommendedProducts.length > 0 && (
-                                <div className="inline-reco-section fade-in">
+                                <div className="inline-reco-section">
                                     <div className="inline-reco-header">
                                         <span className="material-symbols-rounded">medication</span>
                                         <div>
@@ -374,7 +374,7 @@ export default function KatalogProdukPage() {
                             )}
 
                             {/* ── Testimoni Terkait ── */}
-                            <div className="inline-testimoni-section fade-in">
+                            <div className="inline-testimoni-section">
                                 <div className="inline-section-header">
                                     <span className="material-symbols-rounded">format_quote</span>
                                     <div>

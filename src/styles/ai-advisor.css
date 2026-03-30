@@ -936,11 +936,17 @@
    AI RESULT WORLD — wrapper for AI result content
 ══════════════════════════════════════════════════════════ */
 
+@keyframes ai-slide-in {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
 .ai-result-world {
     background: white;
     border-top: 3px solid var(--green);
     border-bottom: 1px solid var(--border);
     margin-top: 8px;
+    animation: ai-slide-in 0.4s ease-out both;
 }
 
 .ai-result-container {
@@ -1780,18 +1786,7 @@
     position: relative;
 }
 
-/* Connecting line between steps */
-.bisnis-steps-grid::before {
-    content: '';
-    position: absolute;
-    top: 36px;
-    left: calc(16.67% + 24px);
-    right: calc(16.67% + 24px);
-    height: 2px;
-    background: linear-gradient(90deg, rgba(212,175,55,0.4), rgba(212,175,55,0.4));
-    pointer-events: none;
-    z-index: 0;
-}
+/* Connecting line removed */
 
 .bisnis-step-card {
     text-align: center;
