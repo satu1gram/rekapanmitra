@@ -221,9 +221,6 @@ export default function KatalogProdukPage() {
                     </a>
                 </div>
                 <div className="mobile-controls mobile-only">
-                    <a href={getWaLink('Halo kak, saya mau konsultasi')} target="_blank" rel="noopener noreferrer" className="btn-wa-sm">
-                        <span className="material-symbols-rounded">chat</span> WA
-                    </a>
                     <button className="hamburger-btn" type="button">
                         <span className="line" /><span className="line" /><span className="line" />
                     </button>
