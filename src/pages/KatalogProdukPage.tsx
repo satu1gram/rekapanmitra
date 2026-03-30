@@ -392,7 +392,7 @@ export default function KatalogProdukPage() {
                                         </div>
                                     </div>
                                 </div>
-                                <TestimoniSection activeKeluhan={selectedKeluhan} />
+                                <TestimoniSection activeKeluhan={selectedKeluhan} compact={true} />
                             </div>
                         </div>
                     </div>

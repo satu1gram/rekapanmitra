@@ -100,8 +100,8 @@ function PaginationDots({
 }
 
 // ── Komponen Utama ───────────────────────────────────────────────
-export function TestimoniSection({ activeKeluhan = [] }: { activeKeluhan?: string[] }) {
-    const { data: allTestimoni, loading, error, refetch } = useTestimonials({ limit: 12 });
+export function TestimoniSection({ activeKeluhan = [], compact = false }: { activeKeluhan?: string[]; compact?: boolean }) {
+    const { data: allTestimoni, loading, error, refetch } = useTestimonials({ limit: compact ? 6 : 12 });
     const [opacity, setOpacity] = useState(1);
 
     // Responsive: step 1 card per klik
@@ -158,15 +158,19 @@ export function TestimoniSection({ activeKeluhan = [] }: { activeKeluhan?: strin
 
     return (
         <section
-            id="testimoni"
-            className="py-16 bg-[#F8FBF9] overflow-hidden"
+            id={compact ? undefined : 'testimoni'}
+            className={compact
+                ? 'overflow-hidden'
+                : 'py-16 bg-[#F8FBF9] overflow-hidden'
+            }
             aria-labelledby="testimoni-heading"
             onMouseEnter={carousel.pause}
             onMouseLeave={carousel.resume}
         >
-            <div className="max-w-6xl mx-auto px-4">
+            <div className={compact ? '' : 'max-w-6xl mx-auto px-4'}>
 
-                {/* ── Header ── */}
+                {/* ── Header — only shown in full mode ── */}
+                {!compact && (
                 <div className="text-center mb-10">
                     <p className="text-xs font-bold tracking-widest text-[#3D7A4F] uppercase mb-3">
                         TESTIMONI
@@ -195,6 +199,20 @@ export function TestimoniSection({ activeKeluhan = [] }: { activeKeluhan?: strin
                         </div>
                     )}
                 </div>
+                )}
+
+                {/* ── Compact filter indicator ── */}
+                {compact && activeKeluhan.length > 0 && (
+                    <div className="mb-3 flex items-center gap-2">
+                        <span className={`flex h-2 w-2 rounded-full flex-shrink-0 ${filtered.length > 0 ? 'bg-[#3D7A4F]' : 'bg-amber-400'}`} />
+                        <p className="text-xs text-gray-500">
+                            {filtered.length > 0
+                                ? `${filtered.length} testimoni untuk keluhan ini`
+                                : 'Belum ada testimoni spesifik — menampilkan pilihan kami'
+                            }
+                        </p>
+                    </div>
+                )}
 
                 {/* ── Error ── */}
                 {error && (
@@ -224,6 +242,7 @@ export function TestimoniSection({ activeKeluhan = [] }: { activeKeluhan?: strin
                         <div className="flex items-center gap-2 md:gap-4">
 
                             {/* Tombol Prev */}
+                            {!compact && (
                             <div className="hidden sm:block">
                                 <NavButton
                                     direction="prev"
@@ -231,6 +250,7 @@ export function TestimoniSection({ activeKeluhan = [] }: { activeKeluhan?: strin
                                     disabled={!carousel.canPrev}
                                 />
                             </div>
+                            )}
 
                             {/* Track container */}
                             <div
@@ -254,7 +274,7 @@ export function TestimoniSection({ activeKeluhan = [] }: { activeKeluhan?: strin
                                                 i >= carousel.currentIndex + VISIBLE_DESKTOP
                                             }
                                         >
-                                            <TestimoniCard testimoni={t} />
+                                            <TestimoniCard testimoni={t} compact={compact} />
                                         </div>
                                     ))}
                                 </div>
@@ -271,13 +291,14 @@ export function TestimoniSection({ activeKeluhan = [] }: { activeKeluhan?: strin
                                             className="w-full flex-shrink-0 px-3 flex items-stretch"
                                             aria-hidden={i !== carousel.currentIndex}
                                         >
-                                            <TestimoniCard testimoni={t} />
+                                            <TestimoniCard testimoni={t} compact={compact} />
                                         </div>
                                     ))}
                                 </div>
                             </div>
 
                             {/* Tombol Next */}
+                            {!compact && (
                             <div className="hidden sm:block">
                                 <NavButton
                                     direction="next"
@@ -285,6 +306,7 @@ export function TestimoniSection({ activeKeluhan = [] }: { activeKeluhan?: strin
                                     disabled={!carousel.canNext}
                                 />
                             </div>
+                            )}
                         </div>
 
                         {/* Pagination dots */}

@@ -84,29 +84,74 @@ export function useTestimonials(
                 const content = (r.content || '').toLowerCase();
                 const produk = (r.produk || '').toLowerCase();
 
-                // Auto-tagging based on content and product
-                const tags: string[] = r.tags || [];
+                // Auto-tagging: CONTENT first (specific > generic)
+                const tags: string[] = r.tags ? [...r.tags] : [];
                 if (tags.length === 0) {
-                    if (content.includes('tidur') || content.includes('lelap') || content.includes('insomnia')) tags.push('susah_tidur', 'insomnia');
-                    if (content.includes('sendi') || content.includes('lutut') || content.includes('asam urat') || content.includes('rematik') || content.includes('linu') || content.includes('pegal')) tags.push('nyeri_sendi', 'asam_urat', 'rematik');
-                    if (content.includes('imun') || content.includes('daya tahan') || content.includes('sakit') || content.includes('flu') || content.includes('bersin') || content.includes('panas')) tags.push('imun', 'daya_tahan', 'flu');
-                    if (content.includes('mata') || content.includes('rabun') || content.includes('lelah')) tags.push('mata');
-                    if (content.includes('gula') || content.includes('diabetes') || content.includes('manis')) tags.push('gula_darah', 'diabetes');
-                    if (content.includes('makan') || content.includes('lahap') || content.includes('anak')) tags.push('nafsu_makan', 'anak');
-                    if (content.includes('stamina') || content.includes('energi') || content.includes('lemas') || content.includes('capek') || content.includes('letih')) tags.push('stamina', 'energi');
-                    if (content.includes('fokus') || content.includes('konsentrasi') || content.includes('otak') || content.includes('ingatan')) tags.push('fokus', 'konsentrasi');
-                    if (content.includes('kulit') || content.includes('kusam') || content.includes('flek') || content.includes('jerawat') || content.includes('muka')) tags.push('kulit', 'flek');
-                    if (content.includes('rambut') || content.includes('rontok')) tags.push('rambut');
+                    // 1. Highly-specific content tags — checked first, take priority
+                    if (content.includes('haid') || content.includes('kista') || content.includes('hormon') ||
+                        content.includes('mens') || content.includes('datang bulan') || content.includes('promil') ||
+                        content.includes('rahim') || content.includes('nyeri haid') || content.includes('siklus'))
+                        tags.push('haid', 'hormon', 'wanita');
 
-                    // Product based tagging
-                    if (produk.includes('british propolis') || produk.includes('bp')) tags.push('imun', 'stamina', 'pemulihan');
-                    if (produk.includes('brassic pro') || produk.includes('bro')) tags.push('susah_tidur', 'nyeri_sendi');
-                    if (produk.includes('brassic eye') || produk.includes('bre')) tags.push('mata');
-                    if (produk.includes('belgie')) tags.push('kulit', 'flek');
-                    if (produk.includes('steffi')) tags.push('gula_darah', 'diabetes');
+                    if (content.includes('rambut') || content.includes('rontok') || content.includes('kebotakan') ||
+                        content.includes('ketombe'))
+                        tags.push('rambut');
+
+                    if (content.includes('kulit') || content.includes('kusam') || content.includes('flek') ||
+                        content.includes('jerawat') || content.includes('muka') || content.includes('wajah') ||
+                        content.includes('anti aging') || content.includes('serum'))
+                        tags.push('kulit', 'flek');
+
+                    if (content.includes('gula') || content.includes('diabetes') || content.includes('manis') ||
+                        content.includes('kadar gula') || content.includes('darah tinggi'))
+                        tags.push('gula_darah', 'diabetes');
+
+                    if (content.includes('mata') || content.includes('rabun'))
+                        tags.push('mata');
+
+                    if (content.includes('makan') || content.includes('lahap') || content.includes('nafsu') ||
+                        (content.includes('anak') && !content.includes('kanker')))
+                        tags.push('nafsu_makan', 'anak');
+
+                    if (content.includes('sendi') || content.includes('lutut') || content.includes('asam urat') ||
+                        content.includes('rematik') || content.includes('linu') || content.includes('pegal'))
+                        tags.push('nyeri_sendi', 'asam_urat', 'rematik');
+
+                    if (content.includes('tidur') || content.includes('lelap') || content.includes('insomnia'))
+                        tags.push('susah_tidur', 'insomnia');
+
+                    if (content.includes('fokus') || content.includes('konsentrasi') || content.includes('otak') ||
+                        content.includes('ingatan') || content.includes('memory'))
+                        tags.push('fokus', 'konsentrasi');
+
+                    if (content.includes('stamina') || content.includes('energi') || content.includes('lemas') ||
+                        content.includes('capek') || content.includes('letih'))
+                        tags.push('stamina', 'energi');
+
+                    // Flu/imun: ONLY if content explicitly mentions it (not inferred from product)
+                    if (content.includes('flu') || content.includes('bersin') || content.includes('pilek') ||
+                        content.includes('demam') || content.includes('panas badan'))
+                        tags.push('flu');
+
+                    if (content.includes('imun') || content.includes('daya tahan') || content.includes('imunitas'))
+                        tags.push('imun', 'daya_tahan');
+
+                    // 2. Product-based tags as FALLBACK — ONLY if no content-specific tags found
+                    if (tags.length === 0) {
+                        if (produk.includes('british propolis blue')) tags.push('haid', 'hormon', 'wanita');
+                        else if (produk.includes('british propolis green')) tags.push('nafsu_makan', 'anak');
+                        else if (produk.includes('british propolis') || produk.includes('bp norway')) tags.push('imun', 'stamina', 'pemulihan');
+                        if (produk.includes('brassic pro')) tags.push('susah_tidur', 'nyeri_sendi');
+                        if (produk.includes('brassic eye')) tags.push('mata');
+                        if (produk.includes('belgie hair')) tags.push('rambut');
+                        else if (produk.includes('belgie')) tags.push('kulit', 'flek');
+                        if (produk.includes('steffi')) tags.push('gula_darah', 'diabetes');
+                    }
                 }
 
-                return { ...r, tags };
+                // Deduplicate tags
+                const uniqueTags = [...new Set(tags)];
+                return { ...r, tags: uniqueTags };
             });
 
             // Apply enhanced shuffle untuk randomisasi setiap fetch
