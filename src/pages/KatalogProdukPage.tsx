@@ -9,25 +9,25 @@ import { generateAIAdvice, RAGResult } from '@/lib/geminiRAG';
 // ─── Konstanta ───────────────────────────────────────────────────────────────
 
 const COMPLAINT_OPTIONS = [
-    "😴 Susah Tidur", "🦴 Nyeri Sendi", "😷 Imun Lemah", "👁️ Mata Lelah",
-    "🩸 Gula Darah Tinggi", "🧒 Anak Susah Makan", "💆 Rambut Rontok", "✨ Kulit Kusam",
-    "🤧 Sering Flu", "🧠 Kurang Fokus", "☀️ Flek Hitam", "⚡ Kurang Stamina"
+    "Susah Tidur", "Nyeri Sendi", "Imun Lemah", "Mata Lelah",
+    "Gula Darah Tinggi", "Anak Susah Makan", "Rambut Rontok", "Kulit Kusam",
+    "Sering Flu", "Kurang Fokus", "Flek Hitam", "Kurang Stamina"
 ];
 
 const KELUHAN_FILTER_TABS = [
-    { key: 'all', label: '🌿 Semua' },
-    { key: 'tidur', label: '😴 Susah Tidur' },
-    { key: 'sendi', label: '🦴 Nyeri Sendi' },
-    { key: 'imun', label: '😷 Imun Lemah' },
-    { key: 'mata', label: '👁️ Mata Lelah' },
-    { key: 'gula', label: '🩸 Gula Darah' },
-    { key: 'anak', label: '🧒 Anak' },
-    { key: 'rambut', label: '💆 Rambut Rontok' },
-    { key: 'kulit', label: '✨ Kulit & Flek' },
-    { key: 'flu', label: '🤧 Sering Flu' },
-    { key: 'fokus', label: '🧠 Kurang Fokus' },
-    { key: 'stamina', label: '⚡ Stamina' },
-    { key: 'wanita', label: '👩 Hormon Wanita' },
+    { key: 'all', label: 'Semua' },
+    { key: 'tidur', label: 'Susah Tidur' },
+    { key: 'sendi', label: 'Nyeri Sendi' },
+    { key: 'imun', label: 'Imun Lemah' },
+    { key: 'mata', label: 'Mata Lelah' },
+    { key: 'gula', label: 'Gula Darah' },
+    { key: 'anak', label: 'Anak' },
+    { key: 'rambut', label: 'Rambut Rontok' },
+    { key: 'kulit', label: 'Kulit & Flek' },
+    { key: 'flu', label: 'Sering Flu' },
+    { key: 'fokus', label: 'Kurang Fokus' },
+    { key: 'stamina', label: 'Stamina' },
+    { key: 'wanita', label: 'Hormon Wanita' },
 ];
 
 const KELUHAN_PRODUCTS: Record<string, string[]> = {
@@ -287,8 +287,16 @@ export default function KatalogProdukPage() {
                         </button>
 
                         <div className="advisor-trust-row">
-                            {['✅ Gratis', '⚡ <10 detik', '🔒 Privasi aman', '🤖 Powered by AI'].map(t => (
-                                <span key={t} className="advisor-trust-pill">{t}</span>
+                            {[
+                                { icon: 'check_circle', text: 'Gratis' },
+                                { icon: 'bolt', text: '<10 detik' },
+                                { icon: 'lock', text: 'Privasi aman' },
+                                { icon: 'smart_toy', text: 'Powered by AI' },
+                            ].map(t => (
+                                <span key={t.text} className="advisor-trust-pill">
+                                    <span className="material-symbols-rounded" style={{ fontSize: '14px' }}>{t.icon}</span>
+                                    {t.text}
+                                </span>
                             ))}
                         </div>
                     </div>
@@ -503,11 +511,11 @@ export default function KatalogProdukPage() {
                             </span>
                             <div className="compact-filter-chips">
                                 {[
-                                    { key: 'all', label: '🌿 Semua' },
-                                    { key: 'propolis', label: '🍯 Propolis' },
-                                    { key: 'skincare', label: '✨ Skincare' },
-                                    { key: 'suplemen', label: '💊 Suplemen' },
-                                    { key: 'natural', label: '🌾 Natural' },
+                                    { key: 'all', label: 'Semua' },
+                                    { key: 'propolis', label: 'Propolis' },
+                                    { key: 'skincare', label: 'Skincare' },
+                                    { key: 'suplemen', label: 'Suplemen' },
+                                    { key: 'natural', label: 'Natural' },
                                 ].map(cat => (
                                     <button key={cat.key} type="button"
                                         className={`cfc-chip ${activeCategory === cat.key ? 'active' : ''}`}
@@ -613,7 +621,7 @@ export default function KatalogProdukPage() {
                         </div>
                     ) : isFiltering ? (
                         <div className="filter-empty-state">
-                            <span style={{ fontSize: '48px' }}>🔍</span>
+                            <span className="material-symbols-rounded" style={{ fontSize: '48px', color: 'var(--text-light)' }}>search_off</span>
                             <p>Tidak ada produk untuk keluhan ini.</p>
                             <button type="button" className="cfc-chip active" onClick={resetFilter}>
                                 Tampilkan Semua Produk
@@ -632,11 +640,6 @@ export default function KatalogProdukPage() {
                 DUNIA 3 — TENTANG BISNIS (Placeholder)
             ════════════════════════════════════════════════════════ */}
             <section className="world-section world-bisnis" id="bisnis" ref={sectionBisnisRef}>
-
-                <div className="world-label world-label-gold">
-                    <span className="material-symbols-rounded">handshake</span>
-                    Peluang Bisnis
-                </div>
 
                 <div className="container">
 
@@ -670,15 +673,17 @@ export default function KatalogProdukPage() {
                         </div>
                         <div className="bisnis-cards-grid">
                             {[
-                                { icon: '💰', title: 'Harga Kemitraan', desc: 'Dapatkan harga khusus mitra mulai dari Rp 180.000/botol — jauh lebih hemat dari harga eceran.' },
-                                { icon: '🎓', title: 'Pembinaan Langsung', desc: 'Dibimbing langsung oleh Mas Ippho, para Leader, dan Mentor berpengalaman sampai menghasilkan.' },
-                                { icon: '📱', title: 'Bahan Promosi Harian', desc: 'Setiap hari mendapatkan materi promosi siap pakai untuk langsung dibagikan ke calon pelanggan.' },
-                                { icon: '📚', title: 'Akses Pendidikan', desc: 'Akses penuh ke materi Knowledge & Skill untuk meningkatkan kemampuan bisnis dan produk.' },
-                                { icon: '🌐', title: 'Komunitas & Grup WA', desc: 'Bergabung ke komunitas aktif dan grup-grup WhatsApp untuk saling support dan sharing.' },
-                                { icon: '📈', title: 'Potensi Untung Besar', desc: 'Untung hingga Rp 100.000/botol dengan potensi maksimal Rp 20.000.000 dari paket SE 200 Botol.' },
+                                { icon: 'sell', title: 'Harga Kemitraan', desc: 'Dapatkan harga khusus mitra mulai dari Rp 180.000/botol — jauh lebih hemat dari harga eceran.' },
+                                { icon: 'school', title: 'Pembinaan Langsung', desc: 'Dibimbing langsung oleh Mas Ippho, para Leader, dan Mentor berpengalaman sampai menghasilkan.' },
+                                { icon: 'campaign', title: 'Bahan Promosi Harian', desc: 'Setiap hari mendapatkan materi promosi siap pakai untuk langsung dibagikan ke calon pelanggan.' },
+                                { icon: 'menu_book', title: 'Akses Pendidikan', desc: 'Akses penuh ke materi Knowledge & Skill untuk meningkatkan kemampuan bisnis dan produk.' },
+                                { icon: 'groups', title: 'Komunitas & Grup WA', desc: 'Bergabung ke komunitas aktif dan grup-grup WhatsApp untuk saling support dan sharing.' },
+                                { icon: 'trending_up', title: 'Potensi Untung Besar', desc: 'Untung hingga Rp 100.000/botol dengan potensi maksimal Rp 20.000.000 dari paket SE 200 Botol.' },
                             ].map((item, i) => (
                                 <div key={i} className="bisnis-card">
-                                    <div className="bisnis-card-icon">{item.icon}</div>
+                                    <div className="bisnis-card-icon">
+                                        <span className="material-symbols-rounded">{item.icon}</span>
+                                    </div>
                                     <div className="bisnis-card-title">{item.title}</div>
                                     <div className="bisnis-card-desc">{item.desc}</div>
                                 </div>
