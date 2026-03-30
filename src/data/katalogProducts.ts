@@ -212,6 +212,11 @@ export const KATALOG_PRODUCTS: ProductData[] = [
         ],
         price: "Rp 195.000",
         priceNote: "Gel 100 ML",
+        hargaTier: [
+            { label: 'Reseller', minQty: 'min. 3 pcs', harga: 'Rp 195.000' },
+            { label: 'Agen', minQty: 'min. 5 pcs', harga: 'Rp 195.000' },
+            { label: 'Agen Plus', minQty: 'min. 10 pcs', harga: 'Rp 180.000' },
+        ],
         bgStyle: "red",
         emoji: "water_drop",
         image: "/images/produk/facialwash.webp"
@@ -235,6 +240,11 @@ export const KATALOG_PRODUCTS: ProductData[] = [
         ],
         price: "Rp 195.000",
         priceNote: "10 ML",
+        hargaTier: [
+            { label: 'Reseller', minQty: 'min. 3 pcs', harga: 'Rp 195.000' },
+            { label: 'Agen', minQty: 'min. 5 pcs', harga: 'Rp 195.000' },
+            { label: 'Agen Plus', minQty: 'min. 10 pcs', harga: 'Rp 180.000' },
+        ],
         bgStyle: "purple",
         emoji: "auto_awesome",
         image: "/images/produk/serum.webp"
@@ -258,6 +268,11 @@ export const KATALOG_PRODUCTS: ProductData[] = [
         ],
         price: "Rp 195.000",
         priceNote: "10 Gram",
+        hargaTier: [
+            { label: 'Reseller', minQty: 'min. 3 pcs', harga: 'Rp 195.000' },
+            { label: 'Agen', minQty: 'min. 5 pcs', harga: 'Rp 195.000' },
+            { label: 'Agen Plus', minQty: 'min. 10 pcs', harga: 'Rp 180.000' },
+        ],
         bgStyle: "red",
         emoji: "light_mode",
         image: "/images/produk/daycream.webp"
@@ -282,6 +297,11 @@ export const KATALOG_PRODUCTS: ProductData[] = [
         ],
         price: "Rp 195.000",
         priceNote: "Krim 10 Gram",
+        hargaTier: [
+            { label: 'Reseller', minQty: 'min. 3 pcs', harga: 'Rp 195.000' },
+            { label: 'Agen', minQty: 'min. 5 pcs', harga: 'Rp 195.000' },
+            { label: 'Agen Plus', minQty: 'min. 10 pcs', harga: 'Rp 180.000' },
+        ],
         bgStyle: "red",
         emoji: "dark_mode",
         image: "/images/produk/nightcream.webp"
@@ -306,6 +326,11 @@ export const KATALOG_PRODUCTS: ProductData[] = [
         ],
         price: "Rp 195.000",
         priceNote: "Spray 100 ML",
+        hargaTier: [
+            { label: 'Reseller', minQty: 'min. 3 pcs', harga: 'Rp 195.000' },
+            { label: 'Agen', minQty: 'min. 5 pcs', harga: 'Rp 195.000' },
+            { label: 'Agen Plus', minQty: 'min. 10 pcs', harga: 'Rp 180.000' },
+        ],
         bgStyle: "gold",
         emoji: "face_retouching_natural",
         image: "/images/produk/hairtonic.webp"
@@ -332,6 +357,11 @@ export const KATALOG_PRODUCTS: ProductData[] = [
         priceNote: "🔥 Harga Promo",
         oldPrice: "Rp 250.000",
         nomorRegistrasi: "MD 272824001500528",
+        hargaTier: [
+            { label: 'Reseller', minQty: 'min. 3 pcs', harga: 'Rp 195.000' },
+            { label: 'Agen', minQty: 'min. 5 pcs', harga: 'Rp 195.000' },
+            { label: 'Agen Plus', minQty: 'min. 10 pcs', harga: 'Rp 180.000' },
+        ],
         bgStyle: "blue",
         emoji: "local_cafe",
         image: "/images/produk/steffi.webp"

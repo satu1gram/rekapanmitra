@@ -694,7 +694,7 @@ export default function KatalogProdukPage() {
                             <span className="tag">Pilih Paket Kemitraan</span>
                             <h3>Mulai Bisnis dengan <em>Membeli Produk BP</em></h3>
                             <p style={{ color: 'var(--text-muted)', fontSize: '14px', marginTop: '8px' }}>
-                                Pembelian paket bisa di-MIX produknya (BP/Brassic/Norway/Steffi). Produk Belgie = Rp 195.000/botol.
+                                Pembelian paket bisa di-MIX produknya (BP/Brassic/Norway/Belgie/Steffi)
                             </p>
                         </div>
                         <div className="bisnis-paket-grid">
