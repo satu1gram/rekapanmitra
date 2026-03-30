@@ -337,53 +337,40 @@ export async function generateAIAdvice(selectedComplaints: string[], complaintTe
         catch { localStorage.removeItem(cacheKey); }
     }
 
-    // 2. Direct z.ai API Call
+    // 2. Call via Supabase Edge Function (CORS-safe proxy)
     try {
-        const apiKey = import.meta.env.VITE_ZAI_API_KEY;
-        if (!apiKey) {
-            console.warn('[AI] VITE_ZAI_API_KEY missing, using fallback');
-            return getDynamicFallback(userInput);
-        }
+        console.info('[AI] 🔄 Calling ai-konsultasi edge function...');
 
-        console.info('[AI] 🔄 Calling z.ai API...');
+        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+        const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
         const response = await fetch(
-            'https://api.z.ai/v1/chat/completions',
+            `${supabaseUrl}/functions/v1/ai-konsultasi`,
             {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${apiKey}`
+                    'Authorization': `Bearer ${supabaseKey}`,
+                    'apikey': supabaseKey,
                 },
-                body: JSON.stringify({
-                    model: 'zeta-1',
-                    messages: [
-                        { role: 'system', content: SYSTEM_PROMPT },
-                        { role: 'user', content: userInput }
-                    ],
-                    temperature: 0.8,
-                    max_tokens: 1024,
-                    response_format: { type: "json_object" }
-                })
+                body: JSON.stringify({ userInput })
             }
         );
 
         if (!response.ok) {
-            throw new Error(`z.ai API error: ${response.status}`);
+            const errBody = await response.text();
+            throw new Error(`Edge function error ${response.status}: ${errBody}`);
         }
 
-        const data = await response.json();
-        const rawText = data?.choices?.[0]?.message?.content;
+        const parsed = await response.json();
 
-        if (!rawText) {
-            throw new Error('Empty response from z.ai');
+        if (parsed.error) {
+            throw new Error(parsed.error);
         }
-
-        const parsed = JSON.parse(rawText);
 
         // Cache result
         writeCache(cacheKey, JSON.stringify(parsed));
-        console.info('[AI] ✅ Berhasil');
+        console.info('[AI] ✅ Berhasil via edge function');
 
         return { ...parsed, testimonials: [] };
 

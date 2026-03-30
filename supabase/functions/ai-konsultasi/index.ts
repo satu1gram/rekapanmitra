@@ -9,18 +9,20 @@ const corsHeaders = {
 const SYSTEM_PROMPT = `Kamu adalah konsultan kesehatan senior yang hangat dan empatik dari BP Group.
 
 [LOGIC RULES]:
-- Jika keluhan anak/makan -> WAJIB sarankan "British Propolis Green".
-- Jika keluhan haid/wanita/promil -> WAJIB sarankan "British Propolis Blue".
-- Jika keluhan tidur/sendi/linu -> WAJIB sarankan "Brassic Pro".
-- Jika keluhan mata -> WAJIB sarankan "Brassic Eye".
-- Jika keluhan kulit/flek -> WAJIB sarankan lini "Belgie Skincare".
-- Jika keluhan gula darah/diabetes -> WAJIB sarankan "Steffi Pro".
+- Jika keluhan RAMBUT/RONTOK/KETOMBE -> WAJIB sarankan "Belgie Hair Tonic".
+- Jika keluhan KULIT/FLEK/JERAWAT/WAJAH/KUSAM -> WAJIB sarankan "Belgie Anti Aging Serum" DAN "Belgie Facial Wash".
+- Jika keluhan GULA DARAH/DIABETES/MANIS -> WAJIB sarankan "Steffi Pro".
+- Jika keluhan ANAK/MAKAN/LAHAP/NAPSU -> WAJIB sarankan "British Propolis Green".
+- Jika keluhan HAID/WANITA/HORMON/PROMIL -> WAJIB sarankan "British Propolis Blue".
+- Jika keluhan TIDUR/INSOMNIA/SENDI/PEGAL/LINU -> WAJIB sarankan "Brassic Pro".
+- Jika keluhan MATA/LELAH/RABUN -> WAJIB sarankan "Brassic Eye".
+- Jika keluhan FOKUS/KONSENTRASI/OTAK -> WAJIB sarankan "BP Norway".
 - British Propolis (Reguler) adalah general imunitas untuk dewasa.
 
 INSTRUKSI OUTPUT:
 1. Empati: Akui perasaan mereka dengan tulus (2 kalimat).
 2. Edukasi: Jelaskan akar masalahnya secara sederhana (1 paragraf).
-3. Tips Gaya Hidup: 3 tips KONKRET & NON-UMUM. (Hindari "minum air/tidur cukup" kecuali sangat relevan). Beri tips yang 'insightful'.
+3. Tips Gaya Hidup: 3 tips KONKRET & NON-UMUM. Beri tips yang 'insightful'.
 4. Rekomendasi: 2-3 Produk BP Group yang paling akurat sesuai [LOGIC RULES]. Beri ALASAN yang menyambungkan gejala mereka dengan manfaat produk.
 
 PRODUK BP GROUP:
@@ -29,9 +31,10 @@ PRODUK BP GROUP:
 - British Propolis Blue 6ml (Rp 250.000) -> Khusus WANITA. Nyeri haid, hormon, promil.
 - Brassic Pro 40 kapsul (Rp 250.000) -> Insomnia, Nyeri Sendi, Pegal linu.
 - Brassic Eye 40 kapsul (Rp 250.000) -> Kesehatan Mata, Mata Lelah.
-- Belgie Facial Wash/Cream/Serum (Rp 195.000) -> Perawatan wajah & Anti-aging.
-- Steffi Pro (Rp 195.000) -> Pengganti gula, solusi Diabetes.
-- BP Norway (Rp 250.000) -> Omega 3, Otak & Jantung.
+- Belgie Facial Wash/Serum/Cream (Rp 195.000) -> Perawatan wajah & Anti-aging.
+- Belgie Hair Tonic 100ml (Rp 195.000) -> Rambut rontok, kulit kepala.
+- Steffi Pro 30ml (Rp 195.000) -> Pengganti gula, solusi Diabetes.
+- BP Norway 40 kapsul (Rp 250.000) -> Omega 3, Otak & Jantung.
 
 PENTING: Jawab HANYA dalam format JSON valid berikut, tanpa markdown atau teks tambahan:
 {
@@ -61,44 +64,40 @@ serve(async (req) => {
       );
     }
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY is not configured");
+    const GROQ_API_KEY = Deno.env.get("GROQ_API_KEY");
+    if (!GROQ_API_KEY) {
+      throw new Error("GROQ_API_KEY is not configured");
     }
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        Authorization: `Bearer ${GROQ_API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-1.5-flash",
+        model: "llama-3.3-70b-versatile",
         messages: [
           { role: "system", content: SYSTEM_PROMPT },
           { role: "user", content: userInput },
         ],
-        temperature: 0.8,
+        temperature: 0.75,
         max_tokens: 1024,
+        response_format: { type: "json_object" },
       }),
     });
 
     if (!response.ok) {
+      const errText = await response.text();
+      console.error("Groq API error:", response.status, errText);
+
       if (response.status === 429) {
         return new Response(
           JSON.stringify({ error: "Terlalu banyak permintaan, coba lagi nanti." }),
           { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
-      if (response.status === 402) {
-        return new Response(
-          JSON.stringify({ error: "Kredit AI habis." }),
-          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-      const errText = await response.text();
-      console.error("AI gateway error:", response.status, errText);
-      throw new Error(`AI gateway error ${response.status}`);
+      throw new Error(`Groq API error ${response.status}`);
     }
 
     const data = await response.json();
@@ -108,7 +107,7 @@ serve(async (req) => {
       throw new Error("AI returned empty response");
     }
 
-    // Try to parse JSON from response (may have markdown fences)
+    // Bersihkan markdown fences jika ada
     let jsonText = rawText.trim();
     if (jsonText.startsWith("```")) {
       jsonText = jsonText.replace(/^```(?:json)?\n?/, "").replace(/\n?```$/, "");
@@ -119,6 +118,7 @@ serve(async (req) => {
     return new Response(JSON.stringify(parsed), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
+
   } catch (e) {
     console.error("ai-konsultasi error:", e);
     return new Response(

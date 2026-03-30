@@ -228,7 +228,7 @@
 .advisor-embed-container {
     max-width: 880px;
     margin: 0 auto;
-    padding: 56px 40px 60px;
+    padding: 28px 40px 40px;
     position: relative;
     z-index: 1;
 }
@@ -848,12 +848,22 @@
 
 .world-section {
     position: relative;
-    padding: 0 0 80px;
+    padding: 0 0 48px;
 }
 
 /* Dunia 1 — AI Advisor: green gradient */
 .world-advisor {
     background: linear-gradient(160deg, #F0FAF2 0%, #E4F5E7 50%, #EBF5EC 100%);
+    padding-top: 68px; /* offset fixed nav */
+}
+
+@media (max-width: 768px) {
+    .world-advisor {
+        padding-top: 60px; /* mobile nav lebih pendek */
+    }
+    .advisor-embed-container {
+        padding: 16px 16px 24px;
+    }
 }
 
 /* Dunia 2 — Katalog: white */
@@ -1207,9 +1217,9 @@
 
 .world-section-header {
     text-align: center;
-    padding: 60px 20px 0;
+    padding: 32px 20px 0;
     max-width: 720px;
-    margin: 0 auto 40px;
+    margin: 0 auto 32px;
 }
 
 .world-section-header .tag,

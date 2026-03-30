@@ -104,12 +104,24 @@ export default function KatalogProdukPage() {
     // ── Scroll + Fade-in observer ──
     useEffect(() => {
         window.scrollTo(0, 0);
+        // Langsung tampilkan elemen yang sudah ada di viewport saat halaman dibuka
+        const triggerVisible = () => {
+            document.querySelectorAll('.fade-in:not(.in-view)').forEach(el => {
+                const rect = el.getBoundingClientRect();
+                if (rect.top < window.innerHeight) {
+                    el.classList.add('in-view');
+                }
+            });
+        };
+        // Trigger setelah 50ms untuk pastikan DOM sudah render
+        const t = setTimeout(triggerVisible, 50);
+
         const observer = new IntersectionObserver(
             entries => entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('in-view'); }),
-            { threshold: 0.08 }
+            { threshold: 0, rootMargin: '0px 0px -5% 0px' }
         );
         document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
-        return () => observer.disconnect();
+        return () => { observer.disconnect(); clearTimeout(t); };
     }, []);
 
     // ── WA link helper ──
