@@ -279,10 +279,11 @@ export function Dashboard({ onNavigate }: DashboardProps) {
                 </div>
                 <p className="text-3xl font-black text-slate-200 tracking-tighter">——</p>
               </div>
-              <div className="col-span-2 bg-white p-5 rounded-[1.75rem] border-2 border-slate-100 shadow-sm flex flex-col gap-2">
+              {/* Hide Stok Tersedia as per user request */}
+              {/* <div className="col-span-2 bg-white p-5 rounded-[1.75rem] border-2 border-slate-100 shadow-sm flex flex-col gap-2">
                 <span className="text-[10px] font-black text-slate-300 uppercase tracking-wider">Stok Tersedia</span>
                 <p className="text-4xl font-black text-slate-200 tracking-tighter">— Item</p>
-              </div>
+              </div> */}
             </div>
 
             {/* Locked CTA buttons */}

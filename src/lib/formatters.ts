@@ -8,12 +8,12 @@ export function formatCurrency(amount: number): string {
 }
 
 export function formatShortCurrency(amount: number): string {
-  if (amount >= 1000000) {
-    return `Rp${(amount / 1000000).toFixed(1)}jt`;
-  } else if (amount >= 1000) {
-    return `Rp${(amount / 1000).toFixed(0)}rb`;
-  }
-  return `Rp${amount}`;
+  return new Intl.NumberFormat('id-ID', {
+    style: 'currency',
+    currency: 'IDR',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(amount).replace('Rp', 'Rp ');
 }
 
 export function formatDate(dateString: string): string {

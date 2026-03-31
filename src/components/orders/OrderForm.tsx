@@ -563,7 +563,7 @@ export function OrderForm({ customers, currentStock, submitting, onSubmit, onCan
               <Package className="h-4 w-4 text-emerald-600" />
               Produk Terlaris
             </h2>
-            <span className="text-xs text-muted-foreground font-medium">Stok: {currentStock}</span>
+            {/* Stok display removed as per user request */}
           </div>
 
           <div className="flex overflow-x-auto gap-2.5 px-4 pb-2 hide-scrollbar" style={{ scrollbarWidth: 'none' }}>
@@ -580,9 +580,7 @@ export function OrderForm({ customers, currentStock, submitting, onSubmit, onCan
                 >
                   <div className="h-24 bg-gradient-to-br from-emerald-50 to-slate-100 relative overflow-hidden flex items-center justify-center">
                     <Package className="h-10 w-10 text-emerald-200" />
-                    <div className="absolute top-1.5 left-1.5 bg-white/95 backdrop-blur px-1.5 py-0.5 rounded-md text-xs font-black uppercase tracking-tighter text-emerald-700 shadow-sm">
-                      STOK {currentStock}
-                    </div>
+                    {/* STOK badge removed as per user request */}
                     {isCustomPrice && (
                       <div className="absolute top-1.5 right-1.5 bg-amber-400 text-foreground text-xs font-black px-1.5 py-0.5 rounded-md uppercase">
                         Custom

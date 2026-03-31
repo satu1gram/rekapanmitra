@@ -8,6 +8,7 @@ import {
     Smartphone, Gift, Code2, Lightbulb, Clock, ArrowRight,
     Bell, FileSpreadsheet, GitMerge, Zap, User, ArrowDown
 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 export default function LandingPage() {
     const [scrolled, setScrolled] = useState(false);
@@ -40,9 +41,9 @@ export default function LandingPage() {
 
             {/* ════ STICKY MOBILE CTA ════ */}
             <div className="sticky-cta" id="stickyCta">
-                <a href="#daftar" className="btn btn-primary">
+                <Link to="/dashboard" className="btn btn-primary">
                     <Rocket className="icon" size={18} /> Coba Gratis
-                </a>
+                </Link>
                 <a href="https://wa.me/6287782697973?text=Halo%2C%20saya%20ingin%20tahu%20lebih%20lanjut%20tentang%20Rekapan%20Mitra"
                     target="_blank" rel="noopener noreferrer" className="btn btn-wa">
                     <MessageCircle className="icon" size={18} /> Chat WA
@@ -67,10 +68,10 @@ export default function LandingPage() {
                             className="btn btn-wa" style={{ padding: '.6rem 1.2rem', fontSize: '.8125rem' }}>
                             <MessageCircle className="icon" size={18} /> Chat WA
                         </a>
-                        <a href="#daftar" className="btn btn-primary"
+                        <Link to="/dashboard" className="btn btn-primary"
                             style={{ padding: '.6rem 1.25rem', fontSize: '.8125rem' }}>
                             Coba Gratis
-                        </a>
+                        </Link>
                     </div>
                     <button className={`nav-hamburger ${mobileMenuOpen ? 'open' : ''}`}
                         onClick={toggleMenu} aria-label="Menu">
@@ -116,9 +117,9 @@ export default function LandingPage() {
                         <p>Pantau keuntungan real-time, catat pesanan, kelola stok, dan bangun jaringan pelanggan
                             — semua dari HP Anda. Tanpa ribet, tanpa lembar Excel.</p>
                         <div className="hero-cta">
-                            <a href="#daftar" className="btn btn-primary btn-large">
+                            <Link to="/dashboard" className="btn btn-primary btn-large">
                                 <Rocket className="icon" size={18} /> Coba Sekarang &mdash; Gratis
-                            </a>
+                            </Link>
                             <a href="#cara-kerja" className="btn btn-outline btn-large">
                                 Lihat Cara Kerja
                             </a>
@@ -420,9 +421,9 @@ export default function LandingPage() {
                                     target="_blank" rel="noopener noreferrer" className="btn btn-wa btn-sm">
                                     <MessageCircle size={16} /> Beri Feedback via WA
                                 </a>
-                                <a href="#daftar" className="btn btn-outline btn-sm">
+                                <Link to="/dashboard" className="btn btn-outline btn-sm">
                                     Coba Aplikasinya
-                                </a>
+                                </Link>
                             </div>
                         </div>
                     </div>
@@ -589,9 +590,9 @@ export default function LandingPage() {
                         — dan bantu kami berkembang dengan feedback Anda.
                     </p>
                     <div className="cta-btns reveal">
-                        <a href="/login" className="btn btn-primary btn-large">
+                        <Link to="/dashboard" className="btn btn-primary btn-large">
                             <Rocket className="icon" size={18} /> Coba Gratis Sekarang
-                        </a>
+                        </Link>
                         <a href="https://wa.me/6287782697973?text=Halo%2C%20saya%20mau%20coba%20Rekapan%20Mitra"
                             target="_blank" rel="noopener noreferrer" className="btn btn-wa btn-large">
                             <MessageCircle className="icon" size={18} /> Tanya via WhatsApp
@@ -633,9 +634,9 @@ export default function LandingPage() {
                         <a href="mailto:hello@rekapanmitra.id">
                             <Mail className="icon" size={18} /> Email Kami
                         </a>
-                        <a href="#daftar">
+                        <Link to="/dashboard">
                             <Rocket className="icon" size={18} /> Coba Gratis
-                        </a>
+                        </Link>
                         <a href="/login">
                             <Lock className="icon" size={18} /> Login
                         </a>

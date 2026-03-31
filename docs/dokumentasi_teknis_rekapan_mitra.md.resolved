@@ -1,7 +1,7 @@
 # 📋 Dokumentasi Teknis — Rekapan Mitra BP
 
 > **Sistem Manajemen Bisnis Digital untuk Mitra & Konsumen**  
-> Versi 1.0 · Terakhir diperbarui: Maret 2026
+> Versi 2.4 · Terakhir diperbarui: 1 April 2026
 
 ---
 
@@ -18,17 +18,19 @@ Aplikasi ini dapat dipasang di perangkat seperti aplikasi biasa (PWA), bekerja s
 ### 1. 📊 Dashboard & Analitik
 - **Ringkasan Pendapatan** — Menampilkan total penjualan harian, mingguan, dan bulanan secara otomatis
 - **Grafik Pendapatan** — Visualisasi tren penjualan dalam bentuk grafik garis interaktif
-- **Target Bulanan** — Atur target omzet dan pantau pencapaian secara real-time
-- **Pertumbuhan Pelanggan** — Grafik batang jumlah pelanggan baru per bulan dengan filter tahun dan segmen (Mitra / Konsumen)
+- **Target Bulanan** — Atur target omzet dan pantau pencapaian secara real-time.
+- **Format Mata Uang Standar (Baru!)** — Menggunakan angka penuh dengan pemisah titik (contoh: `Rp 27.800.000`) untuk konsistensi di seluruh dashboard & riwayat.
+- **Pertumbuhan Pelanggan** — Grafik batang jumlah pelanggan baru per bulan dengan filter tahun dan segmen (Mitra / Konsumen).
 
 ---
 
 ### 2. 🛒 Manajemen Order
-- **Buat Pesanan Baru** — Form pembuatan pesanan dengan pilihan produk, jumlah, dan sistem harga bertingkat (*tier pricing*) otomatis
-- **Harga Otomatis Berdasarkan Kuantitas** — Harga menyesuaikan secara otomatis sesuai total jumlah pesanan (semakin banyak, semakin murah sesuai tier)
-- **Status Pesanan** — Lacak status pesanan dari *pending* hingga selesai
-- **Riwayat Pesanan** — Lihat seluruh riwayat transaksi dengan filter berdasarkan tanggal dan status
-- **Performa Penjualan** — Laporan produk terlaris dan analitik kinerja penjualan
+- **Unlimited Order (Baru!)** — Input jumlah pesanan kini tidak lagi dibatasi oleh stok sistem di UI, memberikan fleksibilitas penuh bagi mitra.
+- **Buat Pesanan Baru** — Form pembuatan pesanan dengan pilihan produk, jumlah, dan sistem harga bertingkat (*tier pricing*) otomatis.
+- **Harga Otomatis Berdasarkan Kuantitas** — Harga menyesuaikan secara otomatis sesuai total jumlah pesanan (semakin banyak, semakin murah sesuai tier).
+- **Status Pesanan** — Lacak status pesanan dari *pending* hingga selesai.
+- **Riwayat Pesanan** — Lihat seluruh riwayat transaksi dengan filter berdasarkan tanggal dan status.
+- **Performa Penjualan** — Laporan produk terlaris dan analitik kinerja penjualan.
 
 ---
 
@@ -54,8 +56,9 @@ Aplikasi ini dapat dipasang di perangkat seperti aplikasi biasa (PWA), bekerja s
 - **Harga Dinamis** — Harga otomatis berubah sesuai total kuantitas yang dipilih
 - **Modal Detail Produk** — Tampilkan detail harga semua tier saat produk diklik
 - **Salin Nomor Rekening** — Tombol salin (*copy*) untuk detail pembayaran
-- **Form Data Pembeli** — Isi nama, nomor WA, alamat, dan catatan setelah memilih produk
-- **Ringkasan Konfirmasi** — Tampilkan ringkasan lengkap sebelum pesanan dikirim
+- **Form Data Pembeli** — Isi nama, nomor WA, alamat, dan catatan setelah memilih produk.
+- **Ringkasan Konfirmasi** — Tampilkan ringkasan lengkap sebelum pesanan dikirim.
+- **Premium Toast Notification (Baru!)** — Notifikasi menggunakan sistem Sonner dengan desain kartu putih premium, padding yang lega, dan efek glassmorphism.
 
 ---
 

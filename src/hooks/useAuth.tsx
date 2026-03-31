@@ -19,8 +19,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Listen for auth state changes — INITIAL_SESSION fires first with
-    // the persisted session from our resilient storage (localStorage + IndexedDB).
+    // Explicitly recover session on mount to handle cold-start with IndexedDB
+    const initializeAuth = async () => {
+      try {
+        const { data: { session: initialSession } } = await supabase.auth.getSession();
+        if (initialSession) {
+          setUser(initialSession.user);
+          setSession(initialSession);
+        }
+      } catch (error) {
+        console.error('Error recovering session:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    initializeAuth();
+
+    // Listen for auth state changes — catch login/logout/token refreshes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(prev => {
         const nextId = session?.user?.id ?? null;
@@ -32,6 +48,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const prevToken = prev?.access_token ?? null;
         return nextToken === prevToken ? prev : session;
       });
+      // We already set loading to false in initializeAuth, but this ensures 
+      // reactive updates don't keep it loading indefinitely if initializeAuth fails.
       setLoading(false);
     });
 

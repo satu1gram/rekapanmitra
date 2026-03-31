@@ -50,13 +50,17 @@ const App = () => (
           richColors
           expand
           toastOptions={{
+            className: "w-full sm:max-w-md", // Ensure it fits mobile and desktop nicely
             classNames: {
-              error: 'bg-red-600 text-white border-red-700 shadow-2xl shadow-red-300 font-bold text-sm',
-              success: 'bg-emerald-600 text-white border-emerald-700 font-bold text-sm',
-              warning: 'bg-amber-500 text-white border-amber-600 font-bold text-sm',
-              info: 'bg-slate-800 text-white border-slate-700 font-bold text-sm',
-              title: 'font-extrabold text-base',
-              description: 'font-medium opacity-90',
+              toast: "group toast px-5 py-4 rounded-[1.5rem] shadow-2xl border-2 flex items-center gap-4 bg-white/95 backdrop-blur-md transition-all active:scale-95",
+              success: "text-emerald-700 border-emerald-100",
+              error: "text-red-700 border-red-100",
+              warning: "text-amber-700 border-amber-100",
+              info: "text-slate-800 border-slate-100",
+              title: "font-black text-[15px] tracking-tight leading-none",
+              description: "font-bold text-[13px] opacity-70",
+              actionButton: "bg-emerald-600 text-white font-black rounded-xl px-4 py-2 text-xs",
+              cancelButton: "bg-slate-100 text-slate-500 font-bold rounded-xl px-4 py-2 text-xs",
             },
           }}
         />

@@ -66,11 +66,13 @@ Aplikasi sekarang mengelompokkan setiap transaksi Anda berdasarkan tanggal (**Ri
 ### 🛒 Membuat Pesanan Baru
 
 1. Buka menu **Riwayat** → klik tombol **"+ Pesanan Baru"**
-2. Pilih produk yang dipesan dan masukkan jumlahnya
-3. Harga akan **otomatis berubah** sesuai jumlah yang dipesan (semakin banyak = harga lebih hemat)
-4. Pilih atau isi data pelanggan
-5. Tambahkan catatan jika perlu
-6. Klik **Simpan** — pesanan langsung tercatat!
+2. Pilih produk yang diinginkan.
+3.  Sesuaikan **Kuantitas** (jumlah botol).
+    > 💡 **Info**: Sistem kini mendukung **Unlimited Order**. Anda dapat menginput jumlah pesanan berapapun tanpa terhalang label stok di layar ini.
+4.  Harga per botol akan otomatis berubah sesuai total pesanan Anda (makin banyak makin murah sesuai tier).
+5. Pilih atau isi data pelanggan
+6. Tambahkan catatan jika perlu
+7. Klik **Simpan** — pesanan langsung tercatat!
 
 > **Cara baca harga bertingkat (tier):**  
 > Contoh: 1-9 pcs = Rp 15.000/pcs, 10-49 pcs = Rp 13.000/pcs, 50+ pcs = Rp 11.000/pcs  
