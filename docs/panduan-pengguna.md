@@ -47,13 +47,19 @@ Setelah dipasang, aplikasi bisa dibuka seperti aplikasi biasa tanpa buka browser
 
 Begitu Anda masuk, Anda akan melihat **ringkasan bisnis Anda hari ini:**
 
-- **Total Pendapatan** — Berapa uang yang masuk hari ini / bulan ini
-- **Jumlah Pesanan** — Berapa transaksi yang sudah terjadi
-- **Total Pelanggan** — Jumlah pelanggan terdaftar
-- **Grafik Pendapatan** — Tren penjualan dalam bentuk grafik visual
 - **Target Bulanan** — Berapa persen target bulan ini sudah tercapai
 
-> 💡 Klik angka "Total Pelanggan" untuk melihat grafik pertumbuhan pelanggan per bulan.
+> 💡 **Ringkasan Terpadu (Baru!):** Di halaman Riwayat, Anda akan melihat kartu "Total Omset & Terjual" yang menggabungkan nilai uang dan jumlah pcs dalam satu tampilan yang ringkas.
+
+---
+
+### 🛒 Mengelola Riwayat & Rincian Harian
+
+Aplikasi sekarang mengelompokkan setiap transaksi Anda berdasarkan tanggal (**Rincian Harian**).
+
+1.  **Badge Hari**: Setiap grup memiliki penanda hari (misal: "SEL 31" untuk Selasa tanggal 31).
+2.  **Ringkasan Harian**: Anda bisa langsung melihat total qty dan nilai transaksi pada hari tersebut tanpa membuka detailnya.
+3.  **Buka/Tutup Detail**: Klik pada baris tanggal untuk melihat daftar transaksi lengkap di hari itu. Gunakan tombol **"Buka Semua"** untuk melihat seluruh rincian sekaligus.
 
 ---
 
@@ -91,12 +97,14 @@ Klik nama pelanggan → klik ikon pensil → ubah data → Simpan
 
 ---
 
-### 📦 Memantau Stok Produk
+### 📦 Memantau & Menambah Stok Produk
 
-1. Buka menu **Produk**
-2. Lihat daftar produk beserta jumlah stok yang tersisa
-3. Untuk tambah stok baru: klik produk → klik **"+ Stok Masuk"** → isi jumlah → Simpan
-4. Stok akan otomatis berkurang saat ada pesanan baru
+Halaman Stok kini lebih fokus untuk membantu Anda memantau riwayat penambahan barang (**Restok**).
+
+1.  **Lihat Stok**: Buka menu **Stok** untuk melihat sisa stok botol saat ini.
+2.  **Tambah Stok (Restok)**: Klik tombol **"+ Restok Barang"** untuk mencatat pasokan baru.
+3.  **Rincian Restok**: Daftar riwayat sekarang hanya menampilkan transaksi penambahan stok (Restok/Stok Awal) agar Anda lebih mudah melacak kapan terakhir kali barang datang.
+4.  **Filter Cepat**: Gunakan filter tanggal di bagian atas untuk melihat riwayat restok dalam periode tertentu.
 
 ---
 

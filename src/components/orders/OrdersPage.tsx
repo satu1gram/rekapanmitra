@@ -11,7 +11,7 @@ import { useCustomers } from '@/hooks/useCustomersDb';
 import { useProfile } from '@/hooks/useProfile';
 import { useGeneralExpenses } from '@/hooks/useGeneralExpenses';
 import { useGeneralIncome } from '@/hooks/useGeneralIncome';
-import { TierType, OrderItem, MITRA_LEVELS } from '@/types';
+import { TierType, OrderItem, MITRA_LEVELS, OrderStatus } from '@/types';
 import {
   Loader2,
   Calendar,
@@ -22,6 +22,7 @@ import {
   BarChart3,
   ChevronLeft,
   Bell,
+  Trophy,
 } from 'lucide-react';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
 import { toast } from 'sonner';
@@ -58,11 +59,18 @@ interface OrdersPageProps { openAddForm?: boolean; onAddFormClose?: () => void; 
 
 export function OrdersPage({ openAddForm = false, onAddFormClose }: OrdersPageProps) {
   const now = new Date();
+  const getLocalYYYYMMDD = (d: Date) => {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  };
+
   const [startDate, setStartDate] = useState<string>(
-    new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0]
+    getLocalYYYYMMDD(new Date(now.getFullYear(), now.getMonth(), 1))
   );
   const [endDate, setEndDate] = useState<string>(
-    now.toISOString().split('T')[0]
+    getLocalYYYYMMDD(now)
   );
   const [showMonthPicker, setShowMonthPicker] = useState(false);
   const [pickerYear, setPickerYear] = useState(now.getFullYear());
@@ -85,6 +93,7 @@ export function OrdersPage({ openAddForm = false, onAddFormClose }: OrdersPagePr
   const [orderResult, setOrderResult] = useState<OrderResult | null>(null);
   const [includeCosts, setIncludeCosts] = useState(true);
   const [editingCustomer, setEditingCustomer] = useState<Tables<'customers'> | null>(null);
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
 
   const {
     orders,
@@ -131,6 +140,36 @@ export function OrdersPage({ openAddForm = false, onAddFormClose }: OrdersPagePr
   const netProfit = includeCosts
     ? totalProfit - expensesTotal + incomeTotal
     : totalProfit;
+
+  const leaderboardData = useMemo(() => {
+    const acc = new Map<string, { total_qty: number, total_price: number, name: string, tier: string, id: string | null }>();
+    for (const o of filteredOrders) {
+      // Deteksi ID pelanggan, atau cari berdasarkan kecocokan nama jika ID terputus
+      let matchedCust = o.customer_id ? customers.find(x => x.id === o.customer_id) : null;
+      if (!matchedCust && o.customer_name) {
+         matchedCust = customers.find(x => x.name.toLowerCase().trim() === o.customer_name!.toLowerCase().trim());
+      }
+
+      // Kunci grouping prioritas: UUID valid, atau String nama (fallback)
+      const key = matchedCust ? matchedCust.id : (o.customer_name || 'anon').toLowerCase().trim();
+
+      let record = acc.get(key);
+      if (!record) {
+        record = {
+          id: matchedCust ? matchedCust.id : null,
+          total_qty: 0,
+          total_price: 0,
+          name: matchedCust ? matchedCust.name : (o.customer_name || 'Tidak diketahui'),
+          tier: matchedCust ? matchedCust.tier : (o.tier || 'satuan'),
+        };
+        acc.set(key, record);
+      }
+      
+      record.total_qty += o.quantity;
+      record.total_price += Number(o.total_price);
+    }
+    return Array.from(acc.values()).sort((a, b) => b.total_price - a.total_price);
+  }, [filteredOrders, customers]);
 
   const dailySummaries = useMemo((): DailySummary[] => {
     const map = new Map<string, DailySummary>();
@@ -192,15 +231,16 @@ export function OrdersPage({ openAddForm = false, onAddFormClose }: OrdersPagePr
         tier: data.tier,
         totalPrice,
       }).catch(err => console.error('addOrUpdateCustomer failed:', err));
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const err = error as Error;
       setShowAddModal(false); onAddFormClose?.();
-      setOrderResult({ success: false, errorMessage: error?.message || 'Gagal menyimpan order ke database.' });
+      setOrderResult({ success: false, errorMessage: err?.message || 'Gagal menyimpan order ke database.' });
     } finally {
       setSubmitting(false);
     }
   };
 
-  const handleStatusChange = async (orderId: string, newStatus: any) => {
+  const handleStatusChange = async (orderId: string, newStatus: OrderStatus) => {
     try {
       await updateOrderStatus(orderId, newStatus);
       toast.success(`Status diubah ke ${newStatus}`);
@@ -249,6 +289,7 @@ export function OrdersPage({ openAddForm = false, onAddFormClose }: OrdersPagePr
             await refetchCustomers();
             setEditingCustomer(null);
             if (!editingCustomer.id) {
+              // Justifikasi: Hack sementara untuk menyimpan ID customer yang baru dibuat agar terpilih otomatis saat kembali ke form order
               (window as any)._lastAddedCustomerId = data.id;
             }
           }}
@@ -266,9 +307,11 @@ export function OrdersPage({ openAddForm = false, onAddFormClose }: OrdersPagePr
         onSubmit={handleSubmit}
         onCancel={() => {
           setShowAddModal(false);
+          // Reset status pencarian customer terakhir jika batal
           (window as any)._lastAddedCustomerId = null;
         }}
         onEditCustomer={(c) => { setEditingCustomer(c); }}
+        // Justifikasi: Membaca ID customer yang baru dibuat dari window state
         initialSelectedCustomerId={(window as any)._lastAddedCustomerId}
         onRefetchCustomers={refetchCustomers}
       />
@@ -294,9 +337,9 @@ export function OrdersPage({ openAddForm = false, onAddFormClose }: OrdersPagePr
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-background">
-      {/* Header */}
-      <header className="px-5 pt-8 pb-4 bg-card shadow-sm z-10 sticky top-0">
+    <div className="flex flex-col min-h-screen bg-background text-slate-900">
+      {/* Header - Fixed Z-index and Solid BG */}
+      <header className="px-5 pt-8 pb-4 bg-white/95 backdrop-blur-md shadow-sm z-[40] sticky top-0 border-b border-slate-100">
         <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 mb-4">Riwayat Order</h1>
 
         {/* Ultra-Compact Date filter and Grafik button */}
@@ -310,35 +353,48 @@ export function OrdersPage({ openAddForm = false, onAddFormClose }: OrdersPagePr
               <Calendar className="h-4 w-4 text-emerald-600" />
             </button>
 
-            {/* Date Inputs in one row */}
+            {/* Date Inputs in one row - Added better spacing & min-widths */}
             <div className="flex-1 flex items-center divide-x divide-slate-200">
-              <div className="flex-1 flex items-center px-2 py-2">
-                <span className="text-[10px] font-bold text-slate-400 mr-2 shrink-0">Dr</span>
+              <div className="flex-1 flex items-center px-1.5 py-2 min-w-0">
+                <span className="text-[10px] font-bold text-slate-400 mr-1.5 shrink-0">Dr</span>
                 <input
                   type="date"
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
-                  className="w-full bg-transparent text-xs font-black text-slate-900 outline-none"
+                  className="w-full bg-transparent text-[11px] font-black text-slate-900 outline-none min-w-0"
                 />
               </div>
-              <div className="flex-1 flex items-center px-2 py-2">
-                <span className="text-[10px] font-bold text-slate-400 mr-2 shrink-0">Sp</span>
+              <div className="flex-1 flex items-center px-1.5 py-2 min-w-0">
+                <span className="text-[10px] font-bold text-slate-400 mr-1.5 shrink-0">Sp</span>
                 <input
                   type="date"
                   value={endDate}
                   onChange={(e) => setEndDate(e.target.value)}
-                  className="w-full bg-transparent text-xs font-black text-slate-900 outline-none"
+                  className="w-full bg-transparent text-[11px] font-black text-slate-900 outline-none min-w-0"
                 />
               </div>
             </div>
           </div>
 
-          <button
-            onClick={() => setShowPerforma(true)}
-            className="flex items-center justify-center bg-blue-50 border border-blue-200 text-blue-600 px-3 py-2 rounded-xl h-[42px] shrink-0 active:bg-blue-100 transition-colors"
-          >
-            <BarChart3 className="h-5 w-5" />
-          </button>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <button
+              onClick={() => { setShowLeaderboard(!showLeaderboard); setShowPerforma(false); }}
+              className={cn(
+                "flex items-center justify-center px-3 py-2 rounded-xl h-[42px] transition-colors border",
+                showLeaderboard 
+                  ? "bg-amber-100 border-amber-300 text-amber-700 shadow-inner"
+                  : "bg-amber-50 border-amber-200 text-amber-600 hover:bg-amber-100"
+              )}
+            >
+              <Trophy className="h-5 w-5" />
+            </button>
+            <button
+              onClick={() => { setShowPerforma(true); setShowLeaderboard(false); }}
+              className="flex items-center justify-center bg-blue-50 border border-blue-200 text-blue-600 px-3 py-2 rounded-xl h-[42px] active:bg-blue-100 transition-colors"
+            >
+              <BarChart3 className="h-5 w-5" />
+            </button>
+          </div>
         </div>
 
         {/* Month Picker dropdown */}
@@ -393,6 +449,57 @@ export function OrdersPage({ openAddForm = false, onAddFormClose }: OrdersPagePr
 
       {/* Main Content */}
       <main className="flex-1 px-4 py-4 space-y-4 pb-8">
+        {showLeaderboard ? (
+          <div className="space-y-3 animate-in fade-in zoom-in-95 duration-200">
+            <h2 className="text-base font-bold text-slate-800">Top Pelanggan Paling Aktif</h2>
+            <p className="text-xs text-slate-500 font-medium mb-3">Diurutkan berdasarkan total nilai belanja pada rentang tanggal ini.</p>
+            
+            {leaderboardData.length === 0 ? (
+              <div className="bg-white rounded-2xl p-6 text-center border-2 border-slate-50 border-dashed shadow-sm">
+                <p className="text-sm font-medium text-slate-400">Belum ada aktivitas belanja.</p>
+              </div>
+            ) : (
+              <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden divide-y divide-slate-50">
+                {leaderboardData.map((lb, idx) => (
+                  <button key={idx} onClick={() => {
+                    const cust = lb.id ? customers.find(c => c.id === lb.id) : customers.find(c => c.name === lb.name);
+                    if (cust) setEditingCustomer(cust);
+                  }} className="w-full text-left p-4 flex items-center justify-between hover:bg-slate-50 active:bg-slate-100 transition-colors">
+                    <div className="flex items-center gap-3">
+                      <div className={cn(
+                        "w-10 h-10 rounded-full flex items-center justify-center font-black shrink-0 border-2",
+                        idx === 0 ? "bg-amber-100 border-amber-200 text-amber-600" :
+                        idx === 1 ? "bg-slate-100 border-slate-200 text-slate-500" :
+                        idx === 2 ? "bg-orange-100 border-orange-200 text-orange-600" :
+                        "bg-blue-50 border-blue-100 text-blue-600"
+                      )}>
+                        {idx + 1}
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-slate-900 leading-tight">{lb.name}</h4>
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          <span className={cn(
+                            "text-[9px] font-black uppercase tracking-widest",
+                            lb.tier !== 'satuan' ? "text-red-500" : "text-slate-400"
+                          )}>
+                            {lb.tier !== 'satuan' ? lb.tier.replace('_', ' ') : 'Konsumen'}
+                          </span>
+                          <span className="text-slate-300">•</span>
+                          <span className="text-[10px] text-slate-500 font-medium">{lb.total_qty} botol</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <p className="font-black text-emerald-600 text-sm leading-tight">{formatCurrency(lb.total_price)}</p>
+                      <ChevronRight className="h-4 w-4 text-slate-300 shrink-0" />
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        ) : (
+          <>
 
         {/* Pending Payment Banner + Orders — di main agar tidak overlap saat expanded */}
         {pendingPaymentOrders.length > 0 && (
@@ -434,15 +541,23 @@ export function OrdersPage({ openAddForm = false, onAddFormClose }: OrdersPagePr
           <h2 className="text-base font-bold text-slate-800 mb-2.5">Ringkasan</h2>
           <div className="space-y-2">
 
-            {/* Total Omset */}
-            <div className="bg-white px-4 py-3.5 rounded-2xl shadow-sm border border-slate-100">
-              <div className="flex items-center gap-2 mb-1.5">
-                <div className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
-                  <ShoppingCart className="h-3.5 w-3.5 text-blue-600" />
+            {/* Total Omset & Terjual Terpadu */}
+            <div className="bg-white px-4 py-4 rounded-2xl shadow-sm border border-slate-100 relative overflow-hidden">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
+                  <ShoppingCart className="h-4 w-4 text-blue-600" />
                 </div>
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Total Omset</span>
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Total Omset & Terjual</span>
               </div>
-              <p className="text-2xl font-black text-slate-900 tracking-tight">{formatCurrency(totalRevenue)}</p>
+              <div className="flex items-end justify-between">
+                <p className="text-2xl font-black text-slate-900 tracking-tight leading-none">
+                  {formatCurrency(totalRevenue)}
+                </p>
+                <div className="bg-orange-50 px-2.5 py-1 rounded-lg border border-orange-100 flex items-center gap-1">
+                  <span className="text-sm font-black text-orange-600">{totalQty}</span>
+                  <span className="text-[10px] font-bold text-orange-400 uppercase">pcs</span>
+                </div>
+              </div>
             </div>
 
             {/* Keuntungan Bersih */}
@@ -497,18 +612,6 @@ export function OrdersPage({ openAddForm = false, onAddFormClose }: OrdersPagePr
               )}
             </div>
 
-            {/* Total Terjual */}
-            <div className="bg-white px-4 py-3.5 rounded-2xl shadow-sm border border-slate-100">
-              <div className="flex items-center gap-2 mb-1.5">
-                <div className="w-7 h-7 rounded-lg bg-orange-50 flex items-center justify-center shrink-0">
-                  <ShoppingCart className="h-3.5 w-3.5 text-orange-500" />
-                </div>
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Total Terjual</span>
-              </div>
-              <p className="text-2xl font-black text-slate-900 tracking-tight">
-                {totalQty} <span className="text-base font-bold text-slate-400">pcs</span>
-              </p>
-            </div>
           </div>
         </div>
 
@@ -608,6 +711,8 @@ export function OrdersPage({ openAddForm = false, onAddFormClose }: OrdersPagePr
             </div>
           )}
         </div>
+        </>
+      )}
       </main>
 
 

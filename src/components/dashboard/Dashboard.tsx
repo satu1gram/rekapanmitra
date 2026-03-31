@@ -8,7 +8,7 @@ import { useCustomers } from '@/hooks/useCustomersDb';
 import { formatCurrency, formatShortCurrency } from '@/lib/formatters';
 import {
   TrendingUp, Package, ShoppingCart, Plus, PackagePlus,
-  Loader2, AlertTriangle, ChevronRight, ChevronDown,
+  Loader2, AlertTriangle, ChevronRight, ChevronLeft, ChevronDown,
   Flag, Lock, ListFilter, Users
 } from 'lucide-react';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
@@ -46,10 +46,16 @@ export function Dashboard({ onNavigate }: DashboardProps) {
   const loading = ordersLoading || stockLoading || expensesLoading || incomeLoading || customersLoading;
 
   const now = new Date();
-  const thisYear = now.getFullYear();
-  const thisMonth = now.getMonth();
-
+  
   // UI State
+  const [selectedYear, setSelectedYear] = useState(now.getFullYear());
+  const [selectedMonth, setSelectedMonth] = useState(now.getMonth());
+  const [showMonthPicker, setShowMonthPicker] = useState(false);
+  const [pickerYear, setPickerYear] = useState(now.getFullYear());
+
+  const thisYear = selectedYear;
+  const thisMonth = selectedMonth;
+
   const [view, setView] = useState<'dashboard' | 'form' | 'list' | 'customer-growth'>('dashboard');
   const [includeBiaya, setIncludeBiaya] = useState(false);
   const [formYear, setFormYear] = useState(thisYear);
@@ -175,11 +181,58 @@ export function Dashboard({ onNavigate }: DashboardProps) {
               <h1 className="text-lg font-black text-slate-900 leading-none">Beranda Anda</h1>
             </div>
           </div>
-          <div className="flex items-center gap-2 bg-slate-900 text-white px-4 py-2.5 rounded-full shadow-lg cursor-pointer">
+          <button 
+            onClick={() => {
+              setPickerYear(selectedYear);
+              setShowMonthPicker(p => !p);
+            }}
+            className="flex items-center gap-2 bg-slate-900 text-white px-4 py-2.5 rounded-full shadow-lg cursor-pointer active:scale-95 transition-all"
+          >
             <span className="text-sm font-black tracking-tight capitalize">{monthName}</span>
-            <ChevronDown className="h-3.5 w-3.5" />
-          </div>
+            <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", showMonthPicker && "rotate-180")} />
+          </button>
         </div>
+
+        {/* Month Picker Dropdown */}
+        {showMonthPicker && (
+          <div className="absolute right-5 top-[70px] bg-white rounded-2xl border border-slate-200 shadow-2xl z-50 w-64 origin-top-right animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between px-4 py-2.5 border-b border-slate-100 bg-slate-50 rounded-t-2xl">
+              <button onClick={() => setPickerYear(y => y - 1)} className="p-1.5 rounded-xl hover:bg-slate-200 transition-colors">
+                <ChevronLeft className="h-4 w-4 text-slate-600" />
+              </button>
+              <span className="text-sm font-black text-slate-900">{pickerYear}</span>
+              <button onClick={() => setPickerYear(y => y + 1)} className="p-1.5 rounded-xl hover:bg-slate-200 transition-colors">
+                <ChevronRight className="h-4 w-4 text-slate-600" />
+              </button>
+            </div>
+            <div className="grid grid-cols-3 gap-1.5 p-3">
+              {MONTH_NAMES.map((name, idx) => {
+                const isSelected = selectedYear === pickerYear && selectedMonth === idx;
+                const isCurrentMonth = now.getFullYear() === pickerYear && now.getMonth() === idx;
+                return (
+                  <button
+                    key={idx}
+                    onClick={() => {
+                      setSelectedYear(pickerYear);
+                      setSelectedMonth(idx);
+                      setShowMonthPicker(false);
+                    }}
+                    className={cn(
+                      "py-2 rounded-xl text-xs font-bold transition-all",
+                      isSelected
+                        ? "bg-slate-900 text-white shadow-md transform scale-105"
+                        : isCurrentMonth
+                           ? "bg-emerald-50 text-emerald-700 border-emerald-200 border"
+                           : "bg-slate-50 text-slate-600 hover:bg-slate-100"
+                    )}
+                  >
+                    {name.slice(0, 3)}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </header>
 
       <main className="flex-1 px-4 py-4 space-y-3 pb-4">

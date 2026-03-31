@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { useStock } from '@/hooks/useStockDb';
 import { useFileUpload } from '@/hooks/useFileUpload';
 import { useProfile } from '@/hooks/useProfile';
@@ -6,17 +6,36 @@ import { TierType, MITRA_LEVELS } from '@/types';
 import { formatCurrency, formatDateTime } from '@/lib/formatters';
 import {
   Minus, Plus, Package, AlertTriangle, Upload, X, Loader2, History,
-  ChevronDown, Check, Edit, Trash2, ArrowDown, ArrowUp, Settings2
+  ChevronDown, ChevronLeft, ChevronRight, Calendar, Check, Edit, Trash2, ArrowDown, ArrowUp, Settings2, BarChart3,
+  TrendingUp, ShoppingCart, ArrowLeft
 } from 'lucide-react';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import type { Tables } from '@/integrations/supabase/types';
 import { useOrders } from '@/hooks/useOrdersDb';
+import { StockPerformancePage } from './StockPerformancePage';
+
+const DAY_NAMES_ID = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
+
+interface DailyStockSummary {
+  date: Date;
+  dayName: string;
+  dayNum: number;
+  totalQtyIn: number;
+  totalValueIn: number;
+  totalQtyOut: number;
+  totalValueOut: number;
+  entries: StockEntry[];
+}
 
 type StockEntry = Tables<'stock_entries'>;
 
 type View = 'main' | 'restok' | 'initial' | 'history';
+
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+const MONTHS_FULL = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+const TROPHIES = ['🥇', '🥈', '🥉'];
 
 export function StockPage() {
   const { currentStock, stockEntries, loading, addStock, updateStockEntry, deleteStockEntry, isLowStock } = useStock();
@@ -30,7 +49,15 @@ export function StockPage() {
   const [quantity, setQuantity] = useState(1);
   const [buyPrice, setBuyPrice] = useState(mitraInfo.buyPricePerBottle);
   const [notes, setNotes] = useState('');
-  const [stockDate, setStockDate] = useState(new Date().toISOString().split('T')[0]);
+  const getLocalYYYYMMDD = (d: Date) => {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  };
+
+  const now = new Date();
+  const [stockDate, setStockDate] = useState(getLocalYYYYMMDD(now));
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [transferProofUrl, setTransferProofUrl] = useState<string | null>(null);
   const [transferProofPreview, setTransferProofPreview] = useState<string | null>(null);
@@ -40,12 +67,65 @@ export function StockPage() {
   const [editingEntry, setEditingEntry] = useState<StockEntry | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const now = new Date();
   const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
-  const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
 
-  const [historyStartDate, setHistoryStartDate] = useState(firstDay.toISOString().split('T')[0]);
-  const [historyEndDate, setHistoryEndDate] = useState(lastDay.toISOString().split('T')[0]);
+  const [historyStartDate, setHistoryStartDate] = useState(getLocalYYYYMMDD(firstDay));
+  const [historyEndDate, setHistoryEndDate] = useState(getLocalYYYYMMDD(now));
+  const [historyType, setHistoryType] = useState<'all' | 'in' | 'out'>('all');
+  const [showMonthPicker, setShowMonthPicker] = useState(false);
+  const [pickerYear, setPickerYear] = useState(now.getFullYear());
+  const [showPerformance, setShowPerformance] = useState(false);
+  
+  const [expandedDays, setExpandedDays] = useState<Set<string>>(new Set());
+  const [showAllDays, setShowAllDays] = useState(false);
+
+  const filteredHistory = useMemo(() => {
+    return stockEntries.filter(entry => {
+      const d = new Date(entry.created_at);
+      d.setHours(0, 0, 0, 0);
+      const start = new Date(historyStartDate); start.setHours(0, 0, 0, 0);
+      const end = new Date(historyEndDate); end.setHours(23, 59, 59, 999);
+      const inDate = d.getTime() >= start.getTime() && d.getTime() <= end.getTime();
+      const inType = historyType === 'all' ? true : entry.type === historyType;
+      return inDate && inType;
+    });
+  }, [stockEntries, historyStartDate, historyEndDate, historyType]);
+
+  const dailySummaries = useMemo((): DailyStockSummary[] => {
+    const map = new Map<string, DailyStockSummary>();
+    for (const e of filteredHistory) {
+      const d = new Date(e.created_at);
+      const key = d.toDateString();
+      if (!map.has(key)) {
+        map.set(key, {
+          date: d,
+          dayName: DAY_NAMES_ID[d.getDay()],
+          dayNum: d.getDate(),
+          totalQtyIn: 0,
+          totalValueIn: 0,
+          totalQtyOut: 0,
+          totalValueOut: 0,
+          entries: [],
+        });
+      }
+      const day = map.get(key)!;
+      if (e.type === 'in') {
+        day.totalQtyIn += e.quantity;
+        day.totalValueIn += ((e.buy_price_per_bottle || mitraInfo.buyPricePerBottle) * e.quantity);
+      } else {
+        const orderRef = e.order_id ? orders.find(o => o.id === e.order_id) : null;
+        day.totalQtyOut += e.quantity;
+        day.totalValueOut += (orderRef ? Number(orderRef.total_price) : 0);
+      }
+      day.entries.push(e);
+    }
+    return Array.from(map.values())
+      .filter(d => d.totalQtyIn > 0)
+      .sort((a, b) => b.date.getTime() - a.date.getTime());
+  }, [filteredHistory, mitraInfo, orders]);
+
+  const visibleDays = showAllDays ? dailySummaries : dailySummaries.slice(0, 5);
+
 
   useEffect(() => {
     setBuyPrice(mitraInfo.buyPricePerBottle);
@@ -186,22 +266,8 @@ export function StockPage() {
           </div>
         </header>
 
-        {/* Stock info bar */}
-        <div className="mx-4 mt-3 bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex items-center gap-4">
-          <div className="w-12 h-12 rounded-full bg-emerald-50 border border-emerald-100 flex items-center justify-center shrink-0">
-            <Package className="h-6 w-6 text-emerald-600" />
-          </div>
-          <div>
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Stok Saat Ini</p>
-            <div className="flex items-baseline gap-2">
-              <span className="text-3xl font-extrabold text-gray-900 tracking-tight">{currentStock}</span>
-              <span className="text-sm font-semibold text-gray-600">botol</span>
-            </div>
-          </div>
-        </div>
-
         {/* Form */}
-        <form onSubmit={handleRestok} className="flex-1 mx-4 mt-3 mb-6 bg-white rounded-2xl p-4 shadow-sm border border-gray-100 space-y-5">
+        <form onSubmit={handleRestok} className="flex-1 mx-4 mt-4 mb-6 bg-white rounded-2xl p-4 shadow-sm border border-gray-100 space-y-5">
           <h3 className="text-lg font-bold text-gray-900 flex items-center">
             <span className="w-1.5 h-5 bg-success rounded-full mr-2.5" />
             {editingEntry ? 'Edit Restok' : 'Restok dari Distributor'}
@@ -389,299 +455,292 @@ export function StockPage() {
     );
   }
 
-  if (view === 'history') {
+  if (showPerformance) {
     return (
-      <div className="flex flex-col min-h-screen bg-background">
-        {/* Header */}
-        <header className="flex items-center space-x-3 px-4 py-3 sticky top-0 bg-background/95 backdrop-blur-sm z-30 border-b border-border/50">
-          <button
-            onClick={() => setView('main')}
-            className="flex items-center justify-center w-9 h-9 rounded-lg bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 active:scale-95 transition-all shadow-sm"
-          >
-            <ChevronDown className="h-4 w-4 rotate-90" />
-          </button>
-          <div>
-            <h1 className="text-xl font-extrabold text-gray-900 tracking-tight">Riwayat Stok</h1>
-            <p className="text-xs text-gray-500 font-medium">Transaksi stok barang</p>
-          </div>
-        </header>
-
-        {/* Date Filter */}
-        <div className="px-3 py-2 flex items-center gap-2 bg-white border-b border-gray-100 shadow-sm z-20 sticky top-[60px]">
-          <input
-            type="date"
-            value={historyStartDate}
-            onChange={e => setHistoryStartDate(e.target.value)}
-            className="flex-1 rounded-lg border border-gray-200 text-[11px] font-semibold px-2 py-1.5"
-          />
-          <span className="text-gray-400 font-bold text-[10px]">s/d</span>
-          <input
-            type="date"
-            value={historyEndDate}
-            onChange={e => setHistoryEndDate(e.target.value)}
-            className="flex-1 rounded-lg border border-gray-200 text-[11px] font-semibold px-2 py-1.5"
-          />
-        </div>
-
-        <div className="px-3 py-2 space-y-1.5">
-          {(() => {
-            const filteredHistory = stockEntries.filter(entry => {
-              const d = new Date(entry.created_at);
-              d.setHours(0, 0, 0, 0);
-              const start = new Date(historyStartDate); start.setHours(0, 0, 0, 0);
-              const end = new Date(historyEndDate); end.setHours(23, 59, 59, 999);
-              return d.getTime() >= start.getTime() && d.getTime() <= end.getTime();
-            });
-
-            if (filteredHistory.length === 0) {
-              return (
-                <div className="text-center py-10 text-gray-400">
-                  <Package className="h-10 w-10 mx-auto mb-2 opacity-30" />
-                  <p className="font-bold text-xs">Belum ada riwayat stok</p>
-                </div>
-              );
-            }
-
-            return filteredHistory.map(entry => {
-              const isIn = entry.type === 'in';
-              const orderRef = entry.order_id ? orders.find(o => o.id === entry.order_id) : null;
-              let displayTitle = '';
-              let badgeText = '';
-
-              if (entry.notes === 'Stok awal') {
-                displayTitle = 'Stok Awal';
-                badgeText = 'AWAL';
-              } else if (isIn) {
-                displayTitle = 'Dari: Gudang Pusat';
-                badgeText = 'RESTOK';
-              } else if (!isIn && orderRef) {
-                displayTitle = `Ke: ${orderRef.customer_name}`;
-                badgeText = 'ORDER';
-              } else {
-                displayTitle = 'Barang Keluar';
-                badgeText = 'KELUAR';
-              }
-
-              const totalValue = isIn
-                ? (entry.buy_price_per_bottle || mitraInfo.buyPricePerBottle) * entry.quantity
-                : (orderRef ? Number(orderRef.total_price) : 0);
-
-              return (
-                <div key={entry.id} className="bg-white rounded-xl p-2.5 shadow-sm border border-gray-100 flex flex-col gap-1.5">
-                  <div className="flex items-start gap-2">
-                    <div className={cn(
-                      'w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0',
-                      isIn ? 'bg-blue-100' : 'bg-emerald-100'
-                    )}>
-                      {isIn
-                        ? <ArrowDown className="h-4 w-4 text-blue-600" />
-                        : <ArrowUp className="h-4 w-4 text-emerald-600" />}
-                    </div>
-
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <h3 className="text-sm font-bold text-gray-900 leading-none truncate">
-                          {displayTitle}
-                        </h3>
-                        <span className={cn(
-                          'text-[8px] font-bold px-1 py-0.5 rounded uppercase tracking-wider leading-none shrink-0',
-                          isIn ? 'bg-blue-100 text-blue-700' : 'bg-emerald-100 text-emerald-700'
-                        )}>
-                          {badgeText}
-                        </span>
-                      </div>
-                      <p className="text-[10px] text-gray-400 mt-0.5">
-                        {formatDateTime(orderRef ? orderRef.created_at : entry.created_at)}
-                      </p>
-                    </div>
-
-                    {entry.type !== 'out' && (
-                      <div className="flex gap-1 shrink-0">
-                        <button onClick={() => openEdit(entry)}
-                          className="w-6 h-6 rounded-md bg-gray-50 text-gray-400 hover:text-gray-600 hover:bg-gray-100 flex items-center justify-center">
-                          <Edit className="h-3 w-3" />
-                        </button>
-                        <button onClick={() => handleDelete(entry)}
-                          className="w-6 h-6 rounded-md bg-red-50 text-red-400 hover:bg-red-100 flex items-center justify-center">
-                          <Trash2 className="h-3 w-3" />
-                        </button>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="flex justify-between items-end border-t border-gray-50 pt-1.5">
-                    <div>
-                      <p className="text-[8px] text-gray-500 font-bold uppercase tracking-wider mb-0.5">Jumlah</p>
-                      <p className={cn("text-sm font-black leading-none", isIn ? "text-blue-600" : "text-red-500")}>
-                        {isIn ? '+' : '-'}{entry.quantity}{' '}
-                        <span className="text-[9px] font-bold text-gray-500">btl</span>
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-[8px] text-gray-500 font-bold uppercase tracking-wider mb-0.5">
-                        {isIn ? 'Nilai Masuk' : 'Nilai Total'}
-                      </p>
-                      <p className="text-sm font-black text-emerald-600 leading-none">
-                        {formatCurrency(totalValue)}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              );
-            });
-          })()}
-        </div>
-      </div>
+      <StockPerformancePage
+        onBack={() => setShowPerformance(false)}
+        stockEntries={stockEntries}
+        mitraInfo={mitraInfo}
+      />
     );
   }
 
   /* ─── MAIN VIEW ─── */
   return (
     <div className="flex flex-col min-h-screen bg-background">
-      {/* Header */}
-      <header className="flex items-center justify-between px-4 py-3 sticky top-0 bg-background/95 backdrop-blur-sm z-10 border-b border-border/50">
-        <div>
-          <h1 className="text-xl font-extrabold text-gray-900 tracking-tight">Stok Produk</h1>
-          <p className="text-sm text-gray-600 font-medium mt-0.5">Kelola stok produk</p>
+      {/* Header - Aligned with Riwayat + Filter below title */}
+      <header className="px-5 pt-8 pb-4 bg-white/95 backdrop-blur-md shadow-sm z-[40] sticky top-0 border-b border-slate-100 flex flex-col gap-4">
+        <h1 className="text-2xl font-extrabold tracking-tight text-slate-900">Stok Produk</h1>
+        
+        {/* Filter Area Moved Here */}
+        <div className="flex items-center gap-2">
+          <div className="flex-1 flex bg-slate-100/50 rounded-xl border border-slate-200 overflow-hidden focus-within:border-emerald-400 focus-within:ring-2 focus-within:ring-emerald-100 transition-all divide-x divide-slate-200">
+            <button
+              onClick={() => setShowMonthPicker(p => !p)}
+              className="flex items-center justify-center px-3 bg-white hover:bg-slate-50 transition-colors shrink-0"
+            >
+              <Calendar className="h-4 w-4 text-emerald-600" />
+            </button>
+
+            <div className="flex-1 flex items-center divide-x divide-slate-200">
+              <div className="flex-1 flex items-center px-1.5 py-2 min-w-0">
+                <span className="text-[10px] font-bold text-slate-400 mr-1.5 shrink-0 uppercase">Dr</span>
+                <input
+                  type="date"
+                  value={historyStartDate}
+                  onChange={e => setHistoryStartDate(e.target.value)}
+                  className="w-full bg-transparent text-[11px] font-black text-slate-900 outline-none min-w-0"
+                />
+              </div>
+              <div className="flex-1 flex items-center px-1.5 py-2 min-w-0">
+                <span className="text-[10px] font-bold text-slate-400 mr-1.5 shrink-0 uppercase">Sp</span>
+                <input
+                  type="date"
+                  value={historyEndDate}
+                  onChange={e => setHistoryEndDate(e.target.value)}
+                  className="w-full bg-transparent text-[11px] font-black text-slate-900 outline-none min-w-0"
+                />
+              </div>
+            </div>
+          </div>
+
+          <button
+            onClick={() => setShowPerformance(true)}
+            className="w-11 h-11 flex items-center justify-center rounded-xl bg-blue-50 text-blue-600 border border-blue-100 shadow-sm active:scale-95 transition-all shrink-0"
+            title="Lihat Grafik Performa"
+          >
+            <BarChart3 className="h-5 w-5" />
+          </button>
         </div>
-        <button onClick={() => setView('history')}
-          className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-200 bg-white text-gray-700 font-semibold hover:bg-gray-50 shadow-sm transition-colors text-sm">
-          <History className="h-4 w-4" />
-          <span>Riwayat</span>
-        </button>
       </header>
 
-      <main className="px-4 pt-3 pb-6 space-y-4">
-        {/* Stock card */}
-        <section className={cn('bg-white rounded-2xl p-4 shadow-sm border flex items-center gap-4',
-          isLowStock ? 'border-red-200 bg-red-50' : 'border-gray-100')}>
-          <div className={cn('w-12 h-12 rounded-xl flex items-center justify-center shrink-0',
-            isLowStock ? 'bg-red-100' : 'bg-emerald-50 border border-emerald-100')}>
-            {isLowStock
-              ? <AlertTriangle className="h-6 w-6 text-red-500" />
-              : <Package className="h-6 w-6 text-emerald-600" />}
-          </div>
-          <div>
-            <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Stok Saat Ini</h2>
-            <div className="flex items-baseline gap-1.5">
-              <span className="text-3xl font-extrabold text-gray-900 tracking-tight">{currentStock}</span>
-              <span className="text-sm font-semibold text-gray-600">botol</span>
-            </div>
-            {isLowStock && <p className="text-xs font-bold text-red-500 mt-0.5">⚠ Stok Rendah!</p>}
-          </div>
-        </section>
-
-        {/* Action buttons */}
-        <section className="grid grid-cols-2 gap-3">
+      <main className="px-4 pt-4 pb-6 space-y-6">
+        {/* Action buttons (Compact) */}
+        <section className="flex items-center gap-2.5">
           <button
             onClick={() => { resetForm(); setView('restok'); }}
-            className="bg-primary text-primary-foreground rounded-2xl p-4 flex flex-col items-start gap-2.5 shadow-md hover:bg-primary/90 active:scale-[0.98] transition-all"
+            className="flex-1 flex items-center justify-center gap-2 bg-emerald-600 text-white py-3.5 rounded-2xl font-black text-sm shadow-sm hover:bg-emerald-700 active:scale-[0.98] transition-all"
           >
-            <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
-              <Plus className="h-5 w-5" />
-            </div>
-            <div>
-              <p className="font-bold text-sm leading-tight">Restok Barang</p>
-            </div>
+            <Plus className="h-4 w-4" />
+            <span>Restok Barang</span>
           </button>
           <button
             onClick={() => setView('initial')}
-            className="bg-card border border-border text-foreground rounded-2xl p-4 flex flex-col items-start gap-2.5 shadow-sm hover:bg-accent active:scale-[0.98] transition-all"
+            className="flex items-center justify-center px-3.5 py-3.5 bg-white border border-slate-200 text-slate-700 rounded-2xl font-bold text-sm shadow-sm hover:bg-slate-50 active:scale-[0.98] transition-all shrink-0"
+            title="Update Stok Awal"
           >
-            <div className="w-10 h-10 bg-gray-100 rounded-xl flex items-center justify-center">
-              <Package className="h-5 w-5 text-gray-600" />
-            </div>
-            <div>
-              <p className="font-bold text-sm leading-tight">Stok Awal</p>
-            </div>
+            <Package className="h-4 w-4" />
           </button>
         </section>
 
-        {/* Recent entries */}
-        {stockEntries.length > 0 && (
-          <section>
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-base font-black text-gray-800 uppercase tracking-wide">Riwayat Terbaru</h3>
-              <button onClick={() => setView('history')} className="text-emerald-600 font-black text-xs uppercase tracking-wide hover:text-emerald-700">
-                Lihat semua →
-              </button>
+
+          {/* Month Picker dropdown */}
+          {showMonthPicker && (
+            <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-lg mt-1 mb-2">
+              <div className="flex items-center justify-between px-4 py-2.5 border-b border-slate-100">
+                <button onClick={() => setPickerYear(y => y - 1)} className="p-1.5 rounded-xl hover:bg-slate-100">
+                  <ChevronLeft className="h-4 w-4 text-slate-600" />
+                </button>
+                <span className="text-sm font-black text-slate-900">{pickerYear}</span>
+                <button onClick={() => setPickerYear(y => y + 1)} className="p-1.5 rounded-xl hover:bg-slate-100">
+                  <ChevronRight className="h-4 w-4 text-slate-600" />
+                </button>
+              </div>
+              <div className="grid grid-cols-4 gap-1.5 p-2.5">
+                {MONTHS_FULL.map((name, idx) => {
+                  const start = new Date(pickerYear, idx, 1);
+                  const end = new Date(pickerYear, idx + 1, 0);
+                  const startStr = getLocalYYYYMMDD(start);
+                  const endStr = getLocalYYYYMMDD(end);
+                  const isSelected = historyStartDate === startStr && historyEndDate === endStr;
+
+                  return (
+                    <button
+                      key={idx}
+                      onClick={() => {
+                        setHistoryStartDate(startStr);
+                        setHistoryEndDate(endStr);
+                        setShowMonthPicker(false);
+                      }}
+                      className={cn(
+                        "py-2 rounded-xl text-xs font-bold transition-colors",
+                        isSelected
+                          ? "bg-emerald-600 text-white"
+                          : "bg-slate-50 text-slate-700 hover:bg-slate-100"
+                      )}
+                    >
+                      {name.slice(0, 3)}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-            <div className="space-y-1.5">
-              {stockEntries.slice(0, 3).map(entry => {
-                const isIn = entry.type === 'in';
-                const orderRef = entry.order_id ? orders.find(o => o.id === entry.order_id) : null;
-                let displayTitle = '';
-                let badgeText = '';
+          )}
 
-                if (entry.notes === 'Stok awal') {
-                  displayTitle = 'Stok Awal';
-                  badgeText = 'AWAL';
-                } else if (isIn) {
-                  displayTitle = 'Dari: Gudang Pusat';
-                  badgeText = 'RESTOK';
-                } else if (!isIn && orderRef) {
-                  displayTitle = `Ke: ${orderRef.customer_name}`;
-                  badgeText = 'ORDER';
-                } else {
-                  displayTitle = 'Barang Keluar';
-                  badgeText = 'KELUAR';
-                }
+        {/* Ringkasan Section */}
+        <div>
+          <h2 className="text-base font-bold text-slate-800 mb-2.5 px-1">Ringkasan</h2>
+          <div className="space-y-2">
+            <div className="bg-white px-4 py-4 rounded-2xl shadow-sm border-2 border-emerald-100 relative overflow-hidden">
+              <div className="absolute top-0 left-0 w-full h-1 bg-emerald-500" />
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center shrink-0">
+                  <TrendingUp className="h-4 w-4 text-emerald-600" />
+                </div>
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Total Barang Masuk (Restok)</span>
+              </div>
+              <div className="flex items-end justify-between">
+                <p className="text-3xl font-black text-slate-900 tracking-tight">
+                  {dailySummaries.reduce((a, b) => a + b.totalQtyIn, 0)} <span className="text-xs font-bold text-slate-400">btl</span>
+                </p>
+                <p className="text-base font-black text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-100">
+                  {formatCurrency(dailySummaries.reduce((a, b) => a + b.totalValueIn, 0))}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
 
-                const totalValue = isIn
-                  ? (entry.buy_price_per_bottle || mitraInfo.buyPricePerBottle) * entry.quantity
-                  : (orderRef ? Number(orderRef.total_price) : 0);
+        {/* Daily Grouping List */}
+        <div>
+          <div className="flex items-center justify-between mb-3 px-1">
+            <h2 className="text-base font-bold text-slate-800">Rincian Harian</h2>
+            <div className="flex gap-1.5">
+              {dailySummaries.length > 0 && (
+                <button
+                  onClick={() => {
+                    if (expandedDays.size === dailySummaries.length) {
+                      setExpandedDays(new Set());
+                    } else {
+                      setExpandedDays(new Set(dailySummaries.map(d => d.date.toDateString())));
+                    }
+                  }}
+                  className="text-slate-600 font-bold text-[10px] bg-slate-100 px-2 py-1 rounded-lg hover:bg-slate-200 transition-colors"
+                >
+                  {expandedDays.size === dailySummaries.length ? 'Tutup' : 'Buka Semua'}
+                </button>
+              )}
+              {dailySummaries.length > 5 && (
+                <button
+                  onClick={() => setShowAllDays(v => !v)}
+                  className="text-emerald-600 font-bold text-[10px] bg-emerald-50 px-2 py-1 rounded-lg"
+                >
+                  {showAllDays ? 'Lebih Sedikit' : 'Lihat Semua'}
+                </button>
+              )}
+            </div>
+          </div>
 
-                return (
-                  <div key={entry.id} className="bg-white rounded-xl p-2.5 shadow-sm border border-gray-100 flex flex-col gap-1.5">
-                    <div className="flex items-start gap-2">
+          <div className="space-y-2">
+            {visibleDays.map(day => {
+              const dayKey = day.date.toDateString();
+              const isExpanded = expandedDays.has(dayKey);
+              return (
+                <div key={dayKey} className="rounded-2xl overflow-hidden shadow-sm border border-slate-100">
+                  <button
+                    className="w-full bg-white px-4 py-3 flex items-center justify-between text-left active:bg-slate-50 transition-colors"
+                    onClick={() => setExpandedDays(prev => {
+                      const next = new Set(prev);
+                      if (next.has(dayKey)) next.delete(dayKey); else next.add(dayKey);
+                      return next;
+                    })}
+                  >
+                    <div className="flex items-center gap-3">
                       <div className={cn(
-                        'w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0',
-                        isIn ? 'bg-blue-100' : 'bg-emerald-100'
+                        "w-11 h-11 rounded-xl flex flex-col items-center justify-center font-bold shrink-0",
+                        day.date.getDay() === 0 ? "bg-red-50 text-red-600 border border-red-100" : "bg-slate-100 text-slate-700"
                       )}>
-                        {isIn
-                          ? <ArrowDown className="h-4 w-4 text-blue-600" />
-                          : <ArrowUp className="h-4 w-4 text-emerald-600" />}
+                        <span className="text-[9px] uppercase font-bold leading-none">{day.dayName}</span>
+                        <span className="text-base font-black leading-tight">{day.dayNum}</span>
                       </div>
-
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <h3 className="text-sm font-bold text-gray-900 leading-none truncate">
-                            {displayTitle}
-                          </h3>
-                          <span className={cn(
-                            'text-[8px] font-bold px-1 py-0.5 rounded uppercase tracking-wider leading-none shrink-0',
-                            isIn ? 'bg-blue-100 text-blue-700' : 'bg-emerald-100 text-emerald-700'
-                          )}>
-                            {badgeText}
-                          </span>
-                        </div>
-                        <p className="text-[10px] text-gray-400 mt-0.5">{formatDateTime(orderRef ? orderRef.created_at : entry.created_at)}</p>
-                      </div>
-                    </div>
-
-                    <div className="flex justify-between items-end border-t border-gray-50 pt-1.5">
                       <div>
-                        <p className="text-[8px] text-gray-500 font-bold uppercase tracking-wider mb-0.5">Jumlah</p>
-                        <p className={cn("text-sm font-black leading-none", isIn ? "text-blue-600" : "text-red-500")}>
-                          {isIn ? '+' : '-'}{entry.quantity}{' '}
-                          <span className="text-[9px] font-bold text-gray-500">btl</span>
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-[8px] text-gray-500 font-bold uppercase tracking-wider mb-0.5">
-                          {isIn ? 'Nilai Masuk' : 'Nilai Total'}
-                        </p>
-                        <p className="text-sm font-black text-emerald-600 leading-none">
-                          {formatCurrency(totalValue)}
+                        <p className="font-black text-slate-900 text-sm">Masuk: {day.totalQtyIn} btl</p>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">
+                          Nilai: {formatCurrency(day.totalValueIn)}
                         </p>
                       </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
-          </section>
-        )}
+                    <div className="flex items-center gap-2">
+                      <ChevronRight className={cn("h-5 w-5 text-slate-300 transition-transform", isExpanded && "rotate-90")} />
+                    </div>
+                  </button>
+
+                  {isExpanded && (
+                    <div className="border-t border-slate-50 bg-slate-50/30 p-2.5 space-y-2">
+                      {day.entries.filter(e => e.type === 'in').length === 0 ? (
+                        <p className="text-center py-4 text-[10px] font-bold text-slate-400 uppercase">Tidak ada penambahan stok</p>
+                      ) : day.entries.filter(e => e.type === 'in').map(entry => {
+                        const isIn = entry.type === 'in';
+
+                        const orderRef = entry.order_id ? orders.find(o => o.id === entry.order_id) : null;
+                        
+                        let displayTitle = '';
+                        let badgeText = '';
+                        if (entry.notes === 'Stok awal') { displayTitle = 'Stok Awal'; badgeText = 'AWAL'; }
+                        else if (isIn) { displayTitle = 'Restok Barang'; badgeText = 'RESTOK'; }
+                        else if (!isIn && orderRef) { displayTitle = `Ke: ${orderRef.customer_name}`; badgeText = 'ORDER'; }
+                        else { displayTitle = 'Barang Keluar'; badgeText = 'KELUAR'; }
+
+                        const totalValue = isIn 
+                          ? (entry.buy_price_per_bottle || mitraInfo.buyPricePerBottle) * entry.quantity
+                          : (orderRef ? Number(orderRef.total_price) : 0);
+
+                        return (
+                          <div key={entry.id} className="bg-white rounded-xl p-2.5 shadow-sm border border-gray-100 flex flex-col gap-1.5">
+                            <div className="flex items-start gap-2">
+                              <div className={cn(
+                                'w-8 h-8 rounded-full flex items-center justify-center shrink-0',
+                                isIn ? 'bg-blue-100' : 'bg-emerald-100'
+                              )}>
+                                {isIn ? <ArrowDown className="h-4 w-4 text-blue-600" /> : <ArrowUp className="h-4 w-4 text-emerald-600" />}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  <h3 className="text-sm font-bold text-gray-900 leading-none truncate">{displayTitle}</h3>
+                                  <span className={cn(
+                                    'text-[8px] font-bold px-1 py-0.5 rounded tracking-wider leading-none',
+                                    isIn ? 'bg-blue-50 text-blue-700 border border-blue-100' : 'bg-emerald-50 text-emerald-700 border border-emerald-100'
+                                  )}>
+                                    {badgeText}
+                                  </span>
+                                </div>
+                                <p className="text-[10px] text-gray-400 mt-1 uppercase font-bold tracking-tighter">
+                                  {new Date(entry.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB
+                                </p>
+                              </div>
+                              {entry.type !== 'out' && (
+                                <div className="flex gap-1 shrink-0">
+                                  <button onClick={() => openEdit(entry)} className="w-7 h-7 rounded-lg bg-gray-50 text-slate-400 flex items-center justify-center hover:bg-slate-100">
+                                    <Edit className="h-3.5 w-3.5" />
+                                  </button>
+                                  <button onClick={() => handleDelete(entry)} className="w-7 h-7 rounded-lg bg-red-50 text-red-400 flex items-center justify-center hover:bg-red-100">
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                            <div className="flex justify-between items-end border-t border-gray-50 pt-1.5">
+                              <div>
+                                <p className="text-[8px] text-gray-400 font-bold uppercase tracking-wider">Jumlah</p>
+                                <p className={cn("text-sm font-black leading-none", isIn ? "text-blue-600" : "text-red-500")}>
+                                  {isIn ? '+' : '-'}{entry.quantity} <span className="text-[9px] font-bold text-gray-500">btl</span>
+                                </p>
+                              </div>
+                              <div className="text-right">
+                                <p className="text-[8px] text-gray-400 font-bold uppercase tracking-wider">{isIn ? 'Nilai Restok' : 'Nilai Transaksi'}</p>
+                                <p className="text-sm font-black text-emerald-600 leading-none">{formatCurrency(totalValue)}</p>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
       </main>
     </div>
   );

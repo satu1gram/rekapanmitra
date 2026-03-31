@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
-import { ArrowLeft, User, Phone, MapPin, Save, Loader2, ShoppingBag, Store, Package, Check, X, Calendar } from 'lucide-react';
+import { ArrowLeft, User, Phone, MapPin, Save, Loader2, ShoppingBag, Store, Package, Check, X, Calendar, TrendingUp, Clock, CreditCard } from 'lucide-react';
+import { useOrders } from '@/hooks/useOrdersDb';
+import { formatCurrency } from '@/lib/formatters';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
@@ -49,6 +51,23 @@ export function EditCustomerPage({ customer, onBack, onSaved }: EditCustomerPage
   const [saving, setSaving] = useState(false);
 
   const { provinces, loadingProvinces, cities, loadingCities, fetchCities, setCities } = useIndonesianRegions();
+  const { orders } = useOrders();
+
+  const customerOrders = orders.filter(o => o.customer_id === customer.id);
+  const totalSpent = customerOrders.reduce((sum, o) => sum + o.total_price, 0);
+  const totalBottles = customerOrders.reduce((sum, o) => sum + o.quantity, 0);
+
+  const now = new Date();
+  const currentMonthOrders = customerOrders.filter(o => {
+    const d = new Date(o.created_at);
+    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+  });
+  const currentMonthSpent = currentMonthOrders.reduce((sum, o) => sum + o.total_price, 0);
+
+  const lastOrderDate = customerOrders.length > 0 
+    ? new Date(Math.max(...customerOrders.map(o => new Date(o.created_at).getTime())))
+    : null;
+  const isPassive = lastOrderDate && (now.getTime() - lastOrderDate.getTime()) > 30 * 24 * 60 * 60 * 1000;
 
   // Initial load for cities if we already have a province
   // The API doesn't give us names for the IDs saved in DB easily without matching against the lists,
@@ -148,6 +167,61 @@ export function EditCustomerPage({ customer, onBack, onSaved }: EditCustomerPage
       </header>
 
       <main className="px-4 mt-3 space-y-3">
+        {/* Statistik Pelanggan */}
+        {customer.id && (
+          <div className="bg-card rounded-2xl p-4 shadow-sm border border-border/50 space-y-4">
+            <h3 className="text-lg font-bold text-foreground flex items-center">
+              <span className="w-1.5 h-5 bg-emerald-500 rounded-full mr-2.5" />
+              Aktivitas Belanja
+            </h3>
+            
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-emerald-50 rounded-xl p-3 border border-emerald-100">
+                <div className="flex items-center gap-1.5 text-emerald-600 mb-1">
+                  <TrendingUp className="h-4 w-4" />
+                  <span className="text-[10px] font-black uppercase tracking-wider">Bulan Ini</span>
+                </div>
+                <p className="font-black text-slate-900 leading-tight">{formatCurrency(currentMonthSpent)}</p>
+                <p className="text-[10px] font-bold text-slate-500 mt-0.5">{currentMonthOrders.length} Transaksi</p>
+              </div>
+
+              <div className="bg-blue-50 rounded-xl p-3 border border-blue-100">
+                <div className="flex items-center gap-1.5 text-blue-600 mb-1">
+                  <CreditCard className="h-4 w-4" />
+                  <span className="text-[10px] font-black uppercase tracking-wider">Total (All-time)</span>
+                </div>
+                <p className="font-black text-slate-900 leading-tight">{formatCurrency(totalSpent)}</p>
+                <p className="text-[10px] font-bold text-slate-500 mt-0.5">{totalBottles} Botol Terbeli</p>
+              </div>
+            </div>
+
+            <div className={cn(
+              "rounded-xl p-3 flex items-center gap-3 border",
+              isPassive ? "bg-red-50 border-red-100" : "bg-slate-50 border-slate-100"
+            )}>
+              <div className={cn(
+                "w-8 h-8 rounded-full flex items-center justify-center shrink-0",
+                isPassive ? "bg-red-100 text-red-600" : "bg-slate-200 text-slate-600"
+              )}>
+                <Clock className="h-4 w-4" />
+              </div>
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-wider text-slate-500 mb-0.5">Transaksi Terakhir</p>
+                {lastOrderDate ? (
+                  <p className={cn("font-bold text-sm leading-tight", isPassive ? "text-red-600" : "text-slate-900")}>
+                    {lastOrderDate.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+                  </p>
+                ) : (
+                  <p className="font-bold text-sm leading-tight text-slate-400">Belum pernah belanja</p>
+                )}
+                {isPassive && (
+                  <p className="text-[9px] font-bold text-red-500 mt-0.5">Lebih dari 30 hari tidak order!</p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Form card - same rounded-2xl card pattern */}
         <div className="bg-card rounded-2xl p-4 shadow-sm border border-border/50 space-y-5">
           <h3 className="text-lg font-bold text-foreground flex items-center">

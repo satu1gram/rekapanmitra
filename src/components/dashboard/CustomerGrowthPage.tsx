@@ -1,8 +1,10 @@
 import { useState, useMemo } from 'react';
-import { ArrowLeft, Users, Medal, Download, TrendingUp, TrendingDown } from 'lucide-react';
+import { ArrowLeft, Users, Medal, Download, TrendingUp, TrendingDown, User, Store, ChevronRight } from 'lucide-react';
 import { useCustomers } from '@/hooks/useCustomersDb';
 import { cn } from '@/lib/utils';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
+import type { Tables } from '@/integrations/supabase/types';
+import { EditCustomerPage } from '@/components/customers/EditCustomerPage';
 
 interface CustomerGrowthPageProps {
     onBack: () => void;
@@ -16,6 +18,7 @@ export function CustomerGrowthPage({ onBack }: CustomerGrowthPageProps) {
     const currentYear = new Date().getFullYear();
     const [selectedYear, setSelectedYear] = useState(currentYear);
     const [selectedSegment, setSelectedSegment] = useState<'semua' | 'mitra' | 'konsumen'>('semua');
+    const [editingCustomer, setEditingCustomer] = useState<Tables<'customers'> | null>(null);
 
     // Available Years
     const availableYears = useMemo(() => {
@@ -90,7 +93,33 @@ export function CustomerGrowthPage({ onBack }: CustomerGrowthPageProps) {
         return 'Pelanggan';
     };
 
+    const tierBreakdown = useMemo(() => {
+        const acc = { reseller: 0, agen: 0, agen_plus: 0, sap: 0, se: 0, satuan: 0 } as Record<string, number>;
+        baseSegmentCustomers.forEach(c => {
+            if (acc[c.tier] !== undefined) {
+                acc[c.tier]++;
+            } else {
+                acc[c.tier] = 1;
+            }
+        });
+        return acc;
+    }, [baseSegmentCustomers]);
+
     if (loading) return <LoadingScreen />;
+
+    if (editingCustomer) {
+        return (
+            <EditCustomerPage
+                customer={editingCustomer}
+                onBack={() => setEditingCustomer(null)}
+                onSaved={(updatedCustomer) => {
+                    // Update the local list or just rely on the subscription / refresh
+                    // useCustomers hook doesn't currently expose a mutate, so we close and rely on real-time/refetch
+                    setEditingCustomer(null);
+                }}
+            />
+        );
+    }
 
     return (
         <div className="bg-background min-h-screen pb-safe">
@@ -245,6 +274,92 @@ export function CustomerGrowthPage({ onBack }: CustomerGrowthPageProps) {
                                 </div>
                             );
                         })
+                    )}
+                </div>
+
+                {/* Customer List Section */}
+                <div className="space-y-3 pt-6">
+                    {(selectedSegment === 'semua' || selectedSegment === 'mitra') && baseSegmentCustomers.length > 0 && (
+                        <div className="mb-6 space-y-3">
+                            <h3 className="font-bold text-slate-900 px-1">Statistik Level Mitra</h3>
+                            <div className="flex flex-wrap gap-2">
+                                {Object.entries(tierBreakdown)
+                                    .filter(([tier, count]) => tier !== 'satuan' && count > 0)
+                                    .sort((a, b) => b[1] - a[1]) // Sort by count descending
+                                    .map(([tier, count]) => {
+                                        let label = tier;
+                                        if (tier === 'agen_plus') label = 'Agen Plus';
+                                        if (tier === 'sap') label = 'SAP';
+                                        if (tier === 'se') label = 'Spesial Ent.';
+                                        
+                                        return (
+                                            <div key={tier} className="bg-red-50/50 border border-red-100 rounded-xl px-3 py-2 flex items-center gap-2">
+                                                <Store className="h-3.5 w-3.5 text-red-500" />
+                                                <span className="text-[11px] font-bold text-slate-700 capitalize">
+                                                    {label.replace('_', ' ')}
+                                                </span>
+                                                <span className="text-xs font-black text-red-600 bg-white px-1.5 py-0.5 rounded-md shadow-sm">
+                                                    {count}
+                                                </span>
+                                            </div>
+                                        );
+                                })}
+                            </div>
+                        </div>
+                    )}
+
+                    <div className="flex items-center justify-between px-1">
+                        <h3 className="font-bold text-slate-900">Daftar {getSegmentText()} ({baseSegmentCustomers.length})</h3>
+                    </div>
+
+                    {baseSegmentCustomers.length === 0 ? (
+                        <div className="bg-white rounded-2xl p-6 text-center border-2 border-slate-50 border-dashed">
+                            <p className="text-sm font-medium text-slate-400">Belum ada {getSegmentText().toLowerCase()} yang terdaftar.</p>
+                        </div>
+                    ) : (
+                        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden divide-y divide-slate-50">
+                            {baseSegmentCustomers
+                                .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+                                .map((c) => {
+                                    const isMitra = c.tier !== 'satuan';
+                                    return (
+                                        <button
+                                            key={c.id}
+                                            onClick={() => setEditingCustomer(c)}
+                                            className="w-full text-left p-4 flex items-center justify-between hover:bg-slate-50 active:bg-slate-100 transition-colors"
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <div className={cn(
+                                                    "w-10 h-10 rounded-full flex items-center justify-center shrink-0 border",
+                                                    isMitra ? "bg-red-50 border-red-100 text-red-600" : "bg-slate-50 border-slate-100 text-slate-500"
+                                                )}>
+                                                    {isMitra ? <Store className="h-4 w-4" /> : <User className="h-4 w-4" />}
+                                                </div>
+                                                <div>
+                                                    <h4 className="font-bold text-slate-900 leading-tight">{c.name}</h4>
+                                                    <div className="flex items-center gap-1.5 mt-0.5">
+                                                        <span className={cn(
+                                                            "text-[9px] font-black uppercase tracking-widest",
+                                                            isMitra ? "text-red-500" : "text-slate-400"
+                                                        )}>
+                                                            {isMitra ? c.tier.replace('_', ' ') : 'Konsumen'}
+                                                        </span>
+                                                        {c.city && (
+                                                            <>
+                                                                <span className="text-slate-300">•</span>
+                                                                <span className="text-[10px] text-slate-500 font-medium truncate max-w-[120px]">
+                                                                    {c.city}
+                                                                </span>
+                                                            </>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <ChevronRight className="h-4 w-4 text-slate-300" />
+                                        </button>
+                                    );
+                                })}
+                        </div>
                     )}
                 </div>
             </main>
