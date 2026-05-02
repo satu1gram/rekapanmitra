@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 export interface Region {
     id: string;
@@ -41,7 +41,7 @@ export function useIndonesianRegions() {
         return () => { mounted = false; };
     }, []);
 
-    const fetchCities = async (provinceId: string) => {
+    const fetchCities = useCallback(async (provinceId: string) => {
         if (!provinceId) {
             setCities([]);
             return;
@@ -64,7 +64,7 @@ export function useIndonesianRegions() {
         } finally {
             setLoadingCities(false);
         }
-    };
+    }, []);
 
     return {
         provinces,

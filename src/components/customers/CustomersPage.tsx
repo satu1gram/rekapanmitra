@@ -79,41 +79,36 @@ export function CustomersPage() {
     return <LoadingScreen variant="list" />;
   }
 
-  return (
-    <div className="space-y-4 pb-4">
-      <div className="flex items-center justify-between">
+    <div className="px-4 pt-4 pb-4 space-y-3">
+      <div className="flex items-center justify-between mb-1">
         <div>
-          <h1 className="text-2xl font-bold">Customer</h1>
-          <p className="text-sm text-muted-foreground">{customers.length} customer terdaftar</p>
+          <h1 className="text-xl font-black tracking-tight text-slate-900">Customer</h1>
+          <p className="text-[11px] text-slate-500 font-bold uppercase tracking-wider">{customers.length} Terdaftar</p>
         </div>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 gap-3">
-        <Card>
-          <CardContent className="flex items-center gap-3 py-4">
-            <div className="rounded-full bg-primary/10 p-2">
-              <Users className="h-5 w-5 text-primary" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold">{customers.length}</p>
-              <p className="text-xs text-muted-foreground">Total Customer</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="flex items-center gap-3 py-4">
-            <div className="rounded-full bg-primary/10 p-2">
-              <TrendingUp className="h-5 w-5 text-primary" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold">
-                {customers.filter(c => c.tier !== 'satuan').length}
-              </p>
-              <p className="text-xs text-muted-foreground">Mitra Aktif</p>
-            </div>
-          </CardContent>
-        </Card>
+      {/* Stats - Compact Row */}
+      <div className="grid grid-cols-2 gap-2">
+        <div className="bg-white p-3 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
+            <Users className="h-4 w-4 text-blue-600" />
+          </div>
+          <div>
+            <p className="text-lg font-black leading-none text-slate-900">{customers.length}</p>
+            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Total</p>
+          </div>
+        </div>
+        <div className="bg-white p-3 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center shrink-0">
+            <TrendingUp className="h-4 w-4 text-emerald-600" />
+          </div>
+          <div>
+            <p className="text-lg font-black leading-none text-slate-900">
+              {customers.filter(c => c.tier !== 'satuan').length}
+            </p>
+            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Mitra Aktif</p>
+          </div>
+        </div>
       </div>
 
       {/* Customer List */}

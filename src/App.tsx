@@ -14,7 +14,6 @@ import { PWAUpdatePrompt } from "@/components/PWAUpdatePrompt";
 
 // Lazy-load each page → hemat data (code-splitting otomatis via Vite)
 const LandingPage = lazy(() => import("./pages/LandingPage"));
-const KatalogProdukPage = lazy(() => import("./pages/KatalogProdukPage"));
 const AIHealthAdvisorPage = lazy(() => import("./pages/AIHealthAdvisorPage"));
 const DashboardPage = lazy(() => import("./pages/DashboardPage"));
 const RiwayatPage = lazy(() => import("./pages/RiwayatPage"));
@@ -76,10 +75,6 @@ const App = () => (
               <Suspense fallback={<PageLoader />}><LandingPage /></Suspense>
             } />
 
-            {/* Katalog public page */}
-            <Route path="/katalog" element={
-              <Suspense fallback={<PageLoader variant="katalog" />}><KatalogProdukPage /></Suspense>
-            } />
 
             {/* AI Health Advisor page */}
             <Route path="/ai-advisor" element={

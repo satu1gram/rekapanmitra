@@ -89,11 +89,10 @@ export function OrdersPage({ openAddForm = false, onAddFormClose }: OrdersPagePr
   const [editItems, setEditItems] = useState<OrderItem[]>([]);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showAllDays, setShowAllDays] = useState(false);
-  const [showPerforma, setShowPerforma] = useState(false);
+  const [activeTab, setActiveTab] = useState<'orders' | 'leaderboard' | 'performa'>('orders');
   const [orderResult, setOrderResult] = useState<OrderResult | null>(null);
   const [includeCosts, setIncludeCosts] = useState(true);
   const [editingCustomer, setEditingCustomer] = useState<Tables<'customers'> | null>(null);
-  const [showLeaderboard, setShowLeaderboard] = useState(false);
 
   const {
     orders,
@@ -147,7 +146,8 @@ export function OrdersPage({ openAddForm = false, onAddFormClose }: OrdersPagePr
       // Deteksi ID pelanggan, atau cari berdasarkan kecocokan nama jika ID terputus
       let matchedCust = o.customer_id ? customers.find(x => x.id === o.customer_id) : null;
       if (!matchedCust && o.customer_name) {
-         matchedCust = customers.find(x => x.name.toLowerCase().trim() === o.customer_name!.toLowerCase().trim());
+         const searchName = (o.customer_name || '').toLowerCase().trim();
+         matchedCust = customers.find(x => (x.name || '').toLowerCase().trim() === searchName);
       }
 
       // Kunci grouping prioritas: UUID valid, atau String nama (fallback)
@@ -201,27 +201,14 @@ export function OrdersPage({ openAddForm = false, onAddFormClose }: OrdersPagePr
   const handleSubmit = async (data: {
     customerName: string; customerPhone: string; customerAddress?: string; province?: string; city?: string; tier: TierType;
     items: OrderItem[]; transferProofUrl?: string; customerId?: string; createdAt?: string;
-  }) => {
+  }): Promise<boolean> => {
     const totalQuantity = data.items.reduce((sum, item) => sum + item.quantity, 0);
     setSubmitting(true);
     const totalPrice = data.items.reduce((sum, item) => sum + item.subtotal, 0);
     const totalBuy = MITRA_LEVELS[mitraLevel].buyPricePerBottle * totalQuantity;
     try {
-      const order = await addOrder({ ...data, mitraLevel });
-      setShowAddModal(false); onAddFormClose?.();
-      setOrderResult({
-        success: true,
-        totalPrice,
-        estimatedProfit: totalPrice - totalBuy,
-        customerName: data.customerName,
-        customerPhone: data.customerPhone,
-        orderItems: data.items.map(i => ({
-          name: i.productName,
-          quantity: i.quantity,
-          price: i.pricePerBottle,
-          subtotal: i.subtotal,
-        })),
-      });
+      await addOrder({ ...data, mitraLevel });
+      // Remove setShowAddModal(false) and setOrderResult() here so TambahOrderFlow shows its own success UI
       addOrUpdateCustomer({
         customerName: data.customerName,
         customerPhone: data.customerPhone,
@@ -231,10 +218,12 @@ export function OrdersPage({ openAddForm = false, onAddFormClose }: OrdersPagePr
         tier: data.tier,
         totalPrice,
       }).catch(err => console.error('addOrUpdateCustomer failed:', err));
+      return true;
     } catch (error: unknown) {
       const err = error as Error;
       setShowAddModal(false); onAddFormClose?.();
       setOrderResult({ success: false, errorMessage: err?.message || 'Gagal menyimpan order ke database.' });
+      return false;
     } finally {
       setSubmitting(false);
     }
@@ -328,8 +317,8 @@ export function OrdersPage({ openAddForm = false, onAddFormClose }: OrdersPagePr
     );
   }
 
-  if (showPerforma) {
-    return <PerformaPage onBack={() => setShowPerforma(false)} />;
+  if (activeTab === 'performa') {
+    return <PerformaPage onBack={() => setActiveTab('orders')} />;
   }
 
   if (loading) {
@@ -338,62 +327,70 @@ export function OrdersPage({ openAddForm = false, onAddFormClose }: OrdersPagePr
 
   return (
     <div className="flex flex-col min-h-screen bg-background text-slate-900">
-      {/* Header - Fixed Z-index and Solid BG */}
-      <header className="px-5 pt-8 pb-4 bg-white/95 backdrop-blur-md shadow-sm z-[40] sticky top-0 border-b border-slate-100">
-        <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 mb-4">Riwayat Order</h1>
+      {/* Header - Compact & Dynamic */}
+      <header className="px-5 pt-4 pb-3 bg-white/95 backdrop-blur-md shadow-sm z-[40] sticky top-0 border-b border-slate-100">
+        <div className="flex items-center justify-between gap-3 mb-3">
+          <h1 className="text-xl font-black tracking-tight text-slate-900 truncate">
+            {activeTab === 'orders' ? 'Laporan' : activeTab === 'leaderboard' ? 'Top Mitra' : 'Grafik'}
+          </h1>
 
-        {/* Ultra-Compact Date filter and Grafik button */}
-        <div className="flex items-center gap-2 mb-3">
-          <div className="flex-1 flex bg-slate-100 rounded-xl border border-slate-200 overflow-hidden focus-within:border-emerald-400 focus-within:ring-2 focus-within:ring-emerald-100 transition-all">
-            {/* Quick Month button */}
+          {/* Compact Tab Navigation (Right Aligned) */}
+          <div className="flex bg-slate-100/80 p-1 rounded-xl border border-slate-200/50 shadow-inner shrink-0">
+            {[
+              { id: 'orders', icon: ShoppingCart, color: 'text-emerald-600' },
+              { id: 'leaderboard', icon: Trophy, color: 'text-amber-600' },
+              { id: 'performa', icon: BarChart3, color: 'text-blue-600' }
+            ].map((tab) => {
+              const Icon = tab.icon;
+              const isActive = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id as any)}
+                  className={cn(
+                    "w-9 h-9 flex items-center justify-center rounded-lg transition-all duration-300",
+                    isActive 
+                      ? "bg-white text-slate-900 shadow-sm ring-1 ring-slate-200/50" 
+                      : "text-slate-400 hover:bg-slate-50 active:scale-95"
+                  )}
+                >
+                  <Icon className={cn("h-4 w-4", isActive ? tab.color : "text-slate-400")} />
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Global Date Filter - Ultra Compact */}
+        <div className="flex items-center gap-2">
+          <div className="flex-1 flex bg-white rounded-xl border border-slate-200 overflow-hidden focus-within:border-emerald-400 focus-within:ring-4 focus-within:ring-emerald-50 transition-all shadow-sm">
             <button
               onClick={() => setShowMonthPicker(p => !p)}
-              className="flex items-center justify-center px-3 border-r border-slate-200 bg-white hover:bg-slate-50 transition-colors shrink-0"
+              className="flex items-center justify-center px-2.5 border-r border-slate-100 bg-slate-50/50 hover:bg-slate-100 transition-colors shrink-0"
             >
-              <Calendar className="h-4 w-4 text-emerald-600" />
+              <Calendar className="h-3.5 w-3.5 text-emerald-600" />
             </button>
 
-            {/* Date Inputs in one row - Added better spacing & min-widths */}
-            <div className="flex-1 flex items-center divide-x divide-slate-200">
-              <div className="flex-1 flex items-center px-1.5 py-2 min-w-0">
-                <span className="text-[10px] font-bold text-slate-400 mr-1.5 shrink-0">Dr</span>
+            <div className="flex-1 flex items-center divide-x divide-slate-100">
+              <div className="flex-1 flex items-center px-2.5 py-1.5 min-w-0">
+                <span className="text-[8px] font-black text-slate-400 mr-1.5 shrink-0 uppercase tracking-tighter">Dari</span>
                 <input
                   type="date"
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
-                  className="w-full bg-transparent text-[11px] font-black text-slate-900 outline-none min-w-0"
+                  className="w-full bg-transparent text-[11px] font-bold text-slate-900 outline-none min-w-0"
                 />
               </div>
-              <div className="flex-1 flex items-center px-1.5 py-2 min-w-0">
-                <span className="text-[10px] font-bold text-slate-400 mr-1.5 shrink-0">Sp</span>
+              <div className="flex-1 flex items-center px-2.5 py-1.5 min-w-0">
+                <span className="text-[8px] font-black text-slate-400 mr-1.5 shrink-0 uppercase tracking-tighter">Sampai</span>
                 <input
                   type="date"
                   value={endDate}
                   onChange={(e) => setEndDate(e.target.value)}
-                  className="w-full bg-transparent text-[11px] font-black text-slate-900 outline-none min-w-0"
+                  className="w-full bg-transparent text-[11px] font-bold text-slate-900 outline-none min-w-0"
                 />
               </div>
             </div>
-          </div>
-
-          <div className="flex items-center gap-1.5 shrink-0">
-            <button
-              onClick={() => { setShowLeaderboard(!showLeaderboard); setShowPerforma(false); }}
-              className={cn(
-                "flex items-center justify-center px-3 py-2 rounded-xl h-[42px] transition-colors border",
-                showLeaderboard 
-                  ? "bg-amber-100 border-amber-300 text-amber-700 shadow-inner"
-                  : "bg-amber-50 border-amber-200 text-amber-600 hover:bg-amber-100"
-              )}
-            >
-              <Trophy className="h-5 w-5" />
-            </button>
-            <button
-              onClick={() => { setShowPerforma(true); setShowLeaderboard(false); }}
-              className="flex items-center justify-center bg-blue-50 border border-blue-200 text-blue-600 px-3 py-2 rounded-xl h-[42px] active:bg-blue-100 transition-colors"
-            >
-              <BarChart3 className="h-5 w-5" />
-            </button>
           </div>
         </div>
 
@@ -449,7 +446,7 @@ export function OrdersPage({ openAddForm = false, onAddFormClose }: OrdersPagePr
 
       {/* Main Content */}
       <main className="flex-1 px-4 py-4 space-y-4 pb-8">
-        {showLeaderboard ? (
+        {activeTab === 'leaderboard' ? (
           <div className="space-y-3 animate-in fade-in zoom-in-95 duration-200">
             <h2 className="text-base font-bold text-slate-800">Top Pelanggan Paling Aktif</h2>
             <p className="text-xs text-slate-500 font-medium mb-3">Diurutkan berdasarkan total nilai belanja pada rentang tanggal ini.</p>
@@ -537,44 +534,42 @@ export function OrdersPage({ openAddForm = false, onAddFormClose }: OrdersPagePr
         )}
 
         {/* Ringkasan */}
-        <div>
-          <h2 className="text-base font-bold text-slate-800 mb-2.5">Ringkasan</h2>
-          <div className="space-y-2">
-
+        <div className="space-y-2">
+          <h2 className="text-sm font-black text-slate-800 px-1 uppercase tracking-wider">Ringkasan</h2>
+          <div className="grid grid-cols-1 gap-2">
             {/* Total Omset & Terjual Terpadu */}
-            <div className="bg-white px-4 py-4 rounded-2xl shadow-sm border border-slate-100 relative overflow-hidden">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
-                  <ShoppingCart className="h-4 w-4 text-blue-600" />
+            <div className="bg-white px-4 py-3 rounded-2xl shadow-sm border border-slate-100 relative overflow-hidden">
+              <div className="flex items-center justify-between mb-1">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
+                    <ShoppingCart className="h-3.5 w-3.5 text-blue-600" />
+                  </div>
+                  <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider">Total Omset & Terjual</span>
                 </div>
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Total Omset & Terjual</span>
-              </div>
-              <div className="flex items-end justify-between">
-                <p className="text-2xl font-black text-slate-900 tracking-tight leading-none">
-                  {formatCurrency(totalRevenue)}
-                </p>
-                <div className="bg-orange-50 px-2.5 py-1 rounded-lg border border-orange-100 flex items-center gap-1">
-                  <span className="text-sm font-black text-orange-600">{totalQty}</span>
-                  <span className="text-[10px] font-bold text-orange-400 uppercase">pcs</span>
+                <div className="bg-orange-50 px-2 py-0.5 rounded-lg border border-orange-100 flex items-center gap-1">
+                  <span className="text-xs font-black text-orange-600">{totalQty}</span>
+                  <span className="text-[9px] font-bold text-orange-400 uppercase">pcs</span>
                 </div>
               </div>
+              <p className="text-2xl font-black text-slate-900 tracking-tight leading-tight">
+                {formatCurrency(totalRevenue)}
+              </p>
             </div>
 
             {/* Keuntungan Bersih */}
-            <div className="bg-white px-4 py-3.5 rounded-2xl shadow-sm border-2 border-emerald-100 relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-20 h-20 bg-emerald-50 rounded-full -mr-6 -mt-6 opacity-60 pointer-events-none" />
+            <div className="bg-white px-4 py-3 rounded-2xl shadow-sm border border-slate-100 relative overflow-hidden">
               <div className="flex items-center justify-between mb-1.5 relative z-10">
                 <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-lg bg-emerald-100 flex items-center justify-center shrink-0">
-                    <TrendingUp className="h-3.5 w-3.5 text-emerald-700" />
+                  <div className="w-7 h-7 rounded-lg bg-emerald-50 flex items-center justify-center shrink-0">
+                    <TrendingUp className="h-3.5 w-3.5 text-emerald-600" />
                   </div>
-                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Keuntungan/Profit</span>
+                  <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider">Keuntungan/Profit</span>
                 </div>
                 {/* Toggle biaya */}
                 <button
                   onClick={() => setIncludeCosts(v => !v)}
                   className={cn(
-                    "flex items-center gap-1 px-2.5 py-1 rounded-full border text-[10px] font-bold transition-all",
+                    "flex items-center gap-1 px-2 py-0.5 rounded-full border text-[9px] font-bold transition-all",
                     includeCosts
                       ? "bg-orange-50 border-orange-200 text-orange-600"
                       : "bg-slate-50 border-slate-200 text-slate-500"

@@ -8,6 +8,7 @@ interface BottomActionBarProps {
   nextLabel?: string;
   nextIcon?: React.ReactNode;
   disabled?: boolean;
+  loading?: boolean;
   leftContent?: React.ReactNode;
 }
 
@@ -17,6 +18,7 @@ export function BottomActionBar({
   nextLabel = 'Lanjut', 
   nextIcon = <ArrowRight className="w-4 h-4" />,
   disabled = false,
+  loading = false,
   leftContent
 }: BottomActionBarProps) {
   return (
@@ -40,16 +42,25 @@ export function BottomActionBar({
         {onNext && (
           <button
             onClick={onNext}
-            disabled={disabled}
+            disabled={disabled || loading}
             className={cn(
               "flex-1 h-12 rounded-[18px] flex items-center justify-center gap-2 font-black text-[15px] transition-all active:scale-[0.98] h-14",
-              disabled 
+              (disabled || loading)
                 ? "bg-slate-100 text-slate-400 cursor-not-allowed opacity-60" 
                 : "bg-emerald-600 text-white hover:bg-emerald-700 shadow-xl shadow-emerald-200"
             )}
           >
-            <span>{nextLabel}</span>
-            {nextIcon}
+            {loading ? (
+              <span className="flex items-center gap-2">
+                <span className="w-4 h-4 border-2 border-slate-400 border-t-transparent rounded-full animate-spin"></span>
+                Memproses...
+              </span>
+            ) : (
+              <>
+                <span>{nextLabel}</span>
+                {nextIcon}
+              </>
+            )}
           </button>
         )}
       </div>

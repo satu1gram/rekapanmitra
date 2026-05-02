@@ -467,71 +467,73 @@ export function StockPage() {
 
   /* ─── MAIN VIEW ─── */
   return (
-    <div className="flex flex-col min-h-screen bg-background">
-      {/* Header - Aligned with Riwayat + Filter below title */}
-      <header className="px-5 pt-8 pb-4 bg-white/95 backdrop-blur-md shadow-sm z-[40] sticky top-0 border-b border-slate-100 flex flex-col gap-4">
-        <h1 className="text-2xl font-extrabold tracking-tight text-slate-900">Stok Produk</h1>
+    <div className="flex flex-col min-h-screen bg-background text-slate-900">
+      {/* Header - Compact & Integrated */}
+      <header className="px-5 pt-4 pb-3 bg-white/95 backdrop-blur-md shadow-sm z-[40] sticky top-0 border-b border-slate-100">
+        <div className="flex items-center justify-between gap-3 mb-3">
+          <h1 className="text-xl font-black tracking-tight text-slate-900">Stok</h1>
+          
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowPerformance(true)}
+              className="w-9 h-9 flex items-center justify-center rounded-lg bg-blue-50 text-blue-600 border border-blue-100 shadow-sm active:scale-95 transition-all"
+              title="Lihat Grafik Performa"
+            >
+              <BarChart3 className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() => setView('initial')}
+              className="w-9 h-9 flex items-center justify-center bg-white border border-slate-200 text-slate-700 rounded-lg shadow-sm hover:bg-slate-50 active:scale-95 transition-all"
+              title="Update Stok Awal"
+            >
+              <Package className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
         
-        {/* Filter Area Moved Here */}
+        {/* Compact Date Filter */}
         <div className="flex items-center gap-2">
-          <div className="flex-1 flex bg-slate-100/50 rounded-xl border border-slate-200 overflow-hidden focus-within:border-emerald-400 focus-within:ring-2 focus-within:ring-emerald-100 transition-all divide-x divide-slate-200">
+          <div className="flex-1 flex bg-slate-100/50 rounded-xl border border-slate-200 overflow-hidden focus-within:border-emerald-400 focus-within:ring-4 focus-within:ring-emerald-50 transition-all divide-x divide-slate-200 shadow-sm">
             <button
               onClick={() => setShowMonthPicker(p => !p)}
-              className="flex items-center justify-center px-3 bg-white hover:bg-slate-50 transition-colors shrink-0"
+              className="flex items-center justify-center px-2.5 bg-white hover:bg-slate-50 transition-colors shrink-0"
             >
-              <Calendar className="h-4 w-4 text-emerald-600" />
+              <Calendar className="h-3.5 w-3.5 text-emerald-600" />
             </button>
 
-            <div className="flex-1 flex items-center divide-x divide-slate-200">
-              <div className="flex-1 flex items-center px-1.5 py-2 min-w-0">
-                <span className="text-[10px] font-bold text-slate-400 mr-1.5 shrink-0 uppercase">Dr</span>
+            <div className="flex-1 flex items-center divide-x divide-slate-100">
+              <div className="flex-1 flex items-center px-2.5 py-1.5 min-w-0">
+                <span className="text-[8px] font-black text-slate-400 mr-1.5 shrink-0 uppercase tracking-tighter">Dari</span>
                 <input
                   type="date"
                   value={historyStartDate}
                   onChange={e => setHistoryStartDate(e.target.value)}
-                  className="w-full bg-transparent text-[11px] font-black text-slate-900 outline-none min-w-0"
+                  className="w-full bg-transparent text-[11px] font-bold text-slate-900 outline-none min-w-0"
                 />
               </div>
-              <div className="flex-1 flex items-center px-1.5 py-2 min-w-0">
-                <span className="text-[10px] font-bold text-slate-400 mr-1.5 shrink-0 uppercase">Sp</span>
+              <div className="flex-1 flex items-center px-2.5 py-1.5 min-w-0">
+                <span className="text-[8px] font-black text-slate-400 mr-1.5 shrink-0 uppercase tracking-tighter">Sampai</span>
                 <input
                   type="date"
                   value={historyEndDate}
                   onChange={e => setHistoryEndDate(e.target.value)}
-                  className="w-full bg-transparent text-[11px] font-black text-slate-900 outline-none min-w-0"
+                  className="w-full bg-transparent text-[11px] font-bold text-slate-900 outline-none min-w-0"
                 />
               </div>
             </div>
           </div>
-
-          <button
-            onClick={() => setShowPerformance(true)}
-            className="w-11 h-11 flex items-center justify-center rounded-xl bg-blue-50 text-blue-600 border border-blue-100 shadow-sm active:scale-95 transition-all shrink-0"
-            title="Lihat Grafik Performa"
-          >
-            <BarChart3 className="h-5 w-5" />
-          </button>
         </div>
       </header>
 
-      <main className="px-4 pt-4 pb-6 space-y-6">
-        {/* Action buttons (Compact) */}
-        <section className="flex items-center gap-2.5">
-          <button
-            onClick={() => { resetForm(); setView('restok'); }}
-            className="flex-1 flex items-center justify-center gap-2 bg-emerald-600 text-white py-3.5 rounded-2xl font-black text-sm shadow-sm hover:bg-emerald-700 active:scale-[0.98] transition-all"
-          >
-            <Plus className="h-4 w-4" />
-            <span>Restok Barang</span>
-          </button>
-          <button
-            onClick={() => setView('initial')}
-            className="flex items-center justify-center px-3.5 py-3.5 bg-white border border-slate-200 text-slate-700 rounded-2xl font-bold text-sm shadow-sm hover:bg-slate-50 active:scale-[0.98] transition-all shrink-0"
-            title="Update Stok Awal"
-          >
-            <Package className="h-4 w-4" />
-          </button>
-        </section>
+      <main className="px-4 pt-3 pb-6 space-y-4">
+        {/* Main Action (Ultra Compact) */}
+        <button
+          onClick={() => { resetForm(); setView('restok'); }}
+          className="w-full flex items-center justify-center gap-2 bg-emerald-600 text-white py-2.5 rounded-xl font-black text-sm shadow-md hover:bg-emerald-700 active:scale-[0.98] transition-all"
+        >
+          <Plus className="h-4 w-4" />
+          <span>Restok Barang</span>
+        </button>
 
 
           {/* Month Picker dropdown */}
@@ -578,25 +580,22 @@ export function StockPage() {
           )}
 
         {/* Ringkasan Section */}
-        <div>
-          <h2 className="text-base font-bold text-slate-800 mb-2.5 px-1">Ringkasan</h2>
-          <div className="space-y-2">
-            <div className="bg-white px-4 py-4 rounded-2xl shadow-sm border-2 border-emerald-100 relative overflow-hidden">
-              <div className="absolute top-0 left-0 w-full h-1 bg-emerald-500" />
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center shrink-0">
-                  <TrendingUp className="h-4 w-4 text-emerald-600" />
-                </div>
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Total Barang Masuk (Restok)</span>
+        <div className="space-y-2">
+          <h2 className="text-sm font-black text-slate-800 px-1 uppercase tracking-wider">Ringkasan</h2>
+          <div className="bg-white px-4 py-3 rounded-2xl shadow-sm border border-slate-100 relative overflow-hidden">
+            <div className="flex items-center gap-2 mb-1.5">
+              <div className="w-7 h-7 rounded-lg bg-emerald-50 flex items-center justify-center shrink-0">
+                <TrendingUp className="h-3.5 w-3.5 text-emerald-600" />
               </div>
-              <div className="flex items-end justify-between">
-                <p className="text-3xl font-black text-slate-900 tracking-tight">
-                  {dailySummaries.reduce((a, b) => a + b.totalQtyIn, 0)} <span className="text-xs font-bold text-slate-400">btl</span>
-                </p>
-                <p className="text-base font-black text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-100">
-                  {formatCurrency(dailySummaries.reduce((a, b) => a + b.totalValueIn, 0))}
-                </p>
-              </div>
+              <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider">Total Barang Masuk (Restok)</span>
+            </div>
+            <div className="flex items-end justify-between">
+              <p className="text-2xl font-black text-slate-900 tracking-tight leading-none">
+                {dailySummaries.reduce((a, b) => a + b.totalQtyIn, 0)} <span className="text-[10px] font-bold text-slate-400">btl</span>
+              </p>
+              <p className="text-sm font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-lg border border-emerald-100">
+                {formatCurrency(dailySummaries.reduce((a, b) => a + b.totalValueIn, 0))}
+              </p>
             </div>
           </div>
         </div>

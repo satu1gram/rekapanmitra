@@ -131,47 +131,39 @@ export function ExpensesPage() {
     return <LoadingScreen variant="list" />;
   }
 
-  return (
-    <div className="space-y-4 pb-4">
-      {/* Header */}
-      <div className="flex items-center justify-between">
+    <div className="px-4 pt-4 pb-4 space-y-3">
+      {/* Header - Compact Row */}
+      <div className="flex items-center justify-between mb-1">
         <div>
-          <h1 className="text-2xl font-bold">Pengeluaran</h1>
-          <p className="text-sm text-muted-foreground">Catat pengeluaran dari keuntungan</p>
+          <h1 className="text-xl font-black tracking-tight text-slate-900">Pengeluaran</h1>
+          <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Catat Biaya Operasional</p>
         </div>
-        <Button onClick={openAddDialog}>
-          <Plus className="mr-2 h-4 w-4" />
+        <Button onClick={openAddDialog} className="h-9 px-4 rounded-xl font-black text-xs">
+          <Plus className="mr-1.5 h-3.5 w-3.5" />
           Tambah
         </Button>
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-2 gap-3">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-              <TrendingDown className="h-4 w-4" />
-              Bulan Ini
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-xl font-bold text-destructive">{formatShortCurrency(totalMonthExpenses)}</p>
-            <p className="text-xs text-muted-foreground">{monthExpenses.length} pengeluaran</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-              <Wallet className="h-4 w-4" />
-              Total
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-xl font-bold">{formatShortCurrency(totalAllExpenses)}</p>
-            <p className="text-xs text-muted-foreground">{expenses.length} pengeluaran</p>
-          </CardContent>
-        </Card>
+      {/* Summary Cards - Ultra Compact */}
+      <div className="grid grid-cols-2 gap-2">
+        <div className="bg-white p-3 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-lg bg-red-50 flex items-center justify-center shrink-0">
+            <TrendingDown className="h-4 w-4 text-red-600" />
+          </div>
+          <div>
+            <p className="text-lg font-black leading-none text-red-600">{formatShortCurrency(totalMonthExpenses)}</p>
+            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Bulan Ini</p>
+          </div>
+        </div>
+        <div className="bg-white p-3 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center shrink-0">
+            <Wallet className="h-4 w-4 text-slate-600" />
+          </div>
+          <div>
+            <p className="text-lg font-black leading-none text-slate-900">{formatShortCurrency(totalAllExpenses)}</p>
+            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Total</p>
+          </div>
+        </div>
       </div>
 
       {/* Expenses List */}

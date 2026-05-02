@@ -15,6 +15,7 @@ interface KonfirmasiOrderProps {
     quantity: number; 
     pricePerBottle: number; 
     subtotal: number;
+    marginPerBottle: number;
   }[];
   totalHarga: number;
   totalProfit: number;
@@ -73,7 +74,7 @@ export function KonfirmasiOrder({ customer, date, cartItems, totalHarga, totalPr
       <div className="px-6 space-y-3">
         <span className="text-[11px] font-bold text-slate-400 uppercase tracking-[1.5px]">Rincian Produk</span>
         <div className="space-y-3">
-          {cartItems.map(({ product, quantity, pricePerBottle, subtotal }) => (
+          {cartItems.map(({ product, quantity, pricePerBottle, subtotal, marginPerBottle }) => (
             <div key={product.id} className="bg-white rounded-[20px] p-4 shadow-sm border border-slate-100 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 rounded-[14px] bg-slate-50 flex items-center justify-center text-slate-300">
@@ -88,7 +89,7 @@ export function KonfirmasiOrder({ customer, date, cartItems, totalHarga, totalPr
               </div>
               <div className="text-right">
                 <p className="text-[15px] font-bold text-slate-900">{formatCurrency(subtotal)}</p>
-                <p className="text-[11px] font-black text-[#059669] mt-0.5">+{formatCurrency(70000 * quantity)}</p>
+                <p className="text-[11px] font-black text-[#059669] mt-0.5">+{formatCurrency(marginPerBottle * quantity)}</p>
               </div>
             </div>
           ))}

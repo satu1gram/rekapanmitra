@@ -65,7 +65,7 @@ export function useOnboarding() {
                     : MITRA_LEVELS[data.mitraLevel]?.buyPricePerBottle ?? 0;
 
             // 1. Save profile
-            await supabase
+            const { error: profileError } = await supabase
                 .from('profiles')
                 .update({
                     name: data.name.trim(),
@@ -76,10 +76,11 @@ export function useOnboarding() {
                     onboarding_completed: true,
                 } as any)
                 .eq('user_id', user.id);
+            if (profileError) throw profileError;
 
             // 2. Save initial stock if > 0
             if (data.initialStock > 0) {
-                await supabase.from('stock_entries').insert({
+                const { error: stockEntryError } = await supabase.from('stock_entries').insert({
                     user_id: user.id,
                     type: 'in',
                     quantity: data.initialStock,
@@ -88,6 +89,7 @@ export function useOnboarding() {
                     total_buy_price: data.initialStock * effectiveBuyPrice,
                     notes: 'Stok awal (setup onboarding)',
                 } as any);
+                if (stockEntryError) throw stockEntryError;
 
                 const { data: existing } = await supabase
                     .from('user_stock')
@@ -96,20 +98,22 @@ export function useOnboarding() {
                     .maybeSingle();
 
                 if (existing) {
-                    await supabase
+                    const { error: updateStockError } = await supabase
                         .from('user_stock')
                         .update({ current_stock: data.initialStock })
                         .eq('user_id', user.id);
+                    if (updateStockError) throw updateStockError;
                 } else {
-                    await supabase
+                    const { error: insertStockError } = await supabase
                         .from('user_stock')
                         .insert({ user_id: user.id, current_stock: data.initialStock });
+                    if (insertStockError) throw insertStockError;
                 }
             }
 
             // 3. Save store settings
             if (data.storeName.trim() && data.slug.trim()) {
-                await supabase.from('store_settings' as any).insert({
+                const { error: storeSettingsError } = await supabase.from('store_settings' as any).insert({
                     user_id: user.id,
                     slug: data.slug.trim().toLowerCase(),
                     store_name: data.storeName.trim(),
@@ -117,6 +121,7 @@ export function useOnboarding() {
                     payment_info: data.paymentInfo,
                     welcome_message: data.welcomeMessage.trim() || null,
                 });
+                if (storeSettingsError) throw storeSettingsError;
             }
 
             setIsComplete(true);

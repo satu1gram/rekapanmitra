@@ -99,31 +99,39 @@ export function EditCustomerPage({ customer, onBack, onSaved }: EditCustomerPage
 
     setSaving(true);
     try {
-      const payload: any = {
-        user_id: user.id,
-        name: name?.trim() || '',
-        phone: phone?.trim() || null,
-        address: address?.trim() || null,
-        province: province || null,
-        city: city || null,
-        tier: finalTier,
-        created_at: new Date(createdAt).toISOString(),
-        updated_at: new Date().toISOString(),
-      };
-
       let query = supabase.from('customers');
       
       if (isNew) {
+        const insertPayload: any = {
+          user_id: user.id,
+          name: name?.trim() || '',
+          phone: phone?.trim() || null,
+          address: address?.trim() || null,
+          province: province || null,
+          city: city || null,
+          tier: finalTier,
+          created_at: new Date(createdAt).toISOString(),
+          updated_at: new Date().toISOString(),
+        };
         const { data, error } = await query
-          .insert(payload)
+          .insert(insertPayload)
           .select()
           .single();
         if (error) throw error;
         toast.success('Pelanggan berhasil ditambahkan');
         onSaved(data);
       } else {
+        const updatePayload: any = {
+          name: name?.trim() || '',
+          phone: phone?.trim() || null,
+          address: address?.trim() || null,
+          province: province || null,
+          city: city || null,
+          tier: finalTier,
+          updated_at: new Date().toISOString(),
+        };
         const { data, error } = await query
-          .update(payload)
+          .update(updatePayload)
           .eq('id', customer.id)
           .select()
           .single();

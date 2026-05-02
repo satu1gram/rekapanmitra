@@ -117,61 +117,57 @@ export function PerformaPage({ onBack }: PerformaPageProps) {
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
-      {/* Header */}
-      <header className="px-5 pt-8 pb-4 bg-card shadow-sm z-10 sticky top-0">
-        <div className="flex items-center gap-3 mb-4">
+      {/* Header - Compact */}
+      <header className="px-5 pt-4 pb-3 bg-card shadow-sm z-10 sticky top-0 border-b border-slate-100">
+        <div className="flex items-center gap-2 mb-2.5">
           <button
             onClick={onBack}
             className="p-1.5 -ml-1 rounded-full hover:bg-slate-100 active:bg-slate-200 transition-colors"
           >
             <ArrowLeft className="h-5 w-5 text-slate-900" />
           </button>
-          <h1 className="text-xl font-extrabold tracking-tight text-slate-900">
-            Grafik Performa {selectedYear}
+          <h1 className="text-lg font-black tracking-tight text-slate-900">
+            Performa {selectedYear}
           </h1>
         </div>
 
-        {/* Year selector */}
-        <div className="mb-3">
-          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Pilih Tahun</p>
-          <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl border border-slate-200">
-            {displayYears.map(year => (
-              <button
-                key={year}
-                onClick={() => setSelectedYear(year)}
-                className={cn(
-                  "flex-1 py-2 px-1 rounded-lg font-black text-sm transition-all",
-                  selectedYear === year
-                    ? "bg-blue-700 text-white shadow-md border border-blue-900"
-                    : "text-slate-400 hover:bg-slate-200 hover:text-slate-600"
-                )}
-              >
-                {year}
-              </button>
-            ))}
-          </div>
-        </div>
+        <div className="flex flex-col gap-2">
+          {/* Year selector & Metric tabs combined/tightened */}
+          <div className="flex items-center gap-2">
+            <div className="flex-[0.4] flex items-center gap-1 bg-slate-100 p-0.5 rounded-lg border border-slate-200">
+              {displayYears.map(year => (
+                <button
+                  key={year}
+                  onClick={() => setSelectedYear(year)}
+                  className={cn(
+                    "flex-1 py-1 px-1 rounded-md font-black text-[10px] transition-all",
+                    selectedYear === year
+                      ? "bg-blue-600 text-white shadow-sm"
+                      : "text-slate-400 hover:text-slate-600"
+                  )}
+                >
+                  {year}
+                </button>
+              ))}
+            </div>
 
-        {/* Metric tabs */}
-        <div className="bg-slate-100 p-1 rounded-xl flex gap-1">
-          {(['profit', 'omset', 'qty'] as MetricType[]).map(m => (
-            <button
-              key={m}
-              onClick={() => setMetric(m)}
-              className={cn(
-                "flex-1 py-2 px-1 rounded-lg font-bold text-xs text-center transition-all leading-tight",
-                metric === m
-                  ? m === 'profit'
-                    ? "bg-white shadow-sm text-emerald-700 font-black border border-slate-200"
-                    : m === 'omset'
-                      ? "bg-white shadow-sm text-blue-700 font-black border border-slate-200"
-                      : "bg-white shadow-sm text-indigo-700 font-black border border-slate-200"
-                  : "text-slate-500 hover:bg-slate-200/50"
-              )}
-            >
-              {m === 'profit' ? 'Keuntungan' : m === 'omset' ? 'Omset' : 'Terjual (Pcs)'}
-            </button>
-          ))}
+            <div className="flex-[0.6] bg-slate-100 p-0.5 rounded-lg flex gap-0.5 border border-slate-200">
+              {(['profit', 'omset', 'qty'] as MetricType[]).map(m => (
+                <button
+                  key={m}
+                  onClick={() => setMetric(m)}
+                  className={cn(
+                    "flex-1 py-1 px-1 rounded-md font-bold text-[10px] text-center transition-all leading-none",
+                    metric === m
+                      ? "bg-white shadow-sm text-slate-900 font-black"
+                      : "text-slate-500 hover:bg-slate-200/50"
+                  )}
+                >
+                  {m === 'profit' ? 'Untung' : m === 'omset' ? 'Omset' : 'Qty'}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       </header>
 
