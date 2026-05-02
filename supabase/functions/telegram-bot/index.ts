@@ -1,7 +1,10 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-// ─── Config ───────────────────────────────────────────────────────────────────
+/**
+ * CONFIGURATION & ENVIRONMENT VARIABLES
+ * Diambil dari Supabase Edge Function Secrets
+ */
 const TELEGRAM_BOT_TOKEN = Deno.env.get("TELEGRAM_BOT_TOKEN")!;
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -9,22 +12,65 @@ const TELEGRAM_API = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}`;
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+/**
+ * TYPE DEFINITIONS
+ * Mendefinisikan struktur data untuk sesi percakapan
+ */
 type BotStep = "idle" | "selecting_product" | "inputting_qty" | "adding_more" | "searching_customer" | "confirming";
 
 interface SessionData {
-  items: { product_id: string; product_name: string; quantity: number; price: number }[];
+  items: { 
+    product_id: string; 
+    product_name: string; 
+    quantity: number; 
+    price: number;
+    buy_price: number;
+  }[];
   last_product_id?: string;
-  customer_info?: { id?: string; name: string; type: string; tier?: string };
+  customer_info?: { 
+    id?: string; 
+    name: string; 
+    type: string; 
+    tier?: string 
+  };
+  expenses?: { 
+    name: string; 
+    amount: number 
+  }[];
+  order_date?: string;
+  buy_price?: number; // Total Modal
 }
 
-// ─── Pricing Logic Pusat (Mixed Order Support) ────────────────────────────────
+/**
+ * LOGIKA HARGA PUSAT & MODAL
+ */
+function getPricingForTier(tier: string, isBeauty: boolean, customLevels: any[] = []) {
+  // Cek Level Kustom Terlebih Dahulu
+  const custom = customLevels.find(l => l.level_code === tier);
+  if (custom) {
+    return custom.buy_price_per_bottle;
+  }
+
+  // Map Harga Standar
+  const pricingMap: Record<string, { bp: number; beauty: number }> = {
+    'satuan':    { bp: 250000, beauty: 250000 },
+    'reseller':  { bp: 217000, beauty: 195000 },
+    'agen':      { bp: 198000, beauty: 195000 },
+    'agen_plus': { bp: 180000, beauty: 180000 },
+    'sap':       { bp: 170000, beauty: 170000 },
+    'se':        { bp: 150000, beauty: 150000 },
+  };
+
+  const data = pricingMap[tier.toLowerCase()] || pricingMap['satuan'];
+  return isBeauty ? data.beauty : data.bp;
+}
+
 function calculatePrice(productName: string, totalQty: number, selectedTier: string, hasBeauty: boolean) {
   const name = productName.toUpperCase();
   const isBeauty = name.includes('BELGIE') || name.includes('STEFFI');
   
   let activeTier = (selectedTier || 'satuan').toLowerCase();
-  if (activeTier === 'satuan') {
+  if (activeTier === 'satuan' || !selectedTier) {
     if (totalQty >= 200) activeTier = 'se';
     else if (totalQty >= 40) activeTier = 'sap';
     else if (totalQty >= 10) activeTier = 'agen_plus';
@@ -32,242 +78,460 @@ function calculatePrice(productName: string, totalQty: number, selectedTier: str
     else if (totalQty >= 3) activeTier = 'reseller';
   }
 
-  const pricingMap: Record<string, { bp: number; beauty: number }> = {
-    'satuan':    { bp: 250000, beauty: 250000 },
-    'reseller':  { bp: hasBeauty ? 217000 : 216666, beauty: 195000 },
-    'agen':      { bp: 198000, beauty: 195000 },
-    'agen_plus': { bp: 180000, beauty: 180000 },
-    'sap':       { bp: 170000, beauty: 170000 },
-    'se':        { bp: 150000, beauty: 150000 },
-  };
-
-  const tierData = pricingMap[activeTier] || pricingMap['satuan'];
-  const price = isBeauty ? tierData.beauty : tierData.bp;
-  return Math.round(price);
+  return Math.round(getPricingForTier(activeTier, isBeauty));
 }
 
-// ─── Telegram Helpers ─────────────────────────────────────────────────────────
+/**
+ * MULTI-LINE FULL TEXT PARSER
+ * Fungsi cerdas untuk membedah input teks sekaligus
+ */
+async function parseFullText(text: string, tenantId: string): Promise<SessionData | null> {
+  const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+  if (lines.length < 2) return null;
+
+  const data: SessionData = { items: [], expenses: [] };
+  
+  // 0. Ambil Level User & Produk
+  const { data: profile } = await supabase.from("profiles").select("mitra_level").eq("user_id", tenantId).single();
+  const { data: customLevels } = await supabase.from("user_mitra_levels").select("level_code, buy_price_per_bottle").eq("user_id", tenantId);
+  const { data: allProds } = await supabase.from("master_products").select("id, name, category").eq("package_type", "satuan");
+  
+  const myLevel = profile?.mitra_level || 'satuan';
+
+  for (const line of lines) {
+    const lowerLine = line.toLowerCase();
+    
+    // 1. Deteksi Tanggal
+    const dateRegex = /\d{1,2}\s+(Januari|Februari|Maret|April|Mei|Juni|Juli|Agustus|September|Oktober|November|Desember|Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)/i;
+    if (dateRegex.test(line)) {
+      data.order_date = line;
+      continue;
+    }
+
+    // 2. Deteksi Nama Pelanggan (Cari di Database)
+    if (lowerLine.includes('order ')) {
+      const namePart = line.replace(/order\s+/i, '').trim();
+      const { data: existingCust } = await supabase.from("customers").select("id, name, type, tier").eq("user_id", tenantId).ilike("name", `%${namePart}%`).maybeSingle();
+      
+      if (existingCust) {
+        data.customer_info = { id: existingCust.id, name: existingCust.name, type: existingCust.type, tier: existingCust.tier };
+      } else {
+        data.customer_info = { name: namePart, type: 'konsumen' };
+      }
+      continue;
+    }
+
+    // 3. Deteksi Ongkir / Biaya Tambahan (Modal diabaikan dari teks)
+    if (lowerLine.includes('ongkir') || lowerLine.includes('biaya')) {
+      const match = line.match(/(.+?)\s+([\d.]+)/);
+      if (match) {
+        data.expenses?.push({ 
+          name: match[1].trim(), 
+          amount: parseInt(match[2].replace(/\./g, '')) 
+        });
+      }
+      continue;
+    }
+
+    // 4. Deteksi Produk (Mendukung "+" untuk multiple produk di satu baris)
+    const segments = line.split('+');
+    for (const segment of segments) {
+      // Cara baru yang lebih simpel: Cari angka dan cari teks (minimal 2 huruf)
+      const qtyMatch = segment.match(/\d+/);
+      const nameMatch = segment.match(/[a-zA-Z]{2,}/);
+      
+      if (qtyMatch && nameMatch) {
+        const qty = parseInt(qtyMatch[0]);
+        const namePart = nameMatch[0].toUpperCase();
+        
+        // Skip jika sepertinya ini tanggal atau bagian dari tanggal
+        if (data.order_date && data.order_date.toUpperCase().includes(namePart)) continue;
+
+        const matched = allProds?.find(p => {
+          const pName = p.name.toUpperCase().replace(' SATUAN', '').trim();
+          const pCat = (p.category || '').toUpperCase();
+          
+          // Prioritas 1: Exact Match dengan Category (BP, BRO, BRE, NORWAY, dll)
+          if (pCat === namePart) return true;
+          
+          // Prioritas 2: Exact Match dengan Nama
+          if (pName === namePart) return true;
+          
+          // Prioritas 3: Mapping Khusus
+          if (namePart === 'BP' && pName.includes('BRITISH PROPOLIS')) return true;
+          if (namePart === 'KID' && pName.includes('KIDS')) return true;
+
+          // Prioritas 4: Loose Match
+          if (pName.includes(namePart) || pCat.includes(namePart)) return true;
+          
+          return false;
+        });
+
+        if (matched) {
+          const isBeauty = matched.name.toUpperCase().includes('BELGIE') || matched.name.toUpperCase().includes('STEFFI');
+          data.items.push({ 
+            product_id: matched.id, 
+            product_name: matched.name.replace(' Satuan', ''), 
+            quantity: qty, 
+            price: 250000,
+            buy_price: getPricingForTier(myLevel, isBeauty, customLevels || [])
+          });
+        }
+      }
+    }
+  }
+
+  if (data.items.length > 0) {
+    // Fallback Nama Pelanggan
+    if (!data.customer_info && lines[1]) {
+        const namePart = lines[1].replace(/order\s+/i, '').trim();
+        const { data: existingCust } = await supabase.from("customers").select("id, name, type, tier").eq("user_id", tenantId).ilike("name", `%${namePart}%`).maybeSingle();
+        data.customer_info = existingCust ? { id: existingCust.id, name: existingCust.name, type: existingCust.type, tier: existingCust.tier } : { name: namePart, type: 'konsumen' };
+    }
+
+    const totalQty = data.items.reduce((s, i) => s + i.quantity, 0);
+    const hasBeauty = data.items.some(i => i.product_name.toUpperCase().includes('BELGIE') || i.product_name.toUpperCase().includes('STEFFI'));
+    
+    // Update Harga Satuan & Total Modal
+    let totalModal = 0;
+    data.items = data.items.map(i => {
+      const price = calculatePrice(i.product_name, totalQty, data.customer_info?.tier || 'satuan', hasBeauty);
+      totalModal += (i.buy_price * i.quantity);
+      return { ...i, price };
+    });
+    
+    data.buy_price = totalModal;
+    return data;
+  }
+  
+  return null;
+}
+
+/**
+ * TELEGRAM COMMUNICATION HELPERS
+ */
 async function sendMessage(chatId: string | number, text: string, replyMarkup?: any) {
-  const body: any = { chat_id: chatId, text, parse_mode: "HTML" };
-  if (replyMarkup) body.reply_markup = replyMarkup;
   return await fetch(`${TELEGRAM_API}/sendMessage`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
+    body: JSON.stringify({ 
+      chat_id: chatId, 
+      text, 
+      parse_mode: "HTML", 
+      reply_markup: replyMarkup 
+    }),
   }).then(r => r.json());
 }
 
-async function answerCallbackQuery(callbackQueryId: string, text?: string) {
-  await fetch(`${TELEGRAM_API}/answerCallbackQuery`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ callback_query_id: callbackQueryId, text }),
-  });
-}
-
-// ─── DB Helpers ───────────────────────────────────────────────────────────────
-async function getConnection(chatId: string) {
-  const { data } = await supabase.from("telegram_connections").select("tenant_id").eq("chat_id", chatId).eq("is_active", true).maybeSingle();
-  return data;
-}
-
-async function getSession(chatId: string, tenantId: string) {
-  const { data } = await supabase.from("telegram_sessions").select("*").eq("chat_id", chatId).maybeSingle();
-  if (!data) {
-    const { data: newSess } = await supabase.from("telegram_sessions")
-      .insert({ chat_id: chatId, tenant_id: tenantId, current_step: "idle", session_data: { items: [] } })
-      .select("*").single();
-    return newSess;
-  }
-  return data;
-}
-
 async function updateSession(chatId: string, updates: any) {
-  await supabase.from("telegram_sessions").update({ ...updates, updated_at: new Date().toISOString() }).eq("chat_id", chatId);
+  await supabase
+    .from("telegram_sessions")
+    .update({ ...updates, updated_at: new Date().toISOString() })
+    .eq("chat_id", chatId);
 }
 
-// ─── Core Logic ───────────────────────────────────────────────────────────────
+/**
+ * MAIN REQUEST HANDLER
+ * Melayani Webhook dari Telegram
+ */
 serve(async (req) => {
   try {
     const update = await req.json();
     const message = update.message;
     const callbackQuery = update.callback_query;
     const chatId = (message?.chat?.id || callbackQuery?.message?.chat?.id)?.toString();
+    
     if (!chatId) return new Response("OK");
 
-    const connection = await getConnection(chatId);
-    if (!connection && !message?.text?.startsWith("/daftar")) {
-      await sendMessage(chatId, "👋 Halo! Gunakan: <code>/daftar [slug_toko]</code> untuk menghubungkan akun Anda.");
-      return new Response("OK");
+    // Validasi Koneksi Toko
+    const { data: conn } = await supabase
+      .from("telegram_connections")
+      .select("tenant_id")
+      .eq("chat_id", chatId)
+      .eq("is_active", true)
+      .maybeSingle();
+      
+    if (!conn && !message?.text?.startsWith("/daftar")) return new Response("OK");
+
+    // ─── 1. MODE FULL TEXT (PARSER) ───
+    if (message?.text && message.text.includes('\n')) {
+      const parsedData = await parseFullText(message.text, conn.tenant_id);
+      if (parsedData && parsedData.items.length > 0) {
+        await updateSession(chatId, { 
+          current_step: "confirming", 
+          session_data: parsedData 
+        });
+        await showSummary(chatId, parsedData);
+        return new Response("OK");
+      }
     }
 
-    if (message?.text?.startsWith("/daftar")) {
-      const slug = message.text.split(" ")[1];
-      if (!slug) return new Response("OK");
-      const { data: store } = await supabase.from("store_settings").select("user_id, store_name").eq("slug", slug).maybeSingle();
-      if (!store) { await sendMessage(chatId, "❌ Toko tidak ditemukan."); return new Response("OK"); }
-      await supabase.from("telegram_connections").upsert({ chat_id: chatId, tenant_id: store.user_id, is_active: true }, { onConflict: "chat_id" });
-      await sendMessage(chatId, `✅ Terhubung ke <b>${store.store_name}</b>!`);
-      return new Response("OK");
-    }
+    // Ambil Status Sesi Terakhir
+    const { data: session } = await supabase
+      .from("telegram_sessions")
+      .select("*")
+      .eq("chat_id", chatId)
+      .maybeSingle();
+    
+    const sessionData: SessionData = session?.session_data || { items: [] };
 
-    const session = await getSession(chatId, connection.tenant_id);
-    const sessionData: SessionData = session.session_data || { items: [] };
-
+    // ─── 2. HANDLE TOMBOL (CALLBACK) ───
     if (callbackQuery) {
-      const data = callbackQuery.data;
-      await answerCallbackQuery(callbackQuery.id);
-
-      if (data.startsWith("prod_")) {
-        const prodId = data.replace("prod_", "");
-        const { data: prod } = await supabase.from("master_products").select("name").eq("id", prodId).single();
-        await updateSession(chatId, { current_step: "inputting_qty", session_data: { ...sessionData, last_product_id: prodId } });
-        await sendMessage(chatId, `Berapa jumlah untuk <b>${prod.name.replace(" Satuan", "")}</b>?`);
-      } else if (data === "finish_selection") {
-        if (sessionData.items.length === 0) { await sendMessage(chatId, "⚠️ Pilih produk dulu."); } 
-        else {
-          await updateSession(chatId, { current_step: "searching_customer" });
-          await sendMessage(chatId, "👤 <b>Siapa nama pelanggan/mitra?</b>\n(Ketik nama untuk mencari)");
-        }
-      } else if (data.startsWith("cust_")) {
-        const custId = data.replace("cust_", "");
-        const { data: cust } = await supabase.from("customers").select("id, name, type, tier").eq("id", custId).single();
-        const totalQty = sessionData.items.reduce((s, i) => s + i.quantity, 0);
-        const hasBeauty = sessionData.items.some(i => i.product_name.toUpperCase().includes('BELGIE') || i.product_name.toUpperCase().includes('STEFFI'));
-        const updatedItems = sessionData.items.map(item => ({ ...item, price: calculatePrice(item.product_name, totalQty, cust.tier || 'satuan', hasBeauty) }));
-        const finalData = { ...sessionData, items: updatedItems, customer_info: { id: cust.id, name: cust.name, type: cust.type, tier: cust.tier } };
-        await updateSession(chatId, { session_data: finalData });
-        await showSummary(chatId, finalData);
-      } else if (data === "new_customer") {
-        const totalQty = sessionData.items.reduce((s, i) => s + i.quantity, 0);
-        const hasBeauty = sessionData.items.some(i => i.product_name.toUpperCase().includes('BELGIE') || i.product_name.toUpperCase().includes('STEFFI'));
-        const updatedItems = sessionData.items.map(item => ({ ...item, price: calculatePrice(item.product_name, totalQty, 'satuan', hasBeauty) }));
-        const finalData = { ...sessionData, items: updatedItems, customer_info: { name: sessionData.customer_info?.name || "Pelanggan Baru", type: "konsumen" } };
-        await updateSession(chatId, { session_data: finalData });
-        await showSummary(chatId, finalData);
-      } else if (data === "confirm_yes") {
-        await submitOrder(chatId, sessionData, connection.tenant_id);
-      } else if (data === "confirm_no") {
+      const d = callbackQuery.data;
+      
+      if (d === "confirm_yes") {
+        await submitOrder(chatId, sessionData, conn.tenant_id);
+      } else if (d === "confirm_no") {
         await updateSession(chatId, { current_step: "idle", session_data: { items: [] } });
-        await sendMessage(chatId, "❌ Order dibatalkan.");
-      } else if (data === "add_more") {
-        await showProductList(chatId, connection.tenant_id);
+        await sendMessage(chatId, "❌ Pesanan telah dibatalkan.");
+      } else if (d === "add_more") {
+        await showProductList(chatId, conn.tenant_id);
+      } else if (d.startsWith("prod_")) {
+        const pId = d.replace("prod_", "");
+        const { data: p } = await supabase.from("master_products").select("name").eq("id", pId).single();
+        await updateSession(chatId, { 
+          current_step: "inputting_qty", 
+          session_data: { ...sessionData, last_product_id: pId } 
+        });
+        await sendMessage(chatId, `Berapa jumlah untuk <b>${p.name.replace(" Satuan", "")}</b>?`);
+      } else if (d === "finish_selection") {
+        await updateSession(chatId, { current_step: "searching_customer" });
+        await sendMessage(chatId, "👤 <b>Siapa nama pelanggan/mitra?</b>\n(Ketik nama untuk mencari)");
+      } else if (d.startsWith("cust_")) {
+        const cId = d.replace("cust_", "");
+        const { data: c } = await supabase.from("customers").select("id, name, type, tier").eq("id", cId).single();
+        const { data: profile } = await supabase.from("profiles").select("mitra_level").eq("user_id", conn.tenant_id).single();
+        const { data: customLevels } = await supabase.from("user_mitra_levels").select("level_code, buy_price_per_bottle").eq("user_id", conn.tenant_id);
+        
+        const myLevel = profile?.mitra_level || 'satuan';
+        const tQty = sessionData.items.reduce((s, i) => s + i.quantity, 0);
+        const hasB = sessionData.items.some(i => i.product_name.toUpperCase().includes('BELGIE') || i.product_name.toUpperCase().includes('STEFFI'));
+        
+        let totalModal = 0;
+        const items = sessionData.items.map(i => {
+          const isB = i.product_name.toUpperCase().includes('BELGIE') || i.product_name.toUpperCase().includes('STEFFI');
+          const buyPrice = getPricingForTier(myLevel, isB, customLevels || []);
+          totalModal += (buyPrice * i.quantity);
+          return { 
+            ...i, 
+            price: calculatePrice(i.product_name, tQty, c.tier || 'satuan', hasB),
+            buy_price: buyPrice
+          };
+        });
+        const final = { ...sessionData, items, buy_price: totalModal, customer_info: { id: c.id, name: c.name, type: c.type, tier: c.tier } };
+        await updateSession(chatId, { session_data: final });
+        await showSummary(chatId, final);
+      } else if (d === "new_customer") {
+        const { data: profile } = await supabase.from("profiles").select("mitra_level").eq("user_id", conn.tenant_id).single();
+        const { data: customLevels } = await supabase.from("user_mitra_levels").select("level_code, buy_price_per_bottle").eq("user_id", conn.tenant_id);
+        
+        const myLevel = profile?.mitra_level || 'satuan';
+        const tQty = sessionData.items.reduce((s, i) => s + i.quantity, 0);
+        const hasB = sessionData.items.some(i => i.product_name.toUpperCase().includes('BELGIE') || i.product_name.toUpperCase().includes('STEFFI'));
+        
+        let totalModal = 0;
+        const items = sessionData.items.map(i => {
+          const isB = i.product_name.toUpperCase().includes('BELGIE') || i.product_name.toUpperCase().includes('STEFFI');
+          const buyPrice = getPricingForTier(myLevel, isB, customLevels || []);
+          totalModal += (buyPrice * i.quantity);
+          return { 
+            ...i, 
+            price: calculatePrice(i.product_name, tQty, 'satuan', hasB),
+            buy_price: buyPrice
+          };
+        });
+        const final = { ...sessionData, items, buy_price: totalModal, customer_info: { name: sessionData.customer_info?.name || "Pelanggan Baru", type: "konsumen" } };
+        await updateSession(chatId, { session_data: final });
+        await showSummary(chatId, final);
       }
       return new Response("OK");
     }
 
-    const text = message?.text;
-    if (text === "/start" || text === "/batal") {
-      await updateSession(chatId, { current_step: "idle", session_data: { items: [] } });
-      await sendMessage(chatId, "Siap melayani! Ketik apa saja untuk memulai pesanan baru.");
-      return new Response("OK");
-    }
-
-    switch (session.current_step) {
-      case "idle":
-      case "adding_more":
-        await showProductList(chatId, connection.tenant_id);
-        break;
-
-      case "inputting_qty":
-        const qty = parseInt(text);
-        if (isNaN(qty) || qty <= 0) { await sendMessage(chatId, "⚠️ Masukkan angka jumlah yang valid."); } 
-        else {
-          const prodId = sessionData.last_product_id!;
-          const { data: baseProd } = await supabase.from("master_products").select("name").eq("id", prodId).single();
-          const newItems = [...sessionData.items, { product_id: prodId, product_name: baseProd.name.replace(" Satuan", ""), quantity: qty, price: 250000 }];
-          await updateSession(chatId, { current_step: "adding_more", session_data: { ...sessionData, items: newItems, last_product_id: undefined } });
-          await sendMessage(chatId, `✅ <b>${baseProd.name.replace(" Satuan", "")} x${qty}</b> ditambahkan ke keranjang.`, {
+    // ─── 3. HANDLE TEKS (INTERACTIVE FLOW) ───
+    if (message?.text) {
+      if (session?.current_step === "inputting_qty") {
+        const q = parseInt(message.text);
+        if (isNaN(q)) {
+          await sendMessage(chatId, "⚠️ Mohon masukkan angka jumlah yang benar.");
+        } else {
+          const { data: p } = await supabase.from("master_products").select("name").eq("id", sessionData.last_product_id).single();
+          const items = [...sessionData.items, { 
+            product_id: sessionData.last_product_id!, 
+            product_name: p.name.replace(" Satuan", ""), 
+            quantity: q, 
+            price: 250000,
+            buy_price: 0 // Akan diupdate saat pilih pelanggan
+          }];
+          await updateSession(chatId, { 
+            current_step: "adding_more", 
+            session_data: { ...sessionData, items, last_product_id: undefined } 
+          });
+          await sendMessage(chatId, `✅ <b>${p.name.replace(" Satuan", "")} x${q}</b> ditambahkan.`, {
             inline_keyboard: [
-              [{ text: "➕ Tambah Produk", callback_data: "add_more" }],
-              [{ text: "🏁 Selesai & Pilih Pelanggan", callback_data: "finish_selection" }]
+                [{ text: "➕ Tambah Lagi", callback_data: "add_more" }], 
+                [{ text: "🏁 Selesai", callback_data: "finish_selection" }]
             ]
           });
         }
-        break;
-
-      case "searching_customer":
-        const { data: customers } = await supabase.from("customers").select("id, name, type, tier").eq("user_id", connection.tenant_id).ilike("name", `%${text}%`).limit(5);
-        await updateSession(chatId, { session_data: { ...sessionData, customer_info: { name: text, type: "konsumen" } } });
-        if (!customers || customers.length === 0) {
-          await sendMessage(chatId, `🔍 Tidak ditemukan "${text}". Pakai nama ini sebagai pelanggan baru?`, {
-            inline_keyboard: [[{ text: `🆕 Gunakan "${text}"`, callback_data: "new_customer" }]]
-          });
-        } else {
-          const buttons = customers.map(c => ([{ text: `👤 ${c.name} (${c.type})`, callback_data: `cust_${c.id}` }]));
-          buttons.push([{ text: `🆕 Gunakan "${text}" (Baru)`, callback_data: "new_customer" }]);
-          await sendMessage(chatId, "🎯 Pilih pelanggan yang sesuai:", { inline_keyboard: buttons });
-        }
-        break;
+      } else if (session?.current_step === "searching_customer") {
+        const { data: custs } = await supabase.from("customers").select("id, name, type, tier").eq("user_id", conn.tenant_id).ilike("name", `%${message.text}%`).limit(5);
+        await updateSession(chatId, { session_data: { ...sessionData, customer_info: { name: message.text, type: "konsumen" } } });
+        const btns = (custs || []).map(c => ([{ text: `👤 ${c.name}`, callback_data: `cust_${c.id}` }]));
+        btns.push([{ text: `🆕 Gunakan "${message.text}" (Baru)`, callback_data: "new_customer" }]);
+        await sendMessage(chatId, "🎯 Pilih pelanggan atau gunakan nama baru:", { inline_keyboard: btns });
+      } else {
+        // Default: Tampilkan List Produk
+        await showProductList(chatId, conn.tenant_id);
+      }
     }
+    
     return new Response("OK");
-  } catch (err) { console.error(err); return new Response("OK"); }
+  } catch (err) { 
+    console.error(err); 
+    return new Response("OK"); 
+  }
 });
 
+/**
+ * TAMPILKAN DAFTAR PRODUK (GRID 3 KOLOM)
+ */
 async function showProductList(chatId: string, tenantId: string) {
-  const { data: products } = await supabase.from("master_products").select("id, name").eq("package_type", "satuan").eq("is_active", true).order("name");
+  const { data: prods } = await supabase
+    .from("master_products")
+    .select("id, name")
+    .eq("package_type", "satuan")
+    .eq("is_active", true)
+    .order("name");
+    
   const buttons = [];
-  const list = products || [];
+  const list = prods || [];
+  
   for (let i = 0; i < list.length; i += 3) {
     buttons.push(list.slice(i, i + 3).map(p => ({ 
       text: p.name.replace(" British Propolis", "").replace("British Propolis", "BP").replace(" Satuan", ""), 
       callback_data: `prod_${p.id}` 
     })));
   }
-  buttons.push([{ text: "🏁 SELESAI", callback_data: "finish_selection" }]);
+  
+  buttons.push([{ text: "🏁 SELESAI & PILIH PELANGGAN", callback_data: "finish_selection" }]);
+  
   await updateSession(chatId, { current_step: "selecting_product" });
-  await sendMessage(chatId, "🛒 <b>Pilih Produk:</b>", { inline_keyboard: buttons });
+  await sendMessage(chatId, "🛒 <b>Pilih Produk Anda:</b>", { inline_keyboard: buttons });
 }
 
+/**
+ * TAMPILKAN RINGKASAN ORDER (SUMMARY)
+ */
 async function showSummary(chatId: string, sessionData: SessionData) {
   let total = 0;
-  const itemLines = sessionData.items.map(item => { 
-    const subtotal = item.price * item.quantity; 
-    total += subtotal; 
-    return `• ${item.product_name} x${item.quantity} = Rp ${subtotal.toLocaleString("id-ID")}`; 
+  const itemLines = sessionData.items.map(i => { 
+    total += (i.price * i.quantity); 
+    return `• ${i.product_name} x${i.quantity} = Rp ${(i.price * i.quantity).toLocaleString("id-ID")}`; 
   }).join("\n");
+  
+  const expTotal = sessionData.expenses?.reduce((s, e) => s + e.amount, 0) || 0;
+  const expLines = sessionData.expenses?.map(e => `• ${e.name}: Rp ${e.amount.toLocaleString("id-ID")}`).join("\n");
 
-  const summary = `📋 <b>REKAP ORDER</b>\n` +
-                  `👤 Pelanggan: <b>${sessionData.customer_info?.name}</b>\n` +
-                  `─────────────────\n` +
-                  `${itemLines}\n` +
-                  `─────────────────\n` +
-                  `💰 <b>TOTAL: Rp ${total.toLocaleString("id-ID")}</b>\n\n` +
-                  `Apakah rekap di atas sudah benar?`;
+  let summary = `📋 <b>REKAP ORDER</b>\n`;
+  if (sessionData.order_date) summary += `📅 Tanggal: <b>${sessionData.order_date}</b>\n`;
+  summary += `👤 Pelanggan: <b>${sessionData.customer_info?.name}</b>\n`;
+  summary += `─────────────────\n${itemLines}\n`;
+  
+  if (expTotal > 0) {
+    summary += `─────────────────\n📉 <b>PENGELUARAN TAMBAHAN:</b>\n${expLines}\n`;
+  }
+  
+  summary += `─────────────────\n💰 <b>TOTAL AKHIR: Rp ${total.toLocaleString("id-ID")}</b>\n`;
+  if (sessionData.buy_price) {
+    summary += `📦 <b>MODAL: Rp ${sessionData.buy_price.toLocaleString("id-ID")}</b>\n`;
+  }
+  summary += `\nSimpan pesanan ini ke database?`;
 
   await updateSession(chatId, { current_step: "confirming" });
   await sendMessage(chatId, summary, { 
     inline_keyboard: [
-      [{ text: "✅ YA, KIRIM", callback_data: "confirm_yes" }], 
-      [{ text: "❌ BATAL", callback_data: "confirm_no" }]
+        [{ text: "✅ YA, SIMPAN", callback_data: "confirm_yes" }], 
+        [{ text: "❌ BATALKAN", callback_data: "confirm_no" }]
     ] 
   });
 }
 
+/**
+ * SIMPAN ORDER KE DATABASE
+ */
 async function submitOrder(chatId: string, sessionData: SessionData, tenantId: string) {
   const { data: store } = await supabase.from("store_settings").select("slug").eq("user_id", tenantId).single();
-  const payload = { 
-    slug: store.slug, 
-    customer_name: sessionData.customer_info?.name, 
+  
+  // Format Tanggal: "15 April 2026" -> "2026-04-15"
+  let formattedDate = undefined;
+  if (sessionData.order_date) {
+    const months: Record<string, string> = {
+      'januari': '01', 'februari': '02', 'maret': '03', 'april': '04', 'mei': '05', 'juni': '06',
+      'juli': '07', 'agustus': '08', 'september': '09', 'oktober': '10', 'november': '11', 'desember': '12',
+      'jan': '01', 'feb': '02', 'mar': '03', 'apr': '04', 'may': '05', 'jun': '06',
+      'jul': '07', 'aug': '08', 'sep': '09', 'oct': '10', 'nov': '11', 'dec': '12'
+    };
+    const parts = sessionData.order_date.split(' ');
+    if (parts.length >= 3) {
+      const day = parts[0].padStart(2, '0');
+      const month = months[parts[1].toLowerCase()] || '01';
+      const year = parts[2];
+      formattedDate = `${year}-${month}-${day}`;
+    }
+  }
+
+  const payload = {
+    slug: store.slug,
+    customer_name: sessionData.customer_info?.name,
     customer_phone: "-",
     customer_type: sessionData.customer_info?.type || "konsumen",
     tier: sessionData.customer_info?.tier || "satuan",
     items: sessionData.items.map(i => ({ 
       product_id: i.product_id, 
-      product_name: i.product_name,
+      product_name: i.product_name, // WAJIB ADA
       quantity: i.quantity, 
       price_per_bottle: i.price, 
       subtotal: i.price * i.quantity 
     })),
-    buy_price: 0
+    buy_price: sessionData.buy_price,
+    order_date: formattedDate // SESUAI RPC
   };
-  const { data: result, error } = await (supabase as any).rpc("submit_public_order", { payload });
-  if (error || !result?.success) { 
-    console.error("Order Submit Error:", error || result?.error);
-    await sendMessage(chatId, `❌ Gagal menyimpan order. Silakan coba beberapa saat lagi.`); 
-  } 
-  else { 
-    await sendMessage(chatId, `✅ <b>Order Berhasil Dicatat!</b>\nOrder ID: <code>${result.order_id.slice(0,8)}</code>`); 
+  
+  const { data: res, error } = await (supabase as any).rpc("submit_public_order", { payload });
+  
+  if (error || !res?.success) { 
+    console.error("RPC Error:", error || res?.error);
+    await sendMessage(chatId, `❌ Gagal menyimpan order. Terjadi kesalahan teknis.`); 
+  } else {
+    const orderId = res.order_id;
+    
+    // Simpan Biaya Tambahan (Ongkir/Lainnya)
+    if (sessionData.expenses && sessionData.expenses.length > 0) {
+      let totalExpenses = 0;
+      for (const e of sessionData.expenses) {
+        const { error: expErr } = await supabase.from("order_expenses").insert({ 
+            order_id: orderId, 
+            user_id: tenantId, // WAJIB ADA
+            name: e.name, 
+            amount: e.amount 
+        });
+        if (!expErr) totalExpenses += e.amount;
+        else console.error("Expense Error:", expErr);
+      }
+
+      // Update Margin di tabel Orders (dikurangi pengeluaran tambahan)
+      if (totalExpenses > 0) {
+        const { data: currentOrder } = await supabase.from("orders").select("margin").eq("id", orderId).single();
+        if (currentOrder) {
+            await supabase.from("orders")
+                .update({ margin: currentOrder.margin - totalExpenses })
+                .eq("id", orderId);
+        }
+      }
+    }
+    await sendMessage(chatId, `✅ <b>Order Berhasil Dicatat!</b>\nProfit otomatis terhitung setelah biaya tambahan.`);
   }
+  
+  // Reset Sesi ke Idle
   await updateSession(chatId, { current_step: "idle", session_data: { items: [] } });
 }
