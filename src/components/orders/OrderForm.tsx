@@ -1,15 +1,17 @@
-import { useState, useEffect, useMemo } from 'react';
-import { useFileUpload } from '@/hooks/useFileUpload';
+import { useState, useEffect, useMemo, useCallback } from 'react';
+import { X, ArrowRight, CheckCircle2, User, Phone, MapPin, Package, Plus, Minus, Search, Calendar, Check, Loader2 } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { formatCurrency } from '@/lib/formatters';
 import { useProfile } from '@/hooks/useProfile';
 import { useProducts, Product } from '@/hooks/useProducts';
 import { TierType, TIER_PRICING, MITRA_LEVELS, OrderItem } from '@/types';
-import { formatCurrency } from '@/lib/formatters';
-import { Plus, Minus, X, Search, Package, Pencil, ArrowRight, Loader2, Calendar } from 'lucide-react';
-import { toast } from 'sonner';
 import type { Tables } from '@/integrations/supabase/types';
-import { cn } from '@/lib/utils';
-import { ReviewOrderPage } from './ReviewOrderPage';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { useIndonesianRegions } from '@/hooks/useIndonesianRegions';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 type Customer = Tables<'customers'>;
 
@@ -17,18 +19,7 @@ interface OrderFormProps {
   customers: Customer[];
   currentStock: number;
   submitting: boolean;
-  onSubmit: (data: {
-    customerName: string;
-    customerPhone: string;
-    customerAddress?: string;
-    tier: TierType;
-    items: OrderItem[];
-    transferProofUrl?: string;
-    customerId?: string;
-    province?: string;
-    city?: string;
-    createdAt?: string;
-  }) => void;
+  onSubmit: (data: any) => Promise<void>;
   onCancel: () => void;
   onEditCustomer?: (customer: Customer) => void;
   initialData?: {
@@ -36,692 +27,233 @@ interface OrderFormProps {
     customerPhone: string;
     tier: TierType;
     items: OrderItem[];
-    transferProofUrl?: string | null;
     orderDate?: string;
     customerAddress?: string;
+    customerId?: string;
   };
 }
 
-function getPriceByTier(tier: TierType): number {
-  return TIER_PRICING[tier]?.pricePerBottle ?? 250000;
-}
+type Step = 'info' | 'products' | 'summary';
 
-const formatDateCompact = (dateStr: string) => {
-  const d = new Date(dateStr);
-  return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
-};
-
-export function OrderForm({ customers, currentStock, submitting, onSubmit, onCancel, onEditCustomer, initialData }: OrderFormProps) {
-  const { mitraLevel } = useProfile();
-  const { products } = useProducts();
-
-  const productCategories = useMemo(() => {
-    const categories: Record<string, Product[]> = {};
-    for (const p of products) {
-      if (!p.category) continue;
-      if (!categories[p.category]) categories[p.category] = [];
-      categories[p.category].push(p);
-    }
-    for (const cat of Object.keys(categories)) {
-      categories[cat].sort((a, b) => b.quantity_per_package - a.quantity_per_package);
-    }
-    return categories;
-  }, [products]);
-
+export function OrderForm({ customers, submitting, onSubmit, onCancel, initialData }: OrderFormProps) {
+  const { products, loading: productsLoading } = useProducts();
+  const [step, setStep] = useState<Step>('info');
+  
   const [customerName, setCustomerName] = useState(initialData?.customerName || '');
   const [customerPhone, setCustomerPhone] = useState(initialData?.customerPhone || '');
   const [customerAddress, setCustomerAddress] = useState(initialData?.customerAddress || '');
-  const [province, setProvince] = useState('');
-  const [city, setCity] = useState('');
-  const { provinces, loadingProvinces, cities, loadingCities, fetchCities, setCities } = useIndonesianRegions();
-
-  const [selectedCustomerId, setSelectedCustomerId] = useState('');
-  const [selectedTier, setSelectedTier] = useState<TierType>(initialData?.tier || 'satuan');
-  const [items, setItems] = useState<OrderItem[]>(initialData?.items || []);
+  const [tier, setTier] = useState<TierType>(initialData?.tier || 'satuan');
   const [orderDate, setOrderDate] = useState(initialData?.orderDate || new Date().toISOString().split('T')[0]);
-  const [showAdvanced, setShowAdvanced] = useState(false);
-  const [showSearch, setShowSearch] = useState(false);
-  const [showNewCustomer, setShowNewCustomer] = useState(false);
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(initialData?.customerId || null);
+  const [items, setItems] = useState<OrderItem[]>(initialData?.items || []);
+
+  const [showCustomerSearch, setShowCustomerSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [customPriceSet, setCustomPriceSet] = useState<Set<number>>(new Set());
-  const [customPriceProductIdx, setCustomPriceProductIdx] = useState<number | null>(null);
-  const [customPriceInput, setCustomPriceInput] = useState('');
-  const [showReview, setShowReview] = useState(false);
+
+  // ── LOGIKA HARGA PUSAT (Updated: Mixed Order Logic) ────────────────────────
+  const calculatePrice = useCallback((productName: string, totalQty: number, selectedTier: TierType, hasBeauty: boolean) => {
+    const name = productName.toUpperCase();
+    const isBeauty = name.includes('BELGIE') || name.includes('STEFFI');
+    
+    let activeTier = selectedTier;
+    if (selectedTier === 'satuan' || !selectedTier) {
+      if (totalQty >= 200) activeTier = 'se';
+      else if (totalQty >= 40) activeTier = 'sap';
+      else if (totalQty >= 10) activeTier = 'agen_plus';
+      else if (totalQty >= 5) activeTier = 'agen';
+      else if (totalQty >= 3) activeTier = 'reseller';
+      else activeTier = 'satuan';
+    }
+
+    const pricingMap: Record<string, { bp: number; beauty: number }> = {
+      'satuan':    { bp: 250000, beauty: 250000 },
+      'reseller':  { bp: hasBeauty ? 217000 : 216666, beauty: 195000 }, // ATURAN 217K MIXED
+      'agen':      { bp: 198000, beauty: 195000 },
+      'agen_plus': { bp: 180000, beauty: 180000 },
+      'sap':       { bp: 170000, beauty: 170000 },
+      'se':        { bp: 150000, beauty: 150000 },
+    };
+
+    const tierData = pricingMap[activeTier] || pricingMap['satuan'];
+    const price = isBeauty ? tierData.beauty : tierData.bp;
+    return Math.round(price);
+  }, []);
+
+  const recalcItems = useCallback((currentItems: OrderItem[], currentTier: TierType) => {
+    const totalQty = currentItems.reduce((s, i) => s + i.quantity, 0);
+    const hasBeauty = currentItems.some(i => i.quantity > 0 && (i.productName.toUpperCase().includes('BELGIE') || i.productName.toUpperCase().includes('STEFFI')));
+    
+    return currentItems.map(item => {
+      const price = calculatePrice(item.productName, totalQty, currentTier, hasBeauty);
+      return { ...item, pricePerBottle: price, subtotal: item.quantity * price };
+    });
+  }, [calculatePrice]);
 
   useEffect(() => {
-    if (initialData?.items && initialData.items.length > 0) return;
-    if (Object.keys(productCategories).length === 0) return;
-
-    setItems(Object.keys(productCategories).map(cat => {
-      let defaultPricePerBottle = 250000;
-      const smallestTier = productCategories[cat][productCategories[cat].length - 1];
-      if (smallestTier && smallestTier.quantity_per_package > 0) {
-        defaultPricePerBottle = smallestTier.default_sell_price / smallestTier.quantity_per_package;
-      }
-      return {
+    if (productsLoading || products.length === 0) return;
+    const categories = Array.from(new Set(products.map(p => p.category || p.name.split(/[ _]/)[0])));
+    if (items.length === 0) {
+      const initialItems = categories.map(cat => ({
         productName: cat,
         quantity: 0,
-        pricePerBottle: defaultPricePerBottle,
-        subtotal: 0
-      };
-    }));
-    setCustomPriceSet(new Set());
-  }, [productCategories, initialData]);
+        pricePerBottle: 250000,
+        subtotal: 0,
+      }));
+      setItems(recalcItems(initialItems, tier));
+    }
+  }, [products, productsLoading, tier, recalcItems, items.length]);
 
-  const totalQuantity = items.reduce((s, i) => s + i.quantity, 0);
-  const totalSellPrice = items.reduce((s, i) => s + i.subtotal, 0);
-  const estimatedMargin = totalSellPrice - ((MITRA_LEVELS[mitraLevel]?.buyPricePerBottle || 217000) * totalQuantity);
+  const totalQty = items.reduce((s, i) => s + i.quantity, 0);
+  const totalPrice = items.reduce((s, i) => s + i.subtotal, 0);
+  const activeItems = items.filter(i => i.quantity > 0);
 
-  const recentCustomer = customers[0] || null;
-  const favoriteCustomers = customers.slice(1, 3);
-
-  const filteredCustomers = useMemo(() => {
-    if (!searchQuery.trim()) return customers.slice(0, 8);
-    const q = searchQuery.toLowerCase();
-    return customers.filter(c => c.name.toLowerCase().includes(q) || c.phone.includes(q)).slice(0, 8);
-  }, [customers, searchQuery]);
+  const changeQty = (name: string, delta: number) => {
+    setItems(prev => {
+      const updated = prev.map(item =>
+        item.productName !== name ? item : { ...item, quantity: Math.max(0, item.quantity + delta) }
+      );
+      return recalcItems(updated, tier);
+    });
+  };
 
   const selectCustomer = (c: Customer) => {
     setCustomerName(c.name);
-    setCustomerPhone(c.phone);
+    setCustomerPhone(c.phone || '');
+    setCustomerAddress(c.address || '');
+    setTier((c.tier || 'satuan').toLowerCase() as TierType);
     setSelectedCustomerId(c.id);
-    setCustomerAddress((c as any).address || '');
-    setProvince(c.province || '');
-    setCity(c.city || '');
-    const tier = (c.tier && TIER_PRICING[c.tier as TierType]) ? c.tier as TierType : 'satuan';
-    setSelectedTier(tier);
-    setShowSearch(false);
-    setShowNewCustomer(false);
+    setShowCustomerSearch(false);
   };
 
-  const updateItemQty = (idx: number, newQty: number) => {
-    setItems(prev => {
-      const newTotalQuantity = prev.reduce((sum, item, i) => sum + (i === idx ? newQty : item.quantity), 0);
-
-      return prev.map((item, i) => {
-        const qty = i === idx ? newQty : item.quantity;
-        let pricePerBottle = item.pricePerBottle;
-        let productId = item.productId;
-
-        if (!customPriceSet.has(i)) {
-          const tiers = productCategories[item.productName] || [];
-          let applicableTier = tiers[tiers.length - 1];
-          for (const tier of tiers) {
-            if (newTotalQuantity >= tier.quantity_per_package) {
-              applicableTier = tier;
-              break;
-            }
-          }
-          if (applicableTier && applicableTier.quantity_per_package > 0) {
-            pricePerBottle = applicableTier.default_sell_price / applicableTier.quantity_per_package;
-            productId = applicableTier.id;
-          }
-        }
-        return { ...item, quantity: qty, productId, pricePerBottle, subtotal: qty * pricePerBottle };
-      });
-    });
-  };
-
-  const incrementItem = (idx: number) => {
-    const item = items[idx];
-    if (item) updateItemQty(idx, item.quantity + 1);
-  };
-
-  const decrementItem = (idx: number) => {
-    const item = items[idx];
-    if (item) updateItemQty(idx, Math.max(0, item.quantity - 1));
-  };
-
-  const setItemQuantity = (idx: number, qty: number) => {
-    updateItemQty(idx, Math.max(0, isNaN(qty) ? 0 : qty));
-  };
-
-  const applyCustomPrice = () => {
-    if (customPriceProductIdx === null) return;
-    const price = parseInt(customPriceInput.replace(/\D/g, ''), 10) || 0;
-    setCustomPriceSet(prev => new Set([...prev, customPriceProductIdx]));
-    setItems(prev => prev.map((item, i) => i !== customPriceProductIdx ? item : { ...item, pricePerBottle: price, subtotal: item.quantity * price }));
-    setCustomPriceProductIdx(null);
-  };
-
-  const handleKeypad = (key: string) => {
-    if (key === 'C') { setCustomPriceInput(''); return; }
-    if (key === '⌫') { setCustomPriceInput(p => p.slice(0, -1)); return; }
-    setCustomPriceInput(p => p + key);
-  };
-
-  const hasCustomPrice = items.some((item, idx) => {
-    if (!products[idx]) return false;
-    return item.pricePerBottle !== products[idx].default_sell_price;
-  });
-
-  const handleGoToReview = () => {
-    const activeItems = items.filter(i => i.quantity > 0);
-    if (!customerName.trim() || !customerPhone.trim()) {
-      toast.error('Pilih atau isi data pelanggan terlebih dahulu');
-      return;
-    }
-    if (activeItems.length === 0) {
-      toast.error('Tambahkan minimal 1 produk dengan jumlah > 0');
-      return;
-    }
-    setShowReview(true);
-  };
-
-  const handleSubmit = () => {
-    const activeItems = items.filter(i => i.quantity > 0);
-    onSubmit({
-      customerName: customerName.trim(),
-      customerPhone: customerPhone.trim(),
-      customerAddress: customerAddress.trim() || undefined,
-      province: province || undefined,
-      city: city || undefined,
-      tier: selectedTier,
-      items: activeItems,
-      customerId: selectedCustomerId || undefined,
-      createdAt: orderDate ? new Date(orderDate).toISOString() : undefined,
-    });
-  };
-
-  if (showReview) {
-    return (
-      <ReviewOrderPage
-        customerName={customerName}
-        customerPhone={customerPhone}
-        customerAddress={customerAddress}
-        tier={selectedTier}
-        items={items}
-        orderDate={orderDate}
-        hasCustomPrice={hasCustomPrice}
-        submitting={submitting}
-        onBack={() => setShowReview(false)}
-        onConfirm={handleSubmit}
-      />
-    );
-  }
+  const filteredCustomers = customers.filter(c => c.name.toLowerCase().includes((searchQuery || customerName).toLowerCase()));
 
   return (
-    <div className="flex flex-col min-h-screen bg-background">
-      {/* Header */}
-      <header className="px-4 pt-4 pb-2 bg-card z-10 sticky top-0 shadow-sm border-b border-border">
-        <div className="flex justify-between items-center">
-          <h1 className="text-xl font-extrabold tracking-tight text-foreground">Order</h1>
-          <button
-            onClick={onCancel}
-            className="w-8 h-8 flex items-center justify-center rounded-full bg-neutral-100 text-muted-foreground active:bg-neutral-200"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-      </header>
-
-      <main className="flex-1 space-y-3 py-3 relative z-0 pb-6">
-        {/* ── PILIH PELANGGAN ── */}
-        <section className="px-4">
-          <div className="flex items-center justify-between mb-2">
-            <h2 className="text-base font-bold flex items-center gap-1.5 text-slate-800">
-              <Search className="h-4 w-4 text-emerald-600" />
-              Pilih Pelanggan
-            </h2>
-          </div>
-
-          <div className="flex gap-2 mb-2 overflow-x-auto pb-1 hide-scrollbar" style={{ scrollbarWidth: 'none' }}>
-            {recentCustomer && (
-              <div
-                role="button"
-                onClick={() => selectCustomer(recentCustomer)}
-                className={cn(
-                  "flex-shrink-0 w-44 cursor-pointer flex flex-col items-start p-2.5 rounded-lg border transition-all text-left active:scale-[0.97]",
-                  customerName === recentCustomer.name
-                    ? "bg-emerald-600 text-white border-emerald-600 shadow-sm"
-                    : "bg-white border-slate-200 shadow-sm"
-                )}
-              >
-                <div className="flex w-full justify-between items-start">
-                  <span className={cn("text-xs uppercase tracking-widest font-black",
-                    customerName === recentCustomer.name ? "opacity-80" : "text-muted")}>
-                    Terakhir
-                  </span>
-                  {customerName === recentCustomer.name && (
-                    <div className="flex items-center gap-1.5">
-                      {onEditCustomer && (
-                        <button
-                          onClick={e => { e.stopPropagation(); onEditCustomer(recentCustomer); }}
-                          className="text-xs font-black bg-white/20 text-white px-1.5 py-0.5 rounded"
-                        >✏ Ubah</button>
-                      )}
-                      <span className="text-white opacity-80 text-xs">✓</span>
-                    </div>
-                  )}
-                </div>
-                <span className={cn("text-sm font-bold leading-tight mt-0.5",
-                  customerName !== recentCustomer.name && "text-slate-800")}>
-                  {recentCustomer.name}
-                </span>
-                <span className={cn("text-xs truncate w-full",
-                  customerName === recentCustomer.name ? "opacity-90" : "text-muted-foreground")}>
-                  {TIER_PRICING[recentCustomer.tier as TierType]?.label || recentCustomer.tier}
-                </span>
-              </div>
-            )}
-
-            {favoriteCustomers.map(c => (
-              <div
-                key={c.id}
-                role="button"
-                onClick={() => selectCustomer(c)}
-                className={cn(
-                  "flex-shrink-0 w-44 cursor-pointer flex flex-col items-start p-2.5 rounded-lg border transition-all text-left active:scale-[0.97]",
-                  customerName === c.name
-                    ? "bg-emerald-600 text-white border-emerald-600 shadow-sm"
-                    : "bg-white border-slate-200 shadow-sm"
-                )}
-              >
-                <div className="flex w-full justify-between items-start">
-                  <span className={cn("text-xs uppercase tracking-widest font-black mb-0.5",
-                    customerName === c.name ? "opacity-80" : "text-muted")}>
-                    Favorit
-                  </span>
-                  {customerName === c.name && onEditCustomer && (
-                    <button
-                      onClick={e => { e.stopPropagation(); onEditCustomer(c); }}
-                      className="text-xs font-black bg-white/20 text-white px-1.5 py-0.5 rounded"
-                    >✏ Ubah</button>
-                  )}
-                </div>
-                <span className={cn("text-sm font-bold leading-tight",
-                  customerName !== c.name && "text-slate-800")}>
-                  {c.name}
-                </span>
-                <span className={cn("text-xs truncate w-full",
-                  customerName === c.name ? "opacity-90" : "text-muted-foreground")}>
-                  {TIER_PRICING[c.tier as TierType]?.label || c.tier}
-                </span>
-              </div>
-            ))}
-          </div>
-
-          {/* Two distinct action buttons */}
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              onClick={() => { setShowSearch(v => !v); setShowNewCustomer(false); }}
-              className={cn(
-                "flex items-center justify-center gap-1.5 py-2.5 rounded-lg border font-bold text-xs transition-all active:scale-[0.97]",
-                showSearch
-                  ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                  : "bg-white border-slate-200 text-slate-700 shadow-sm"
-              )}
-            >
-              <Search className="h-3.5 w-3.5" />
-              Cari Pelanggan
-            </button>
-            <button
-              onClick={() => { setShowNewCustomer(v => !v); setShowSearch(false); }}
-              className={cn(
-                "flex items-center justify-center gap-1.5 py-2.5 rounded-lg border font-bold text-xs transition-all active:scale-[0.97]",
-                showNewCustomer
-                  ? "bg-slate-800 text-white border-slate-800"
-                  : "bg-white border-slate-200 text-slate-700 shadow-sm"
-              )}
-            >
-              <span className="text-base leading-none">+</span>
-              Pelanggan Baru
-            </button>
-          </div>
-
-          {/* Cari Pelanggan panel */}
-          {showSearch && (
-            <div className="mt-2 bg-white rounded-xl border border-slate-200 overflow-hidden shadow-md">
-              <div className="p-2.5 border-b border-slate-100">
-                <input
-                  autoFocus
-                  placeholder="Cari nama atau nomor..."
-                  value={searchQuery}
-                  onChange={e => setSearchQuery(e.target.value)}
-                  className="w-full bg-neutral-50 rounded-lg px-3 py-2 text-sm font-medium outline-none border border-slate-200 focus:border-emerald-400"
-                />
-              </div>
-              {filteredCustomers.length > 0 ? (
-                <div className="max-h-48 overflow-y-auto divide-y divide-slate-50">
-                  {filteredCustomers.map(c => (
-                    <div
-                      key={c.id}
-                      className="flex w-full items-center gap-2 px-3 py-2.5"
-                    >
-                      <button
-                        onClick={() => selectCustomer(c)}
-                        className="flex-1 text-left hover:bg-emerald-50 active:bg-emerald-100 transition-colors rounded-lg px-1"
-                      >
-                        <p className="text-sm font-bold text-foreground">{c.name}</p>
-                        <p className="text-xs text-muted-foreground">{c.phone} · {TIER_PRICING[c.tier as TierType]?.label || c.tier}</p>
-                      </button>
-                      {onEditCustomer && (
-                        <button
-                          onClick={() => onEditCustomer(c)}
-                          className="shrink-0 text-xs font-bold text-muted-foreground border border-slate-200 rounded px-1.5 py-1 bg-white hover:bg-neutral-50"
-                        >✏ Ubah</button>
-                      )}
-                      <button
-                        onClick={() => selectCustomer(c)}
-                        className="shrink-0 text-emerald-600 text-xs font-bold"
-                      >Pilih</button>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-center text-sm text-muted py-4">Pelanggan tidak ditemukan</p>
-              )}
-              <div className="p-2.5 border-t border-slate-100">
-                <button
-                  onClick={() => setShowSearch(false)}
-                  className="w-full py-2 bg-neutral-100 text-slate-600 text-sm font-bold rounded-lg"
-                >
-                  Tutup
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* + Pelanggan Baru panel */}
-          {showNewCustomer && (
-            <div className="mt-2 bg-white rounded-xl border border-slate-200 overflow-hidden shadow-md">
-              <div className="p-2.5 space-y-2">
-                <p className="text-xs font-bold text-muted uppercase tracking-widest">Data Pelanggan Baru</p>
-                <input
-                  autoFocus
-                  placeholder="Nama pelanggan *"
-                  value={customerName}
-                  onChange={e => setCustomerName(e.target.value)}
-                  className="w-full bg-neutral-50 rounded-lg px-3 py-2 text-sm font-medium outline-none border border-slate-200 focus:border-emerald-400"
-                />
-                <input
-                  placeholder="No. WhatsApp *"
-                  value={customerPhone}
-                  onChange={e => setCustomerPhone(e.target.value)}
-                  className="w-full bg-neutral-50 rounded-lg px-3 py-2 text-sm font-medium outline-none border border-slate-200 focus:border-emerald-400"
-                />
-                <input
-                  placeholder="Alamat Lengkap (opsional)"
-                  value={customerAddress}
-                  onChange={e => setCustomerAddress(e.target.value)}
-                  className="w-full bg-neutral-50 rounded-lg px-3 py-2 text-sm font-medium outline-none border border-slate-200 focus:border-emerald-400"
-                />
-
-                <select
-                  value={province}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    setProvince(val);
-                    setCity('');
-                    if (!val) {
-                      setCities([]);
-                      return;
-                    }
-                    const p = provinces.find(x => x.name === val);
-                    if (p) fetchCities(p.id);
-                  }}
-                  disabled={loadingProvinces}
-                  className="w-full bg-neutral-50 rounded-lg px-3 py-2 text-sm font-medium outline-none border border-slate-200 focus:border-emerald-400 text-slate-700 disabled:opacity-50"
-                >
-                  <option value="">Provinsi (opsional)</option>
-                  {provinces.map(p => (
-                    <option key={p.id} value={p.name}>{p.name}</option>
-                  ))}
-                </select>
-
-                <select
-                  value={city}
-                  onChange={(e) => setCity(e.target.value)}
-                  disabled={!province || loadingCities || cities.length === 0}
-                  className="w-full bg-neutral-50 rounded-lg px-3 py-2 text-sm font-medium outline-none border border-slate-200 focus:border-emerald-400 text-slate-700 disabled:opacity-50"
-                >
-                  <option value="">Kabupaten/Kota (opsional)</option>
-                  {cities.map(c => (
-                    <option key={c.id} value={c.name}>{c.name}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="p-2.5 border-t border-slate-100">
-                <button
-                  onClick={() => setShowNewCustomer(false)}
-                  disabled={!customerName.trim() || !customerPhone.trim()}
-                  className={cn(
-                    "w-full py-2.5 text-sm font-bold rounded-lg transition-colors",
-                    customerName.trim() && customerPhone.trim()
-                      ? "bg-emerald-600 text-white hover:bg-emerald-700"
-                      : "bg-neutral-100 text-muted"
-                  )}
-                >
-                  Konfirmasi Pelanggan Baru
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Selected customer chip — always show when customer selected */}
-          {customerName && !showNewCustomer && (() => {
-            const chipEditableCustomer = selectedCustomerId
-              ? customers.find(x => x.id === selectedCustomerId) ?? null
-              : null;
+    <div className="flex flex-col h-full bg-slate-50">
+      {/* Step Indicator */}
+      <div className="bg-white border-b border-slate-100 px-6 py-4">
+        <div className="flex items-center justify-between max-w-sm mx-auto">
+          {['info', 'products', 'summary'].map((s, i) => {
+            const isActive = step === s;
+            const isDone = ['info', 'products', 'summary'].indexOf(step) > i;
             return (
-              <div className="mt-2 flex items-center justify-between bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2">
-                <div>
-                  <span className="text-emerald-800 font-bold text-xs">✓ {customerName}</span>
-                  {customerPhone && <span className="text-emerald-600 text-xs ml-2">{customerPhone}</span>}
-                </div>
-                <div className="flex items-center gap-2">
-                  {chipEditableCustomer && onEditCustomer && (
-                    <button
-                      onClick={() => onEditCustomer(chipEditableCustomer)}
-                      className="text-xs text-slate-600 font-bold border border-slate-200 rounded px-1.5 py-0.5 bg-white"
-                    >✏ Ubah</button>
-                  )}
-                  <button
-                    onClick={() => { setShowSearch(true); setShowNewCustomer(false); }}
-                    className="text-xs text-emerald-600 font-bold underline"
-                  >Ganti</button>
-                </div>
+              <div key={s} className="flex flex-col items-center gap-2 flex-1">
+                <div className={cn("h-1.5 w-full rounded-full transition-all duration-500", 
+                  isDone ? "bg-emerald-500" : isActive ? "bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.3)]" : "bg-slate-100")} />
+                <span className={cn("text-[9px] font-black uppercase tracking-widest", isActive ? "text-emerald-600" : "text-slate-300")}>
+                  {s === 'info' ? 'Pelanggan' : s === 'products' ? 'Produk' : 'Review'}
+                </span>
               </div>
             );
-          })()}
-        </section >
+          })}
+        </div>
+      </div>
 
-        {/* ── TANGGAL ── */}
-        <section className="px-4 relative">
-          <div
-            className="bg-card px-3 py-2.5 rounded-lg border border-border shadow-sm flex items-center justify-between relative cursor-pointer active:bg-muted/50 transition-colors"
-          >
-            <div className="flex items-center gap-2.5 pointer-events-none">
-              <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 border border-emerald-100">
-                <Calendar className="h-4 w-4" />
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-muted font-bold uppercase tracking-wide">Tanggal:</span>
-                <span className="text-sm font-bold text-foreground flex-1">
-                  {formatDateCompact(orderDate)}
-                </span>
-              </div>
-            </div>
+      <main className="flex-1 overflow-y-auto px-4 py-6 pb-32">
+        <div className="max-w-md mx-auto">
+          {step === 'info' && (
+            <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-300">
+              <div className="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm space-y-5">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-emerald-50 flex items-center justify-center text-emerald-600"><User className="h-5 w-5" /></div>
+                  <h2 className="text-base font-black text-slate-800">Identitas Pelanggan</h2>
+                </div>
 
-            <input
-              type="date"
-              value={orderDate}
-              onChange={e => setOrderDate(e.target.value)}
-              className="absolute inset-0 opacity-0 w-full h-full cursor-pointer z-10"
-            />
+                <div className="space-y-1.5">
+                  <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Tanggal Transaksi</Label>
+                  <Input type="date" value={orderDate} onChange={e => setOrderDate(e.target.value)} 
+                    className="h-12 bg-slate-50 border-slate-100 rounded-xl font-bold text-sm" />
+                </div>
 
-            <div className="shrink-0 pl-2 pointer-events-none text-muted">
-              <Pencil className="h-4 w-4" />
-            </div>
-          </div>
-        </section>
-
-        {/* ── PRODUK ── */}
-        < section >
-          <div className="px-4 flex items-center justify-between mb-2">
-            <h2 className="text-base font-bold flex items-center gap-1.5 text-slate-800">
-              <Package className="h-4 w-4 text-emerald-600" />
-              Produk Terlaris
-            </h2>
-            {/* Stok display removed as per user request */}
-          </div>
-
-          <div className="flex overflow-x-auto gap-2.5 px-4 pb-2 hide-scrollbar" style={{ scrollbarWidth: 'none' }}>
-            {items.map((item, idx) => {
-              const isCustomPrice = customPriceSet.has(idx);
-              const isActive = item.quantity > 0;
-              return (
-                <div
-                  key={idx}
-                  className={cn(
-                    "flex-shrink-0 w-48 bg-white rounded-xl border overflow-hidden shadow-sm transition-all",
-                    isActive ? "border-emerald-300 shadow-emerald-100" : "border-slate-100 opacity-80"
-                  )}
-                >
-                  <div className="h-24 bg-gradient-to-br from-emerald-50 to-slate-100 relative overflow-hidden flex items-center justify-center">
-                    <Package className="h-10 w-10 text-emerald-200" />
-                    {/* STOK badge removed as per user request */}
-                    {isCustomPrice && (
-                      <div className="absolute top-1.5 right-1.5 bg-amber-400 text-foreground text-xs font-black px-1.5 py-0.5 rounded-md uppercase">
-                        Custom
+                <div className="space-y-1.5 relative">
+                  <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Nama Pelanggan</Label>
+                  <div className="relative">
+                    <Input placeholder="Cari atau ketik nama..." value={customerName} 
+                      onChange={e => { setCustomerName(e.target.value); setShowCustomerSearch(true); }} 
+                      onFocus={() => setShowCustomerSearch(true)}
+                      className="h-12 bg-slate-50 border-slate-100 rounded-xl font-bold text-sm" />
+                    {showCustomerSearch && customerName && (
+                      <div className="absolute z-50 left-0 right-0 top-full mt-2 bg-white rounded-2xl shadow-2xl border border-slate-100 max-h-52 overflow-y-auto p-2">
+                        {filteredCustomers.map(c => (
+                          <button key={c.id} onClick={() => selectCustomer(c)} className="w-full p-3 text-left hover:bg-slate-50 rounded-xl flex items-center justify-between group">
+                            <div><p className="text-sm font-bold text-slate-800">{c.name}</p><p className="text-[10px] text-slate-400 font-black uppercase">{c.tier}</p></div>
+                          </button>
+                        ))}
                       </div>
                     )}
                   </div>
-                  <div className="p-2.5">
-                    <h3 className="text-sm font-bold text-slate-800 leading-tight truncate">{item.productName || 'Produk'}</h3>
-                    <button
-                      type="button"
-                      onClick={() => { setCustomPriceProductIdx(idx); setCustomPriceInput(String(item.pricePerBottle)); }}
-                      className="mt-0.5 flex items-center gap-1 text-left hover:bg-neutral-50 rounded px-0.5 -ml-0.5 transition-colors"
-                    >
-                      <span className={cn("font-bold text-sm", isCustomPrice ? "text-amber-500" : "text-emerald-600")}>
-                        {formatCurrency(item.pricePerBottle)}
-                      </span>
-                      <Pencil className="h-2.5 w-2.5 text-muted" />
-                    </button>
-                    <div className="mt-2 flex items-center justify-between gap-1">
-                      <button
-                        type="button"
-                        onClick={() => decrementItem(idx)}
-                        className="w-10 h-10 rounded-lg border border-slate-200 bg-neutral-50 flex items-center justify-center text-slate-600 active:bg-neutral-100 touch-manipulation"
-                      >
-                        <Minus className="h-4 w-4" />
-                      </button>
-                      <input
-                        type="number"
-                        inputMode="numeric"
-                        min={0}
-                        value={item.quantity}
-                        onChange={e => setItemQuantity(idx, parseInt(e.target.value, 10))}
-                        className="text-lg font-black text-foreground w-10 text-center bg-transparent outline-none border-b-2 border-slate-200 focus:border-emerald-500 transition-colors"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => incrementItem(idx)}
-                        className="w-10 h-10 rounded-lg bg-emerald-600 text-white shadow-sm shadow-emerald-100 flex items-center justify-center active:bg-emerald-700 active:scale-95 transition-all touch-manipulation"
-                      >
-                        <Plus className="h-5 w-5" />
-                      </button>
-                    </div>
-                  </div>
                 </div>
-              );
-            })}
-          </div>
-        </section >
 
-        {/* ── RINGKASAN ── */}
-        < section className="px-4" >
-          <div className="bg-slate-800 text-white rounded-xl p-3 shadow-lg overflow-hidden">
-            <div className="flex justify-between items-center mb-2">
-              <span className="text-muted font-medium text-xs uppercase tracking-wide">Ringkasan</span>
-              <span className="bg-success text-xs font-bold px-1.5 py-0.5 rounded uppercase">
-                {totalQuantity > 0 ? `${totalQuantity} btl` : 'Baru'}
-              </span>
-            </div>
-            <div className="flex justify-between items-end">
-              <div>
-                <div className="text-xs text-muted">Total Harga</div>
-                <div className="text-lg font-black leading-none mt-0.5">{formatCurrency(totalSellPrice)}</div>
-              </div>
-              <div className="text-right">
-                <div className="text-xs text-emerald-400/80">Profit</div>
-                <div className={cn("text-sm font-bold leading-none mt-0.5", estimatedMargin >= 0 ? "text-emerald-400" : "text-red-400")}>
-                  {estimatedMargin >= 0 ? '+' : ''}{formatCurrency(estimatedMargin)}
+                <div className="space-y-1.5">
+                  <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Level Harga</Label>
+                  <select className="w-full h-12 bg-slate-50 border-slate-100 rounded-xl px-4 font-bold text-sm" value={tier} onChange={e => {
+                    const newTier = e.target.value as TierType;
+                    setTier(newTier);
+                    setItems(recalcItems(items, newTier));
+                  }}>
+                    <option value="satuan">Konsumen Satuan (Auto Tier)</option>
+                    <option value="reseller">Reseller (3 Btl)</option>
+                    <option value="agen">Agen (5 Btl)</option>
+                    <option value="agen_plus">Agen Plus (10 Btl)</option>
+                    <option value="sap">SAP (40 Btl)</option>
+                    <option value="se">SE (200 Btl)</option>
+                  </select>
                 </div>
+
+                <button onClick={() => setStep('products')} disabled={!customerName} className="w-full h-14 bg-emerald-600 text-white rounded-2xl font-black shadow-lg">LANJUT PILIH PRODUK</button>
               </div>
             </div>
-          </div>
-        </section >
-      </main >
-
-      {/* ── REVIEW Button ── */}
-      <div className="sticky bottom-[5.5rem] mt-auto p-4 bg-card/95 backdrop-blur-sm border-t border-border z-20 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
-        <button
-          onClick={handleGoToReview}
-          disabled={totalQuantity === 0}
-          className={cn(
-            "w-full h-12 rounded-xl shadow-lg flex items-center justify-center gap-2 active:scale-[0.98] transition-all font-bold text-base tracking-tight",
-            totalQuantity === 0
-              ? "bg-neutral-200 text-muted"
-              : "bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg"
           )}
-        >
-          <span>REVIEW ORDER</span>
-          <ArrowRight className="h-4 w-4" />
-        </button>
-      </div >
 
-      {/* ── CUSTOM PRICE MODAL ── */}
-      {
-        customPriceProductIdx !== null && (
-          <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center bg-slate-900/60 backdrop-blur-sm p-4">
-            <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden p-5 relative mb-4 sm:mb-0">
-              <button
-                onClick={() => setCustomPriceProductIdx(null)}
-                className="absolute top-3 right-3 w-8 h-8 flex items-center justify-center rounded-full bg-neutral-50 text-muted active:bg-neutral-100"
-              >
-                <X className="h-4 w-4" />
-              </button>
-              <div className="text-center mb-4">
-                <h3 className="text-muted-foreground text-xs font-bold uppercase tracking-wide">Ubah Harga Satuan</h3>
-                <p className="text-slate-800 font-bold text-base leading-tight mt-1">
-                  {items[customPriceProductIdx]?.productName}
-                </p>
-              </div>
-              <div className="relative mb-4">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <span className="text-muted font-bold text-xl">Rp</span>
+          {step === 'products' && (
+            <div className="space-y-4 animate-in fade-in duration-300">
+               <div className="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm space-y-4">
+                <div className="space-y-2.5">
+                  {items.map((item, idx) => (
+                    <div key={idx} className={cn("p-4 rounded-2xl border transition-all", item.quantity > 0 ? "border-emerald-200 bg-emerald-50/30" : "border-slate-50 bg-slate-50/50")}>
+                      <div className="flex items-center justify-between gap-4">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-black text-slate-800 truncate">{item.productName}</p>
+                          <p className="text-[11px] font-black text-emerald-600 mt-0.5">{formatCurrency(item.pricePerBottle)}</p>
+                        </div>
+                        <div className="flex items-center gap-1.5 bg-white rounded-xl p-1 border border-slate-200">
+                          <button onClick={() => changeQty(item.productName, -1)} className="w-8 h-8 flex items-center justify-center text-slate-400"><Minus className="h-3 w-3" /></button>
+                          <span className="w-6 text-center text-sm font-black text-slate-800">{item.quantity}</span>
+                          <button onClick={() => changeQty(item.productName, 1)} className="w-8 h-8 flex items-center justify-center bg-emerald-600 text-white rounded-lg"><Plus className="h-3 w-3" /></button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-                <div className="w-full pl-10 pr-3 py-3 text-3xl font-black text-emerald-600 bg-neutral-50 border-2 border-emerald-500 rounded-xl text-center shadow-inner">
-                  {customPriceInput ? parseInt(customPriceInput).toLocaleString('id-ID') : '0'}
-                </div>
-              </div>
-              <div className="grid grid-cols-3 gap-2 mb-4">
-                {['1', '2', '3', '4', '5', '6', '7', '8', '9', 'C', '0', '⌫'].map(k => (
-                  <button
-                    key={k}
-                    onClick={() => handleKeypad(k)}
-                    className="flex items-center justify-center text-2xl font-bold bg-white rounded-lg shadow-sm border border-slate-200 active:bg-emerald-50 active:border-emerald-500 transition-colors h-14"
-                  >
-                    {k}
-                  </button>
-                ))}
-              </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setCustomPriceProductIdx(null)}
-                  className="flex-1 py-3 bg-neutral-100 text-slate-700 font-bold rounded-xl text-sm"
-                >Batal</button>
-                <button
-                  onClick={applyCustomPrice}
-                  className="flex-1 py-3 bg-emerald-600 text-white font-bold rounded-xl shadow-lg shadow-emerald-200 text-sm"
-                >Simpan</button>
+                <button onClick={() => setStep('summary')} disabled={totalQty === 0} className="w-full h-14 bg-slate-800 text-white rounded-2xl font-black">CEK PESANAN</button>
               </div>
             </div>
-          </div>
-        )
-      }
-    </div >
+          )}
+
+          {step === 'summary' && (
+            <div className="space-y-4 animate-in fade-in duration-300">
+              <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm space-y-6">
+                <div className="flex items-center justify-between"><h2 className="text-lg font-black text-slate-800">Review Order</h2><div className="bg-emerald-50 text-emerald-600 px-3 py-1 rounded-full text-[10px] font-black uppercase">{tier}</div></div>
+                <div className="space-y-3">
+                  {activeItems.map((item, idx) => (
+                    <div key={idx} className="flex justify-between items-center py-2 border-b border-slate-50 last:border-0">
+                      <div><p className="text-sm font-bold text-slate-800">{item.productName}</p><p className="text-xs text-slate-500 font-medium">{item.quantity} x {formatCurrency(item.pricePerBottle)}</p></div>
+                      <p className="text-sm font-black text-slate-800">{formatCurrency(item.subtotal)}</p>
+                    </div>
+                  ))}
+                </div>
+                <div className="pt-4 border-t border-slate-100 flex justify-between items-center">
+                  <p className="font-black text-slate-500 text-sm">TOTAL AKHIR</p>
+                  <p className="text-2xl font-black text-emerald-600">{formatCurrency(totalPrice)}</p>
+                </div>
+                <button onClick={() => onSubmit({ customerName, customerPhone, customerAddress, tier, items: activeItems, createdAt: new Date(orderDate).toISOString() })} disabled={submitting} className="w-full h-14 bg-emerald-600 text-white rounded-2xl font-black shadow-xl">
+                   {submitting ? <Loader2 className="h-5 w-5 animate-spin mx-auto" /> : 'SIMPAN PERUBAHAN'}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </main>
+      <div className="fixed bottom-6 left-1/2 -translate-x-1/2"><button onClick={onCancel} className="bg-white/80 backdrop-blur-md px-6 py-2.5 rounded-full border border-slate-200 text-slate-500 font-black text-[10px] uppercase shadow-lg">BATAL</button></div>
+    </div>
   );
 }

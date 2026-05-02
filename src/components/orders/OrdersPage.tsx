@@ -714,9 +714,9 @@ export function OrdersPage({ openAddForm = false, onAddFormClose }: OrdersPagePr
 
       {/* Edit Order Dialog */}
       <Dialog open={showEditDialog} onOpenChange={(open) => { if (!open) { setShowEditDialog(false); setEditingOrder(null); } }}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Edit Order</DialogTitle>
+        <DialogContent className="max-h-[95vh] p-0 overflow-hidden flex flex-col sm:max-w-lg rounded-t-3xl sm:rounded-3xl border-none shadow-2xl">
+          <DialogHeader className="p-4 border-b border-slate-50 bg-white shrink-0">
+            <DialogTitle className="text-base font-black text-slate-800">Edit Transaksi</DialogTitle>
           </DialogHeader>
           {editingOrder && (
             <OrderForm

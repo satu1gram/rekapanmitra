@@ -5,1069 +5,269 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const TELEGRAM_BOT_TOKEN = Deno.env.get("TELEGRAM_BOT_TOKEN")!;
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const GROQ_API_KEY = Deno.env.get("GROQ_API_KEY")!;
-
 const TELEGRAM_API = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}`;
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
-// Log status env vars saat cold start (tanpa expose nilai aslinya)
-console.log("[startup] TELEGRAM_BOT_TOKEN set:", !!TELEGRAM_BOT_TOKEN);
-console.log("[startup] GROQ_API_KEY set:", !!GROQ_API_KEY, "| prefix:", GROQ_API_KEY?.slice(0, 7));
-
 // ─── Types ────────────────────────────────────────────────────────────────────
-type MitraLevel = "reseller" | "agen" | "agen_plus" | "sap" | "se";
+type BotStep = "idle" | "selecting_product" | "inputting_qty" | "adding_more" | "searching_customer" | "confirming";
 
-interface ParsedOrder {
-  customer_name: string | null;
-  customer_phone: string | null;
-  customer_type: "mitra" | "konsumen";
-  mitra_level: MitraLevel | null;
-  order_date: string | null; // ISO date string yyyy-mm-dd jika disebut dalam pesan
-  items: { product_name: string; quantity: number }[];
-  notes: string | null;
+interface SessionData {
+  items: { product_id: string; product_name: string; quantity: number; price: number }[];
+  last_product_id?: string;
+  customer_info?: { id?: string; name: string; type: string; tier?: string };
 }
 
-interface OrderItem {
-  product_id: string;
-  product_name: string;
-  quantity: number;
-  price_per_bottle: number;
-  subtotal: number;
+// ─── Pricing Logic Pusat (Mixed Order Support) ────────────────────────────────
+function calculatePrice(productName: string, totalQty: number, selectedTier: string, hasBeauty: boolean) {
+  const name = productName.toUpperCase();
+  const isBeauty = name.includes('BELGIE') || name.includes('STEFFI');
+  
+  let activeTier = (selectedTier || 'satuan').toLowerCase();
+  if (activeTier === 'satuan') {
+    if (totalQty >= 200) activeTier = 'se';
+    else if (totalQty >= 40) activeTier = 'sap';
+    else if (totalQty >= 10) activeTier = 'agen_plus';
+    else if (totalQty >= 5) activeTier = 'agen';
+    else if (totalQty >= 3) activeTier = 'reseller';
+  }
+
+  const pricingMap: Record<string, { bp: number; beauty: number }> = {
+    'satuan':    { bp: 250000, beauty: 250000 },
+    'reseller':  { bp: hasBeauty ? 217000 : 216666, beauty: 195000 },
+    'agen':      { bp: 198000, beauty: 195000 },
+    'agen_plus': { bp: 180000, beauty: 180000 },
+    'sap':       { bp: 170000, beauty: 170000 },
+    'se':        { bp: 150000, beauty: 150000 },
+  };
+
+  const tierData = pricingMap[activeTier] || pricingMap['satuan'];
+  const price = isBeauty ? tierData.beauty : tierData.bp;
+  return Math.round(price);
 }
-
-interface PendingRestock {
-  _type: "restock";
-  qty: number;
-  buy_price_per_bottle: number | null;
-  total_buy_price: number | null;
-  tier: MitraLevel;
-  restock_date: string | null;
-}
-
-interface PendingOrder {
-  customer_name: string | null;
-  customer_phone: string | null;
-  customer_type: "mitra" | "konsumen";
-  mitra_level: MitraLevel | null;
-  order_date: string | null; // ISO date yyyy-mm-dd
-  items: OrderItem[];
-  total_price: number;
-  buy_price: number;
-  notes: string | null;
-  is_existing_customer: boolean; // true jika customer sudah ada di DB
-}
-
-// Harga tetap per botol sesuai level mitra (dari MITRA_LEVELS di src/types/index.ts)
-const MITRA_PRICES: Record<MitraLevel, number> = {
-  reseller: 217000,
-  agen:     198000,
-  agen_plus: 180000,
-  sap:      170000,
-  se:       150000,
-};
-
-const MITRA_LEVEL_LABEL: Record<MitraLevel, string> = {
-  reseller:  "Reseller",
-  agen:      "Agen",
-  agen_plus: "Agen Plus",
-  sap:       "Spesial Agen Plus (SAP)",
-  se:        "Special Entrepreneur (SE)",
-};
 
 // ─── Telegram Helpers ─────────────────────────────────────────────────────────
-async function sendMessage(chatId: string | number, text: string) {
-  if (!TELEGRAM_BOT_TOKEN) {
-    console.error("[sendMessage] TELEGRAM_BOT_TOKEN is not set!");
-    return;
-  }
-  const res = await fetch(`${TELEGRAM_API}/sendMessage`, {
+async function sendMessage(chatId: string | number, text: string, replyMarkup?: any) {
+  const body: any = { chat_id: chatId, text, parse_mode: "HTML" };
+  if (replyMarkup) body.reply_markup = replyMarkup;
+  return await fetch(`${TELEGRAM_API}/sendMessage`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ chat_id: chatId, text, parse_mode: "HTML" }),
-  });
-  if (!res.ok) {
-    const errBody = await res.text();
-    console.error(`[sendMessage] Telegram API error ${res.status}:`, errBody);
-  }
+    body: JSON.stringify(body),
+  }).then(r => r.json());
 }
 
-// ─── Pre-processing: tanggal & bonus ─────────────────────────────────────────
-const BULAN_ID: Record<string, number> = {
-  januari:1, februari:2, maret:3, april:4, mei:5, juni:6,
-  juli:7, agustus:8, september:9, oktober:10, november:11, desember:12,
-  jan:1, feb:2, mar:3, apr:4, jun:6, jul:7, agt:8, sep:9, okt:10, nov:11, des:12,
-};
-
-// Ekstrak tanggal Indonesia dari teks → "yyyy-mm-dd" atau null
-function extractDateID(text: string): string | null {
-  const m = text.toLowerCase().match(
-    /(\d{1,2})\s+(januari|februari|maret|april|mei|juni|juli|agustus|september|oktober|november|desember|jan|feb|mar|apr|jun|jul|agt|sep|okt|nov|des)\s+(\d{4})/
-  );
-  if (!m) return null;
-  const d = m[1].padStart(2, "0");
-  const mo = String(BULAN_ID[m[2]]).padStart(2, "0");
-  return `${m[3]}-${mo}-${d}`;
-}
-
-// Hapus baris yang mengandung kata bonus/gratis/free/hadiah sebelum dikirim ke AI
-function stripBonusLines(text: string): string {
-  return text
-    .split("\n")
-    .filter(line => !/\b(bonus|gratis|free|hadiah|promo)\b/i.test(line))
-    .join("\n");
-}
-
-// ─── Restock Detection ────────────────────────────────────────────────────────
-
-// Deteksi apakah pesan adalah restok (tanpa AI)
-function detectRestock(text: string): boolean {
-  const lower = text.toLowerCase().trim();
-  if (lower.startsWith("/restok")) return true;
-  return /\b(restok|re-?stok|repeat\s*order|terima\s+\d|\bro\b)\b/i.test(lower)
-      || /\btambah\s+stok\b/i.test(lower)
-      || /\bstok\s+masuk\b/i.test(lower);
-}
-
-// Parse qty + harga dari pesan restok
-function parseRestockMessage(text: string, defaultBuyPrice: number): {
-  qty: number;
-  buy_price_per_bottle: number;
-  restock_date: string | null;
-} {
-  // Qty: angka sebelum/sesudah "botol", atau angka pertama yang ditemukan
-  const qtyMatch = text.match(/(\d+)\s*botol/i)
-    || text.match(/botol\s*(\d+)/i)
-    || text.match(/\b(\d+)\b/);
-  const qty = qtyMatch ? parseInt(qtyMatch[1]) : 0;
-
-  // Harga: angka setelah "harga", "rp", "@", "modal"
-  const priceMatch = text.match(/(?:harga|modal|rp\.?|@)\s*(\d[\d.,]*)/i);
-  let buy_price_per_bottle = defaultBuyPrice;
-  if (priceMatch) {
-    const raw = priceMatch[1].replace(/[.,]/g, "");
-    const parsed = parseInt(raw);
-    // Jika < 1000, anggap ribuan (150 → 150.000)
-    buy_price_per_bottle = parsed < 1000 ? parsed * 1000 : parsed;
-  }
-
-  return { qty, buy_price_per_bottle, restock_date: extractDateID(text) };
-}
-
-// ─── AI Parsing ───────────────────────────────────────────────────────────────
-const ORDER_PARSE_PROMPT = `Parse order BP Group. Output JSON only, no markdown.
-
-PRODUCTS: British Propolis|British Propolis Green|British Propolis Blue|Brassic Pro|Brassic Eye|Belgie Facial Wash|Belgie Night Cream|Belgie Day Cream|Belgie Anti Aging Serum|Belgie Hair Tonic|Steffi Pro|BP Norway
-
-ALIASES: bp/reg/merah→British Propolis, green/kids/hijau→British Propolis Green, blue/biru→British Propolis Blue, bro→Brassic Pro, bre/eye→Brassic Eye, fw/facial wash→Belgie Facial Wash, nc/night cream→Belgie Night Cream, dc/day cream→Belgie Day Cream, serum→Belgie Anti Aging Serum, ht/hair tonic→Belgie Hair Tonic, steffi→Steffi Pro, norway→BP Norway
-
-MITRA LEVELS: reseller|agen|agen_plus(agen+/agen plus)|sap(spesial agen plus)|se(special entrepreneur)
-
-RULES: qty>0 only, phone=08xxx/+62xxx digits only, notes=special notes only (not payment/address info), non-order→{"error":"bukan pesan order"}
-
-OUTPUT:
-{"customer_name":str|null,"customer_phone":str|null,"customer_type":"mitra"|"konsumen","mitra_level":"reseller"|"agen"|"agen_plus"|"sap"|"se"|null,"items":[{"product_name":str,"quantity":int}],"notes":str|null}`;
-
-async function parseOrderWithAI(text: string): Promise<ParsedOrder | { error: string }> {
-  // Pre-process: hapus baris bonus, ekstrak tanggal sebelum kirim ke AI
-  const extractedDate = extractDateID(text);
-  const cleanText = stripBonusLines(text);
-
-  const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+async function answerCallbackQuery(callbackQueryId: string, text?: string) {
+  await fetch(`${TELEGRAM_API}/answerCallbackQuery`, {
     method: "POST",
-    headers: {
-      Authorization: `Bearer ${GROQ_API_KEY}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: "llama-3.1-8b-instant",
-      messages: [
-        { role: "system", content: ORDER_PARSE_PROMPT },
-        { role: "user", content: cleanText },
-      ],
-      temperature: 0.1,
-      max_tokens: 512,
-    }),
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ callback_query_id: callbackQueryId, text }),
   });
-
-  if (!response.ok) {
-    const errBody = await response.text();
-    console.error(`[groq] error ${response.status}:`, errBody);
-    if (response.status === 429) throw new Error("GROQ_RATE_LIMIT");
-    if (response.status === 503) throw new Error("GROQ_UNAVAILABLE");
-    throw new Error(`AI gateway error: ${response.status}`);
-  }
-
-  const data = await response.json();
-  let rawText = (data?.choices?.[0]?.message?.content || "").trim();
-
-  // Strip markdown fences jika ada
-  if (rawText.startsWith("```")) {
-    rawText = rawText.replace(/^```(?:json)?\n?/, "").replace(/\n?```$/, "");
-  }
-
-  // Fallback: cari JSON object dalam teks jika model menambahkan teks sebelum/sesudah JSON
-  if (!rawText.startsWith("{")) {
-    const match = rawText.match(/\{[\s\S]*\}/);
-    if (match) rawText = match[0];
-  }
-
-  const parsed = JSON.parse(rawText);
-
-  // Override order_date dengan hasil ekstraksi regex dari teks asli (lebih akurat dari AI)
-  if (!("error" in parsed)) {
-    parsed.order_date = extractedDate;
-  }
-
-  return parsed;
 }
 
 // ─── DB Helpers ───────────────────────────────────────────────────────────────
-async function getRegistration(chatId: string) {
-  const { data } = await supabase
-    .from("telegram_bot_registrations")
-    .select("slug, store_name, user_id")
-    .eq("chat_id", chatId)
-    .maybeSingle();
+async function getConnection(chatId: string) {
+  const { data } = await supabase.from("telegram_connections").select("tenant_id").eq("chat_id", chatId).eq("is_active", true).maybeSingle();
   return data;
 }
 
-async function getSession(chatId: string) {
-  const { data } = await supabase
-    .from("telegram_bot_sessions")
-    .select("state, pending_order")
-    .eq("chat_id", chatId)
-    .maybeSingle();
+async function getSession(chatId: string, tenantId: string) {
+  const { data } = await supabase.from("telegram_sessions").select("*").eq("chat_id", chatId).maybeSingle();
+  if (!data) {
+    const { data: newSess } = await supabase.from("telegram_sessions")
+      .insert({ chat_id: chatId, tenant_id: tenantId, current_step: "idle", session_data: { items: [] } })
+      .select("*").single();
+    return newSess;
+  }
   return data;
 }
 
-async function setSession(chatId: string, state: string, pendingOrder: PendingOrder | PendingRestock | null = null) {
-  await supabase.from("telegram_bot_sessions").upsert({
-    chat_id: chatId,
-    state,
-    pending_order: pendingOrder,
-    updated_at: new Date().toISOString(),
-  });
+async function updateSession(chatId: string, updates: any) {
+  await supabase.from("telegram_sessions").update({ ...updates, updated_at: new Date().toISOString() }).eq("chat_id", chatId);
 }
 
-// Lookup owner's mitra level dari profiles → untuk hitung buy_price (modal pemilik)
-const OWNER_BUY_PRICES: Record<string, number> = {
-  reseller: 217000,
-  agen:     198000,
-  agen_plus: 180000,
-  sap:      170000,
-  se:       150000,
-};
-
-
-async function getOwnerBuyPrice(userId: string): Promise<number> {
-  const { data } = await supabase
-    .from("profiles")
-    .select("mitra_level")
-    .eq("user_id", userId)
-    .maybeSingle();
-
-  const level = data?.mitra_level || "reseller";
-  return OWNER_BUY_PRICES[level] ?? 217000;
-}
-
-// Lookup customer dari DB berdasarkan phone (prioritas) atau name (fallback)
-// → dapat type, tier/level, dan phone tersimpan
-async function lookupCustomerLevel(
-  phone: string | null,
-  name: string | null,
-  userId: string
-): Promise<{
-  customer_type: "mitra" | "konsumen";
-  mitra_level: MitraLevel | null;
-  found: boolean;
-  db_phone: string | null; // phone yang tersimpan di DB (jika ada)
-}> {
-  let data: { type: string; tier: string; phone: string | null } | null = null;
-
-  // 1. Cari by phone dulu (lebih spesifik)
-  if (phone) {
-    const result = await supabase
-      .from("customers")
-      .select("type, tier, phone")
-      .eq("user_id", userId)
-      .eq("phone", phone)
-      .maybeSingle();
-    data = result.data;
-  }
-
-  // 2. Fallback: cari by name (case-insensitive) jika belum ketemu
-  if (!data && name) {
-    const result = await supabase
-      .from("customers")
-      .select("type, tier, phone")
-      .eq("user_id", userId)
-      .ilike("name", name.trim())
-      .maybeSingle();
-    data = result.data;
-  }
-
-  if (!data) return { customer_type: "konsumen", mitra_level: null, found: false, db_phone: null };
-
-  const isMitra = data.type?.toLowerCase() === "mitra";
-  const level = isMitra && data.tier in MITRA_PRICES
-    ? (data.tier as MitraLevel)
-    : null;
-
-  return {
-    customer_type: isMitra ? "mitra" : "konsumen",
-    mitra_level: level,
-    found: true,
-    db_phone: data.phone || null,
-  };
-}
-
-// ─── Product Name → DB Category Mapping ──────────────────────────────────────
-const PRODUCT_TO_CATEGORY: Record<string, string> = {
-  "british propolis": "BP",
-  "british propolis green": "KID",
-  "british propolis blue": "BLUE",
-  "brassic pro": "BRO",
-  "brassic eye": "BRE",
-  "belgie facial wash": "BELGIE_FW",
-  "belgie night cream": "BELGIE_NC",
-  "belgie day cream": "BELGIE_DC",
-  "belgie anti aging serum": "BELGIE_SERUM",
-  "belgie hair tonic": "BELGIE_HT",
-  "steffi pro": "STEFFI",
-  "bp norway": "NORWAY",
-};
-
-function resolveCategory(productName: string): string {
-  const lower = productName.toLowerCase().trim();
-  // Sort by key length descending so more specific keys (e.g. "british propolis green")
-  // are matched before shorter prefixes (e.g. "british propolis")
-  const sortedEntries = Object.entries(PRODUCT_TO_CATEGORY).sort((a, b) => b[0].length - a[0].length);
-  for (const [key, cat] of sortedEntries) {
-    if (lower === key || lower.includes(key)) return cat;
-  }
-  // Keyword fallback
-  if (lower.includes("green") || lower.includes("kid") || lower.includes("hijau")) return "KID";
-  if (lower.includes("blue") || lower.includes("biru")) return "BLUE";
-  if (lower.includes("norway")) return "NORWAY";
-  if (lower.includes("facial wash") || lower.includes("fw")) return "BELGIE_FW";
-  if (lower.includes("night cream") || lower.includes("nc")) return "BELGIE_NC";
-  if (lower.includes("day cream") || lower.includes("dc")) return "BELGIE_DC";
-  if (lower.includes("serum")) return "BELGIE_SERUM";
-  if (lower.includes("hair tonic") || lower.includes("ht")) return "BELGIE_HT";
-  if (lower.includes("bro") || lower.includes("brassic pro")) return "BRO";
-  if (lower.includes("bre") || lower.includes("brassic eye")) return "BRE";
-  if (lower.includes("belgie")) return "BELGIE_FW"; // Default Belgie
-  if (lower.includes("steffi")) return "STEFFI";
-  return "BP"; // default
-}
-
-// Tier thresholds: total qty >= min → gunakan package_type ini
-const TIER_THRESHOLDS = [
-  { min: 200, package_type: "200_botol" },
-  { min: 40, package_type: "40_botol" },
-  { min: 10, package_type: "10_botol" },
-  { min: 5, package_type: "5_botol" },
-  { min: 3, package_type: "3_botol" },
-  { min: 1, package_type: "satuan" },
-];
-
-function resolvePackageType(totalQty: number): string {
-  for (const tier of TIER_THRESHOLDS) {
-    if (totalQty >= tier.min) return tier.package_type;
-  }
-  return "satuan";
-}
-
-// ─── Product Matching ─────────────────────────────────────────────────────────
-async function matchProductsWithPrice(
-  rawItems: { product_name: string; quantity: number }[],
-  mitraLevel: MitraLevel | null
-): Promise<OrderItem[]> {
-  // Filter qty 0, lalu deduplicate produk yang sama
-  const itemMap = new Map<string, { product_name: string; quantity: number }>();
-  for (const item of rawItems) {
-    if (!item.quantity || item.quantity <= 0) continue;
-    const key = resolveCategory(item.product_name);
-    if (itemMap.has(key)) {
-      itemMap.get(key)!.quantity += item.quantity;
-    } else {
-      itemMap.set(key, { product_name: item.product_name, quantity: item.quantity });
-    }
-  }
-  const items = Array.from(itemMap.values());
-
-  // Map mitra level ke package_type di master_products
-  const MITRA_LEVEL_TO_PACKAGE: Record<MitraLevel, string> = {
-    reseller:  "3_botol",
-    agen:      "5_botol",
-    agen_plus: "10_botol",
-    sap:       "40_botol",
-    se:        "200_botol",
-  };
-
-  // Selalu query master_products untuk harga aktual per produk
-  // Mitra: gunakan package_type sesuai level mereka
-  // Konsumen: gunakan package_type sesuai total qty
-  const { data: allProducts } = await supabase
-    .from("master_products")
-    .select("id, name, category, package_type, quantity_per_package, price")
-    .eq("is_active", true);
-
-  const products = allProducts || [];
-  const totalQty = items.reduce((sum, i) => sum + i.quantity, 0);
-  const applicablePackageType = mitraLevel
-    ? (MITRA_LEVEL_TO_PACKAGE[mitraLevel] ?? resolvePackageType(totalQty))
-    : resolvePackageType(totalQty);
-
-  return items.map((item) => {
-    const category = resolveCategory(item.product_name);
-    const matched = products.find(
-      (p: any) => p.category === category && p.package_type === applicablePackageType
-    ) || products.find(
-      (p: any) => p.category === category && p.package_type === "satuan"
-    );
-
-    // Hitung subtotal dari harga paket langsung agar tidak ada sisa pembulatan
-    // Contoh: 3_botol price=650.000, qty_per_pkg=3, beli 3 → subtotal=650.000 tepat
-    const pkgPrice = matched ? Number(matched.price) : 250000;
-    const pkgQty   = matched ? Number(matched.quantity_per_package) : 1;
-    const pricePerBottle = Math.round(pkgPrice / pkgQty);
-    const subtotal = Math.round((pkgPrice / pkgQty) * item.quantity);
-
-    return {
-      product_id: matched?.id || "",
-      product_name: item.product_name,
-      quantity: item.quantity,
-      price_per_bottle: pricePerBottle,
-      subtotal,
-    };
-  });
-}
-
-// ─── Format currency ──────────────────────────────────────────────────────────
-function formatRp(amount: number): string {
-  return `Rp ${amount.toLocaleString("id-ID")}`;
-}
-
-// ─── Command Handlers ─────────────────────────────────────────────────────────
-async function handleStart(chatId: string, slug: string | undefined) {
-  if (!slug) {
-    await sendMessage(
-      chatId,
-      "Halo! 👋 Saya bot <b>Rekapan Mitra</b>.\n\n" +
-      "Saya membantu kamu membuat order otomatis dari pesan pelanggan.\n\n" +
-      "Untuk mulai, hubungkan bot dengan toko kamu:\n" +
-      "<code>/daftar [slug_toko]</code>\n\n" +
-      "Slug toko bisa dilihat di menu <b>Toko Online</b> di aplikasi Rekapan.\n\n" +
-      "Ketik /bantuan untuk info lebih lanjut."
-    );
-    return;
-  }
-
-  const { data: store } = await supabase
-    .from("store_settings")
-    .select("user_id, store_name, is_active")
-    .eq("slug", slug)
-    .maybeSingle();
-
-  if (!store || !store.is_active) {
-    await sendMessage(
-      chatId,
-      `❌ Toko dengan slug <code>${slug}</code> tidak ditemukan atau tidak aktif.\n\n` +
-      "Pastikan:\n" +
-      "• Slug sudah benar (cek di menu Toko Online)\n" +
-      "• Toko sudah diaktifkan di aplikasi Rekapan"
-    );
-    return;
-  }
-
-  await supabase.from("telegram_bot_registrations").upsert({
-    chat_id: chatId,
-    user_id: store.user_id,
-    slug,
-    store_name: store.store_name,
-    updated_at: new Date().toISOString(),
-  });
-
-  await setSession(chatId, "idle");
-
-  await sendMessage(
-    chatId,
-    `✅ Berhasil terhubung ke toko <b>${store.store_name}</b>!\n\n` +
-    "Cara pakai:\n" +
-    "• Forward atau ketik pesan order dari pelanggan\n" +
-    "• Saya akan parse & minta konfirmasi sebelum order dibuat\n\n" +
-    "Contoh pesan order:\n" +
-    "<i>min order 2 bp green sama 1 brassic eye, a.n Siti Wahyuni 08123456789</i>\n\n" +
-    "Ketik /bantuan untuk lihat panduan lengkap."
-  );
-}
-
-async function handleBantuan(chatId: string) {
-  await sendMessage(
-    chatId,
-    "📋 <b>Panduan Bot Rekapan Mitra</b>\n\n" +
-    "<b>Perintah:</b>\n" +
-    "/daftar [slug] — Hubungkan bot ke toko kamu\n" +
-    "/bantuan — Tampilkan panduan ini\n" +
-    "/batal — Batalkan proses yang sedang berjalan\n" +
-    "/restok [qty] — Catat restok masuk\n\n" +
-    "<b>Produk yang dikenali:</b>\n" +
-    "• BP / British Propolis\n" +
-    "• BP Green / British Propolis Green\n" +
-    "• BP Blue / British Propolis Blue\n" +
-    "• Brassic Pro\n" +
-    "• Brassic Eye\n" +
-    "• Belgie (skincare)\n" +
-    "• Steffi Pro\n" +
-    "• BP Norway\n\n" +
-    "<b>Contoh order:</b>\n" +
-    "<i>order 2 bp green, 1 brassic eye\n" +
-    "a.n Budi Santoso 08123456789</i>\n\n" +
-    "<b>Contoh restok:</b>\n" +
-    "<i>/restok 50 botol @170rb</i>\n" +
-    "<i>restok 30 botol 1 maret 2026</i>\n" +
-    "<i>terima 20 botol</i>"
-  );
-}
-
-async function handleConfirmation(
-  chatId: string,
-  text: string,
-  session: { state: string; pending_order: PendingOrder | null },
-  registration: { slug: string; store_name: string }
-) {
-  const pendingOrder = session.pending_order;
-
-  if (text.toLowerCase() === "ya" || text.toLowerCase() === "y") {
-    if (!pendingOrder) {
-      await setSession(chatId, "idle");
-      await sendMessage(chatId, "Tidak ada order yang menunggu konfirmasi.");
-      return;
-    }
-
-    const payload = {
-      slug: registration.slug,
-      customer_name: pendingOrder.customer_name || "Pelanggan",
-      customer_phone: pendingOrder.customer_phone || "-",
-      customer_address: "",
-      customer_type: pendingOrder.customer_type || "konsumen",
-      tier: pendingOrder.mitra_level || "satuan",
-      buy_price: pendingOrder.buy_price || 0,
-      order_date: pendingOrder.order_date || null,
-      items: pendingOrder.items,
-    };
-
-    const { data: result, error } = await (supabase as any).rpc("submit_public_order", {
-      payload,
-    });
-
-    await setSession(chatId, "idle");
-
-    if (error || !result?.success) {
-      await sendMessage(
-        chatId,
-        `❌ Gagal membuat order.\n\nError: ${result?.error || error?.message || "Unknown error"}\n\nCoba lagi atau hubungi admin.`
-      );
-      return;
-    }
-
-    const shortId = result.order_id?.slice(0, 8) ?? "???";
-    const itemLines = pendingOrder.items
-      .map((i) => `• ${i.product_name} x${i.quantity} = ${formatRp(i.subtotal)}`)
-      .join("\n");
-
-    await sendMessage(
-      chatId,
-      `🎉 <b>Order Berhasil Dibuat!</b>\n\n` +
-      `🧾 ID: <code>${shortId}...</code>\n` +
-      `👤 ${pendingOrder.customer_name || "Pelanggan"}\n` +
-      `📱 ${pendingOrder.customer_phone || "-"}\n\n` +
-      `<b>Produk:</b>\n${itemLines}\n\n` +
-      `💰 <b>Total: ${formatRp(pendingOrder.total_price)}</b>\n\n` +
-      `Status: <i>menunggu bayar</i>\n` +
-      `Cek detail di aplikasi Rekapan ✅`
-    );
-    return;
-  }
-
-  if (
-    text.toLowerCase() === "tidak" ||
-    text.toLowerCase() === "batal" ||
-    text.toLowerCase() === "n"
-  ) {
-    await setSession(chatId, "idle");
-    await sendMessage(chatId, "❌ Order dibatalkan.");
-    return;
-  }
-
-  // Respon lain saat menunggu konfirmasi
-  await sendMessage(
-    chatId,
-    "⏳ Masih ada order yang menunggu konfirmasi.\n\n" +
-    "Ketik <b>ya</b> untuk buat order atau <b>batal</b> untuk batalkan."
-  );
-}
-
-async function handleOrderMessage(chatId: string, text: string, registration: { slug: string; user_id: string }) {
-  await sendMessage(chatId, "⏳ Sedang memproses pesan...");
-
-  let parsed: ParsedOrder | { error: string };
-  try {
-    parsed = await parseOrderWithAI(text);
-  } catch (e: any) {
-    console.error("AI parsing failed:", e);
-    if (e?.message === "GROQ_RATE_LIMIT") {
-      await sendMessage(
-        chatId,
-        "⚠️ <b>Kuota AI Habis</b>\n\n" +
-        "Limit permintaan ke AI (Groq) sudah tercapai untuk saat ini.\n\n" +
-        "Silakan coba lagi dalam beberapa menit, atau hubungi admin untuk upgrade kuota."
-      );
-    } else if (e?.message === "GROQ_UNAVAILABLE") {
-      await sendMessage(
-        chatId,
-        "⚠️ <b>Layanan AI Sedang Tidak Tersedia</b>\n\n" +
-        "Server AI (Groq) sedang tidak dapat diakses. Coba lagi dalam beberapa menit."
-      );
-    } else {
-      await sendMessage(
-        chatId,
-        "❌ Gagal memproses pesan. Pastikan koneksi stabil dan coba lagi."
-      );
-    }
-    return;
-  }
-
-  if ("error" in parsed) {
-    await sendMessage(
-      chatId,
-      "🤔 Pesan ini tidak terdeteksi sebagai order produk.\n\n" +
-      "Contoh format yang bisa saya proses:\n" +
-      "<i>min order 2 bp green sama 1 brassic eye\n" +
-      "a.n Siti Wahyuni 08123456789</i>\n\n" +
-      "Atau forward langsung pesan dari pelanggan."
-    );
-    return;
-  }
-
-  if (!parsed.items || parsed.items.length === 0) {
-    await sendMessage(
-      chatId,
-      "❌ Tidak ditemukan produk dalam pesan.\n\n" +
-      "Pastikan nama produk dan jumlah disebutkan dengan jelas."
-    );
-    return;
-  }
-
-  // ─ Lookup customer di DB dulu (by phone → by name) ──────────────────────────
-  let finalMitraLevel = parsed.mitra_level;
-  let finalCustomerType = parsed.customer_type || "konsumen";
-  let finalPhone = parsed.customer_phone;
-  let isExistingCustomer = false;
-
-  if ((parsed.customer_phone || parsed.customer_name) && registration.user_id) {
-    const dbInfo = await lookupCustomerLevel(
-      parsed.customer_phone,
-      parsed.customer_name,
-      registration.user_id
-    );
-
-    if (dbInfo.found) {
-      isExistingCustomer = true;
-
-      // Jika phone tidak ada di pesan tapi ada di DB → gunakan phone dari DB
-      if (!finalPhone && dbInfo.db_phone) {
-        finalPhone = dbInfo.db_phone;
-      }
-
-      // Tentukan level:
-      // - Jika pesan menyebut level eksplisit (AI mendeteksi mitra_level) → pakai AI
-      // - Jika tidak ada level di pesan → pertahankan status DB
-      if (parsed.mitra_level) {
-        finalMitraLevel = parsed.mitra_level;
-        finalCustomerType = "mitra";
-      } else {
-        finalMitraLevel = dbInfo.mitra_level;
-        finalCustomerType = dbInfo.customer_type;
-      }
-    }
-  }
-
-  // Cocokkan produk + hitung harga sesuai level
-  const itemsWithPrice = await matchProductsWithPrice(parsed.items, finalMitraLevel);
-  const totalQty = itemsWithPrice.reduce((sum, i) => sum + i.quantity, 0);
-  const totalPrice = itemsWithPrice.reduce((sum, i) => sum + i.subtotal, 0);
-
-  // buy_price = modal pemilik toko (bukan harga jual ke customer)
-  const ownerBuyPrice = await getOwnerBuyPrice(registration.user_id);
-  const buyPrice = ownerBuyPrice * totalQty;
-
-  const pendingOrder: PendingOrder = {
-    customer_name: parsed.customer_name,
-    customer_phone: finalPhone,        // phone dari pesan atau dari DB
-    customer_type: finalCustomerType,
-    mitra_level: finalMitraLevel,
-    order_date: parsed.order_date || null,
-    items: itemsWithPrice,
-    total_price: totalPrice,
-    buy_price: buyPrice,
-    notes: parsed.notes,
-    is_existing_customer: isExistingCustomer,
-  };
-
-  // Nama pelanggan WAJIB — kalau tidak terdeteksi, tanya dulu
-  if (!parsed.customer_name?.trim()) {
-    await setSession(chatId, "waiting_customer_name", pendingOrder);
-    await sendMessage(
-      chatId,
-      "⚠️ <b>Nama pelanggan tidak terdeteksi.</b>\n\n" +
-      "Ketik nama pelanggannya:"
-    );
-    return;
-  }
-
-  await showConfirmation(chatId, pendingOrder, totalQty);
-}
-
-// ─── Helper: tampilkan pesan konfirmasi ───────────────────────────────────────
-async function showConfirmation(chatId: string, pendingOrder: PendingOrder, totalQty: number) {
-  const itemLines = pendingOrder.items
-    .map((i) => `• ${i.product_name} x${i.quantity} — ${formatRp(i.price_per_bottle)}/btl = ${formatRp(i.subtotal)}`)
-    .join("\n");
-
-  // Baris tier/level
-  let tierLine: string;
-  if (pendingOrder.mitra_level) {
-    const label = MITRA_LEVEL_LABEL[pendingOrder.mitra_level];
-    tierLine = `🏷 Level: <b>${label}</b> (harga mitra flat)`;
-  } else {
-    const tierLabel: Record<string, string> = {
-      satuan: "Satuan", "3_botol": "Reseller (3+)", "5_botol": "Agen (5+)",
-      "10_botol": "Agen Plus (10+)", "40_botol": "SAP (40+)", "200_botol": "SE (200+)",
-    };
-    const appliedTier = tierLabel[resolvePackageType(totalQty)] || "Satuan";
-    tierLine = `🏷 Tier: <b>${appliedTier}</b> (total ${totalQty} botol)`;
-  }
-
-  // Format tanggal dengan timeZone WIB agar tidak geser 1 hari akibat UTC server
-  const dateLabel = pendingOrder.order_date
-    ? new Date(pendingOrder.order_date + "T12:00:00+07:00").toLocaleDateString("id-ID", {
-        day: "numeric", month: "long", year: "numeric", timeZone: "Asia/Jakarta"
-      })
-    : "Hari ini";
-
-  // Label tipe + status existing/baru
-  const customerStatusLabel = pendingOrder.is_existing_customer
-    ? "<i>(pelanggan lama)</i>"
-    : "<i>(pelanggan baru)</i>";
-  const tipeLabel = pendingOrder.customer_type === "mitra"
-    ? `Mitra ${customerStatusLabel}`
-    : `Konsumen ${customerStatusLabel}`;
-
-  const confirmMsg =
-    `📦 <b>Konfirmasi Order</b>\n\n` +
-    `📅 Tanggal: ${dateLabel}\n` +
-    `👤 Nama: ${pendingOrder.customer_name}\n` +
-    `📱 HP: ${pendingOrder.customer_phone || "<i>tidak terdeteksi</i>"}\n` +
-    `👥 Tipe: ${tipeLabel}\n\n` +
-    `<b>Produk:</b>\n${itemLines}\n\n` +
-    `${tierLine}\n` +
-    `💰 <b>Total: ${formatRp(pendingOrder.total_price)}</b>\n` +
-    (pendingOrder.notes ? `\n📝 Catatan: ${pendingOrder.notes}\n` : "") +
-    `\nKetik <b>ya</b> untuk buat order atau <b>batal</b> untuk batalkan.`;
-
-  await setSession(chatId, "confirm_order", pendingOrder);
-  await sendMessage(chatId, confirmMsg);
-}
-
-// ─── Handler: pesan restok ────────────────────────────────────────────────────
-async function handleRestockMessage(chatId: string, text: string, registration: { slug: string; user_id: string }) {
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("mitra_level")
-    .eq("user_id", registration.user_id)
-    .maybeSingle();
-
-  const ownerTier = ((profile?.mitra_level as MitraLevel) in OWNER_BUY_PRICES
-    ? profile!.mitra_level as MitraLevel
-    : "reseller") as MitraLevel;
-  const defaultBuyPrice = OWNER_BUY_PRICES[ownerTier] ?? 217000;
-
-  const { qty, buy_price_per_bottle, restock_date } = parseRestockMessage(text, defaultBuyPrice);
-
-  if (!qty || qty <= 0) {
-    await sendMessage(
-      chatId,
-      "⚠️ <b>Jumlah restok tidak terdeteksi.</b>\n\n" +
-      "Contoh format yang bisa saya proses:\n" +
-      "<i>restok 50 botol</i>\n" +
-      "<i>/restok 30 botol @170rb</i>\n" +
-      "<i>terima 20 botol 1 maret 2026</i>"
-    );
-    return;
-  }
-
-  const total_buy_price = buy_price_per_bottle * qty;
-
-  const pendingRestock: PendingRestock = {
-    _type: "restock",
-    qty,
-    buy_price_per_bottle,
-    total_buy_price,
-    tier: ownerTier,
-    restock_date,
-  };
-
-  const dateLabel = restock_date
-    ? new Date(restock_date + "T12:00:00+07:00").toLocaleDateString("id-ID", {
-        day: "numeric", month: "long", year: "numeric", timeZone: "Asia/Jakarta",
-      })
-    : "Hari ini";
-
-  await setSession(chatId, "confirm_restock", pendingRestock);
-  await sendMessage(
-    chatId,
-    `📦 <b>Konfirmasi Restok</b>\n\n` +
-    `📅 Tanggal: ${dateLabel}\n` +
-    `📊 Jumlah: <b>${qty} botol</b>\n` +
-    `💲 Harga modal/btl: ${formatRp(buy_price_per_bottle)}\n` +
-    `💰 <b>Total modal: ${formatRp(total_buy_price)}</b>\n\n` +
-    `Ketik <b>ya</b> untuk catat restok atau <b>batal</b> untuk batalkan.`
-  );
-}
-
-// ─── Handler: konfirmasi restok ───────────────────────────────────────────────
-async function handleRestockConfirmation(
-  chatId: string,
-  text: string,
-  session: { state: string; pending_order: unknown },
-  registration: { user_id: string }
-) {
-  if (text.toLowerCase() === "ya" || text.toLowerCase() === "y") {
-    const pr = session.pending_order as PendingRestock | null;
-    if (!pr || (pr as any)._type !== "restock") {
-      await setSession(chatId, "idle");
-      await sendMessage(chatId, "Tidak ada restok yang menunggu konfirmasi.");
-      return;
-    }
-
-    const insertData: Record<string, unknown> = {
-      user_id: registration.user_id,
-      type: "in",
-      quantity: pr.qty,
-      tier: pr.tier,
-      buy_price_per_bottle: pr.buy_price_per_bottle,
-      total_buy_price: pr.total_buy_price,
-      notes: "via Telegram Bot",
-    };
-
-    if (pr.restock_date) {
-      insertData.created_at = pr.restock_date + "T12:00:00+07:00";
-    }
-
-    const { error: entryError } = await supabase
-      .from("stock_entries")
-      .insert(insertData);
-
-    if (entryError) {
-      await setSession(chatId, "idle");
-      await sendMessage(
-        chatId,
-        `❌ Gagal mencatat restok.\n\nError: ${entryError.message}\n\nCoba lagi atau hubungi admin.`
-      );
-      return;
-    }
-
-    // Update user_stock: increment current_stock
-    const { data: userStockData } = await supabase
-      .from("user_stock")
-      .select("current_stock")
-      .eq("user_id", registration.user_id)
-      .maybeSingle();
-
-    if (userStockData) {
-      await supabase
-        .from("user_stock")
-        .update({ current_stock: (userStockData.current_stock || 0) + pr.qty })
-        .eq("user_id", registration.user_id);
-    } else {
-      await supabase
-        .from("user_stock")
-        .insert({ user_id: registration.user_id, current_stock: pr.qty });
-    }
-
-    await setSession(chatId, "idle");
-
-    const dateLabel = pr.restock_date
-      ? new Date(pr.restock_date + "T12:00:00+07:00").toLocaleDateString("id-ID", {
-          day: "numeric", month: "long", year: "numeric", timeZone: "Asia/Jakarta",
-        })
-      : "Hari ini";
-
-    await sendMessage(
-      chatId,
-      `✅ <b>Restok Berhasil Dicatat!</b>\n\n` +
-      `📅 Tanggal: ${dateLabel}\n` +
-      `📊 Jumlah: <b>${pr.qty} botol</b>\n` +
-      `💰 Total modal: ${formatRp(pr.total_buy_price ?? 0)}\n\n` +
-      `Data tersimpan di aplikasi Rekapan ✅`
-    );
-    return;
-  }
-
-  if (
-    text.toLowerCase() === "tidak" ||
-    text.toLowerCase() === "batal" ||
-    text.toLowerCase() === "n"
-  ) {
-    await setSession(chatId, "idle");
-    await sendMessage(chatId, "❌ Restok dibatalkan.");
-    return;
-  }
-
-  await sendMessage(
-    chatId,
-    "⏳ Masih ada restok yang menunggu konfirmasi.\n\n" +
-    "Ketik <b>ya</b> untuk catat atau <b>batal</b> untuk batalkan."
-  );
-}
-
-// ─── Handler: menunggu nama pelanggan ─────────────────────────────────────────
-async function handleWaitingCustomerName(
-  chatId: string,
-  text: string,
-  session: { state: string; pending_order: PendingOrder | null }
-) {
-  const name = text.trim();
-  if (!name || name.length < 2) {
-    await sendMessage(chatId, "⚠️ Nama tidak valid. Ketik nama pelanggannya:");
-    return;
-  }
-
-  const pendingOrder = session.pending_order;
-  if (!pendingOrder) {
-    await setSession(chatId, "idle");
-    await sendMessage(chatId, "❌ Sesi habis. Kirim ulang pesan order-nya.");
-    return;
-  }
-
-  // Update nama di pending order, pertahankan semua field lain termasuk is_existing_customer
-  const updatedOrder: PendingOrder = { ...pendingOrder, customer_name: name };
-  const totalQty = updatedOrder.items.reduce((sum, i) => sum + i.quantity, 0);
-
-  await showConfirmation(chatId, updatedOrder, totalQty);
-}
-
-// ─── Main Handler ─────────────────────────────────────────────────────────────
+// ─── Core Logic ───────────────────────────────────────────────────────────────
 serve(async (req) => {
-  // Health check
-  if (req.method === "GET") {
-    return new Response(JSON.stringify({ ok: true, service: "telegram-bot" }), {
-      headers: { "Content-Type": "application/json" },
-    });
-  }
-
-  if (req.method !== "POST") {
-    return new Response("Method not allowed", { status: 405 });
-  }
-
   try {
     const update = await req.json();
-    const message = update.message || update.edited_message;
+    const message = update.message;
+    const callbackQuery = update.callback_query;
+    const chatId = (message?.chat?.id || callbackQuery?.message?.chat?.id)?.toString();
+    if (!chatId) return new Response("OK");
 
-    // Abaikan update selain pesan teks
-    if (!message) return new Response("OK");
-
-    const chatId = String(message.chat.id);
-    const text = (message.text || message.caption || "").trim();
-
-    // ─── Commands ────────────────────────────────────────────────────────────
-    if (text.startsWith("/start") || text.startsWith("/daftar")) {
-      const parts = text.split(" ");
-      const slug = parts[1]?.toLowerCase().trim();
-      await handleStart(chatId, slug);
+    const connection = await getConnection(chatId);
+    if (!connection && !message?.text?.startsWith("/daftar")) {
+      await sendMessage(chatId, "👋 Halo! Gunakan: <code>/daftar [slug_toko]</code> untuk menghubungkan akun Anda.");
       return new Response("OK");
     }
 
-    if (text.startsWith("/bantuan") || text.startsWith("/help")) {
-      await handleBantuan(chatId);
+    if (message?.text?.startsWith("/daftar")) {
+      const slug = message.text.split(" ")[1];
+      if (!slug) return new Response("OK");
+      const { data: store } = await supabase.from("store_settings").select("user_id, store_name").eq("slug", slug).maybeSingle();
+      if (!store) { await sendMessage(chatId, "❌ Toko tidak ditemukan."); return new Response("OK"); }
+      await supabase.from("telegram_connections").upsert({ chat_id: chatId, tenant_id: store.user_id, is_active: true }, { onConflict: "chat_id" });
+      await sendMessage(chatId, `✅ Terhubung ke <b>${store.store_name}</b>!`);
       return new Response("OK");
     }
 
-    if (text.startsWith("/batal") || text.startsWith("/batalkan")) {
-      await setSession(chatId, "idle");
-      await sendMessage(chatId, "❌ Proses dibatalkan.");
-      return new Response("OK");
-    }
+    const session = await getSession(chatId, connection.tenant_id);
+    const sessionData: SessionData = session.session_data || { items: [] };
 
-    if (text.startsWith("/restok")) {
-      const registration = await getRegistration(chatId);
-      if (!registration) {
-        await sendMessage(
-          chatId,
-          "Kamu belum terdaftar! Kirim <code>/daftar [slug_toko]</code> untuk mulai."
-        );
-        return new Response("OK");
+    if (callbackQuery) {
+      const data = callbackQuery.data;
+      await answerCallbackQuery(callbackQuery.id);
+
+      if (data.startsWith("prod_")) {
+        const prodId = data.replace("prod_", "");
+        const { data: prod } = await supabase.from("master_products").select("name").eq("id", prodId).single();
+        await updateSession(chatId, { current_step: "inputting_qty", session_data: { ...sessionData, last_product_id: prodId } });
+        await sendMessage(chatId, `Berapa jumlah untuk <b>${prod.name.replace(" Satuan", "")}</b>?`);
+      } else if (data === "finish_selection") {
+        if (sessionData.items.length === 0) { await sendMessage(chatId, "⚠️ Pilih produk dulu."); } 
+        else {
+          await updateSession(chatId, { current_step: "searching_customer" });
+          await sendMessage(chatId, "👤 <b>Siapa nama pelanggan/mitra?</b>\n(Ketik nama untuk mencari)");
+        }
+      } else if (data.startsWith("cust_")) {
+        const custId = data.replace("cust_", "");
+        const { data: cust } = await supabase.from("customers").select("id, name, type, tier").eq("id", custId).single();
+        const totalQty = sessionData.items.reduce((s, i) => s + i.quantity, 0);
+        const hasBeauty = sessionData.items.some(i => i.product_name.toUpperCase().includes('BELGIE') || i.product_name.toUpperCase().includes('STEFFI'));
+        const updatedItems = sessionData.items.map(item => ({ ...item, price: calculatePrice(item.product_name, totalQty, cust.tier || 'satuan', hasBeauty) }));
+        const finalData = { ...sessionData, items: updatedItems, customer_info: { id: cust.id, name: cust.name, type: cust.type, tier: cust.tier } };
+        await updateSession(chatId, { session_data: finalData });
+        await showSummary(chatId, finalData);
+      } else if (data === "new_customer") {
+        const totalQty = sessionData.items.reduce((s, i) => s + i.quantity, 0);
+        const hasBeauty = sessionData.items.some(i => i.product_name.toUpperCase().includes('BELGIE') || i.product_name.toUpperCase().includes('STEFFI'));
+        const updatedItems = sessionData.items.map(item => ({ ...item, price: calculatePrice(item.product_name, totalQty, 'satuan', hasBeauty) }));
+        const finalData = { ...sessionData, items: updatedItems, customer_info: { name: sessionData.customer_info?.name || "Pelanggan Baru", type: "konsumen" } };
+        await updateSession(chatId, { session_data: finalData });
+        await showSummary(chatId, finalData);
+      } else if (data === "confirm_yes") {
+        await submitOrder(chatId, sessionData, connection.tenant_id);
+      } else if (data === "confirm_no") {
+        await updateSession(chatId, { current_step: "idle", session_data: { items: [] } });
+        await sendMessage(chatId, "❌ Order dibatalkan.");
+      } else if (data === "add_more") {
+        await showProductList(chatId, connection.tenant_id);
       }
-      await handleRestockMessage(chatId, text, registration);
       return new Response("OK");
     }
 
-    // ─── Cek registrasi ──────────────────────────────────────────────────────
-    const registration = await getRegistration(chatId);
-    if (!registration) {
-      await sendMessage(
-        chatId,
-        "Kamu belum terdaftar! 👋\n\n" +
-        "Kirim perintah berikut untuk menghubungkan bot dengan toko kamu:\n" +
-        "<code>/daftar [slug_toko]</code>\n\n" +
-        "Slug toko ada di menu <b>Toko Online</b> di aplikasi Rekapan."
-      );
+    const text = message?.text;
+    if (text === "/start" || text === "/batal") {
+      await updateSession(chatId, { current_step: "idle", session_data: { items: [] } });
+      await sendMessage(chatId, "Siap melayani! Ketik apa saja untuk memulai pesanan baru.");
       return new Response("OK");
     }
 
-    // ─── Cek session state ───────────────────────────────────────────────────
-    const session = await getSession(chatId);
-    const state = session?.state || "idle";
+    switch (session.current_step) {
+      case "idle":
+      case "adding_more":
+        await showProductList(chatId, connection.tenant_id);
+        break;
 
-    if (state === "confirm_order") {
-      await handleConfirmation(chatId, text, session!, registration);
-      return new Response("OK");
+      case "inputting_qty":
+        const qty = parseInt(text);
+        if (isNaN(qty) || qty <= 0) { await sendMessage(chatId, "⚠️ Masukkan angka jumlah yang valid."); } 
+        else {
+          const prodId = sessionData.last_product_id!;
+          const { data: baseProd } = await supabase.from("master_products").select("name").eq("id", prodId).single();
+          const newItems = [...sessionData.items, { product_id: prodId, product_name: baseProd.name.replace(" Satuan", ""), quantity: qty, price: 250000 }];
+          await updateSession(chatId, { current_step: "adding_more", session_data: { ...sessionData, items: newItems, last_product_id: undefined } });
+          await sendMessage(chatId, `✅ <b>${baseProd.name.replace(" Satuan", "")} x${qty}</b> ditambahkan ke keranjang.`, {
+            inline_keyboard: [
+              [{ text: "➕ Tambah Produk", callback_data: "add_more" }],
+              [{ text: "🏁 Selesai & Pilih Pelanggan", callback_data: "finish_selection" }]
+            ]
+          });
+        }
+        break;
+
+      case "searching_customer":
+        const { data: customers } = await supabase.from("customers").select("id, name, type, tier").eq("user_id", connection.tenant_id).ilike("name", `%${text}%`).limit(5);
+        await updateSession(chatId, { session_data: { ...sessionData, customer_info: { name: text, type: "konsumen" } } });
+        if (!customers || customers.length === 0) {
+          await sendMessage(chatId, `🔍 Tidak ditemukan "${text}". Pakai nama ini sebagai pelanggan baru?`, {
+            inline_keyboard: [[{ text: `🆕 Gunakan "${text}"`, callback_data: "new_customer" }]]
+          });
+        } else {
+          const buttons = customers.map(c => ([{ text: `👤 ${c.name} (${c.type})`, callback_data: `cust_${c.id}` }]));
+          buttons.push([{ text: `🆕 Gunakan "${text}" (Baru)`, callback_data: "new_customer" }]);
+          await sendMessage(chatId, "🎯 Pilih pelanggan yang sesuai:", { inline_keyboard: buttons });
+        }
+        break;
     }
-
-    if (state === "confirm_restock") {
-      await handleRestockConfirmation(chatId, text, session!, registration);
-      return new Response("OK");
-    }
-
-    if (state === "waiting_customer_name") {
-      await handleWaitingCustomerName(chatId, text, session!);
-      return new Response("OK");
-    }
-
-    // ─── Parse pesan sebagai order ───────────────────────────────────────────
-    if (!text) {
-      await sendMessage(
-        chatId,
-        "Maaf, saya hanya bisa memproses pesan teks.\n\n" +
-        "Forward atau ketik pesan order dari pelanggan."
-      );
-      return new Response("OK");
-    }
-
-    // Deteksi restok sebelum kirim ke AI
-    if (detectRestock(text)) {
-      await handleRestockMessage(chatId, text, registration);
-      return new Response("OK");
-    }
-
-    await handleOrderMessage(chatId, text, registration);
     return new Response("OK");
-  } catch (e) {
-    console.error("telegram-bot unhandled error:", e);
-    // Selalu return 200 ke Telegram agar tidak di-retry terus
-    return new Response("OK");
-  }
+  } catch (err) { console.error(err); return new Response("OK"); }
 });
+
+async function showProductList(chatId: string, tenantId: string) {
+  const { data: products } = await supabase.from("master_products").select("id, name").eq("package_type", "satuan").eq("is_active", true).order("name");
+  const buttons = [];
+  const list = products || [];
+  for (let i = 0; i < list.length; i += 3) {
+    buttons.push(list.slice(i, i + 3).map(p => ({ 
+      text: p.name.replace(" British Propolis", "").replace("British Propolis", "BP").replace(" Satuan", ""), 
+      callback_data: `prod_${p.id}` 
+    })));
+  }
+  buttons.push([{ text: "🏁 SELESAI", callback_data: "finish_selection" }]);
+  await updateSession(chatId, { current_step: "selecting_product" });
+  await sendMessage(chatId, "🛒 <b>Pilih Produk:</b>", { inline_keyboard: buttons });
+}
+
+async function showSummary(chatId: string, sessionData: SessionData) {
+  let total = 0;
+  const itemLines = sessionData.items.map(item => { 
+    const subtotal = item.price * item.quantity; 
+    total += subtotal; 
+    return `• ${item.product_name} x${item.quantity} = Rp ${subtotal.toLocaleString("id-ID")}`; 
+  }).join("\n");
+
+  const summary = `📋 <b>REKAP ORDER</b>\n` +
+                  `👤 Pelanggan: <b>${sessionData.customer_info?.name}</b>\n` +
+                  `─────────────────\n` +
+                  `${itemLines}\n` +
+                  `─────────────────\n` +
+                  `💰 <b>TOTAL: Rp ${total.toLocaleString("id-ID")}</b>\n\n` +
+                  `Apakah rekap di atas sudah benar?`;
+
+  await updateSession(chatId, { current_step: "confirming" });
+  await sendMessage(chatId, summary, { 
+    inline_keyboard: [
+      [{ text: "✅ YA, KIRIM", callback_data: "confirm_yes" }], 
+      [{ text: "❌ BATAL", callback_data: "confirm_no" }]
+    ] 
+  });
+}
+
+async function submitOrder(chatId: string, sessionData: SessionData, tenantId: string) {
+  const { data: store } = await supabase.from("store_settings").select("slug").eq("user_id", tenantId).single();
+  const payload = { 
+    slug: store.slug, 
+    customer_name: sessionData.customer_info?.name, 
+    customer_phone: "-",
+    customer_type: sessionData.customer_info?.type || "konsumen",
+    tier: sessionData.customer_info?.tier || "satuan",
+    items: sessionData.items.map(i => ({ 
+      product_id: i.product_id, 
+      product_name: i.product_name,
+      quantity: i.quantity, 
+      price_per_bottle: i.price, 
+      subtotal: i.price * i.quantity 
+    })),
+    buy_price: 0
+  };
+  const { data: result, error } = await (supabase as any).rpc("submit_public_order", { payload });
+  if (error || !result?.success) { 
+    console.error("Order Submit Error:", error || result?.error);
+    await sendMessage(chatId, `❌ Gagal menyimpan order. Silakan coba beberapa saat lagi.`); 
+  } 
+  else { 
+    await sendMessage(chatId, `✅ <b>Order Berhasil Dicatat!</b>\nOrder ID: <code>${result.order_id.slice(0,8)}</code>`); 
+  }
+  await updateSession(chatId, { current_step: "idle", session_data: { items: [] } });
+}
