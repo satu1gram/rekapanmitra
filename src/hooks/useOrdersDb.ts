@@ -69,6 +69,7 @@ export function useOrders() {
     customerPhone: string;
     tier: TierType;
     items: OrderItem[];
+    expenses?: { name: string, amount: number }[];
     mitraLevel: MitraLevel;
     transferProofUrl?: string;
     customerId?: string;
@@ -78,13 +79,12 @@ export function useOrders() {
 
     const mitraInfo = MITRA_LEVELS[orderData.mitraLevel];
 
-    // Calculate totals from items using actual bottles multiplier
     const totalQuantity = orderData.items.reduce((sum, item) => sum + item.quantity, 0);
     const totalPrice = orderData.items.reduce((sum, item) => sum + item.subtotal, 0);
     const buyPrice = mitraInfo.buyPricePerBottle * totalQuantity;
-    const margin = totalPrice - buyPrice;
+    const totalExpenses = orderData.expenses?.reduce((sum, e) => sum + Number(e.amount), 0) || 0;
+    const margin = totalPrice - buyPrice - totalExpenses;
 
-    // Average sell price for backward compatibility
     const avgPricePerBottle = totalQuantity > 0 ? Math.round(totalPrice / totalQuantity) : 0;
 
     const insertData: any = {
@@ -126,13 +126,23 @@ export function useOrders() {
         subtotal: item.subtotal,
       }));
 
-      const { error: itemsError } = await supabase
+      await supabase
         .from('order_items' as any)
         .insert(itemsToInsert);
+    }
 
-      if (itemsError) {
-        console.error('Error inserting order items:', itemsError);
-      }
+    // Insert expenses if any
+    if (orderData.expenses && orderData.expenses.length > 0) {
+      const expensesToInsert = orderData.expenses.map(e => ({
+        order_id: data.id,
+        user_id: user.id,
+        name: e.name,
+        amount: Number(e.amount)
+      }));
+
+      await supabase
+        .from('order_expenses' as any)
+        .insert(expensesToInsert);
     }
 
     await fetchOrders();
@@ -156,6 +166,7 @@ export function useOrders() {
     customerPhone: string;
     tier: TierType;
     items: OrderItem[];
+    expenses?: { name: string, amount: number }[];
     mitraLevel: MitraLevel;
     transferProofUrl?: string;
     customerId?: string;
@@ -168,7 +179,8 @@ export function useOrders() {
     const totalQuantity = orderData.items.reduce((sum, item) => sum + item.quantity, 0);
     const totalPrice = orderData.items.reduce((sum, item) => sum + item.subtotal, 0);
     const buyPrice = mitraInfo.buyPricePerBottle * totalQuantity;
-    const margin = totalPrice - buyPrice;
+    const totalExpenses = orderData.expenses?.reduce((sum, e) => sum + Number(e.amount), 0) || 0;
+    const margin = totalPrice - buyPrice - totalExpenses;
     const avgPricePerBottle = totalQuantity > 0 ? Math.round(totalPrice / totalQuantity) : 0;
 
     const updateData: any = {
@@ -195,12 +207,8 @@ export function useOrders() {
 
     if (error) throw error;
 
-    // Delete old items and insert new ones
-    await supabase
-      .from('order_items' as any)
-      .delete()
-      .eq('order_id', orderId);
-
+    // Delete and re-insert items
+    await supabase.from('order_items' as any).delete().eq('order_id', orderId);
     if (orderData.items.length > 0) {
       const itemsToInsert = orderData.items.map(item => ({
         order_id: orderId,
@@ -211,10 +219,19 @@ export function useOrders() {
         price_per_bottle: item.pricePerBottle,
         subtotal: item.subtotal,
       }));
+      await supabase.from('order_items' as any).insert(itemsToInsert);
+    }
 
-      await supabase
-        .from('order_items' as any)
-        .insert(itemsToInsert);
+    // Delete and re-insert expenses
+    await supabase.from('order_expenses' as any).delete().eq('order_id', orderId);
+    if (orderData.expenses && orderData.expenses.length > 0) {
+      const expensesToInsert = orderData.expenses.map(e => ({
+        order_id: orderId,
+        user_id: user.id,
+        name: e.name,
+        amount: Number(e.amount)
+      }));
+      await supabase.from('order_expenses' as any).insert(expensesToInsert);
     }
 
     await fetchOrders();

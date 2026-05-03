@@ -243,13 +243,17 @@ export function OrdersPage({ openAddForm = false, onAddFormClose }: OrdersPagePr
     } catch { toast.error('Gagal menghapus pesanan'); }
   };
 
+  const [editExpenses, setEditExpenses] = useState<{ name: string, amount: number }[]>([]);
+
   const openEditDialog = async (order: Order) => {
     setEditingOrder(order);
     const items = await fetchOrderItems(order.id);
+    const expenses = await fetchOrderExpenses(order.id);
     setEditItems(items.length > 0 ? items : [{
       productName: 'Produk', quantity: order.quantity,
       pricePerBottle: Number(order.price_per_bottle), subtotal: Number(order.total_price),
     }]);
+    setEditExpenses(expenses.map(e => ({ name: e.name, amount: e.amount })));
     setShowEditDialog(true);
   };
 
@@ -730,6 +734,7 @@ export function OrdersPage({ openAddForm = false, onAddFormClose }: OrdersPagePr
                 customerPhone: editingOrder.customer_phone,
                 tier: editingOrder.tier as TierType,
                 items: editItems,
+                expenses: editExpenses,
                 transferProofUrl: editingOrder.transfer_proof_url,
                 orderDate: new Date(editingOrder.created_at).toISOString().split('T')[0],
               }}

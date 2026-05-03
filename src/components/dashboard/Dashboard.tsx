@@ -119,10 +119,15 @@ export function Dashboard({ onNavigate }: DashboardProps) {
     return map;
   }, [orders]);
 
-  // Customer statistics
-  const totalCustomers = customers.length;
-  const totalKonsumen = customers.filter(c => c.tier === 'satuan').length;
-  const totalMitra = totalCustomers - totalKonsumen;
+  // Customer statistics (Option A: Active Customers in selected month)
+  const monthActiveCustomers = useMemo(() => {
+    const activeCustomerIds = new Set(monthOrders.map(o => o.customer_id).filter(Boolean));
+    return customers.filter(c => activeCustomerIds.has(c.id));
+  }, [monthOrders, customers]);
+
+  const activeTotal = monthActiveCustomers.length;
+  const activeKonsumen = monthActiveCustomers.filter(c => c.tier === 'satuan').length;
+  const activeMitra = activeTotal - activeKonsumen;
 
   const openForm = (year: number, month: number) => {
     setFormYear(year); setFormMonth(month); setView('form');
@@ -168,17 +173,17 @@ export function Dashboard({ onNavigate }: DashboardProps) {
 
   // ── DASHBOARD MODE ──
   return (
-    <div className="flex flex-col min-h-screen bg-background">
-      {/* Header */}
-      <header className="sticky top-0 z-30 bg-card/80 backdrop-blur-md border-b border-border px-5 py-4">
+    <div className="flex flex-col min-h-[calc(100vh-80px)] bg-background">
+      {/* Header - Compact */}
+      <header className="sticky top-0 z-30 bg-card/80 backdrop-blur-md border-b border-border px-4 py-2">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <img src="/pwa-192x192.png" alt="Logo" className="w-10 h-10 object-contain rounded-xl drop-shadow-sm" />
+          <div className="flex items-center gap-2">
+            <img src="/pwa-192x192.png" alt="Logo" className="w-8 h-8 object-contain rounded-lg shadow-sm" />
             <div className="flex flex-col">
-              <span className="text-xs font-bold text-slate-400 uppercase tracking-widest leading-none mb-1">
-                Halo, {getGreeting()}
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter leading-none">
+                {getGreeting()}
               </span>
-              <h1 className="text-lg font-black text-slate-900 leading-none">Beranda Anda</h1>
+              <h1 className="text-sm font-black text-slate-900 leading-none">Beranda</h1>
             </div>
           </div>
           <button 
@@ -186,26 +191,26 @@ export function Dashboard({ onNavigate }: DashboardProps) {
               setPickerYear(selectedYear);
               setShowMonthPicker(p => !p);
             }}
-            className="flex items-center gap-2 bg-slate-900 text-white px-4 py-2.5 rounded-full shadow-lg cursor-pointer active:scale-95 transition-all"
+            className="flex items-center gap-1.5 bg-slate-900 text-white px-3 py-1.5 rounded-full shadow-sm cursor-pointer active:scale-95 transition-all"
           >
-            <span className="text-sm font-black tracking-tight capitalize">{monthName}</span>
-            <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", showMonthPicker && "rotate-180")} />
+            <span className="text-xs font-bold tracking-tight capitalize">{monthName}</span>
+            <ChevronDown className={cn("h-3 w-3 transition-transform", showMonthPicker && "rotate-180")} />
           </button>
         </div>
 
         {/* Month Picker Dropdown */}
         {showMonthPicker && (
-          <div className="absolute right-5 top-[70px] bg-white rounded-2xl border border-slate-200 shadow-2xl z-50 w-64 origin-top-right animate-in fade-in zoom-in-95 duration-200">
-            <div className="flex items-center justify-between px-4 py-2.5 border-b border-slate-100 bg-slate-50 rounded-t-2xl">
-              <button onClick={() => setPickerYear(y => y - 1)} className="p-1.5 rounded-xl hover:bg-slate-200 transition-colors">
+          <div className="absolute right-4 top-[50px] bg-white rounded-2xl border border-slate-200 shadow-2xl z-50 w-60 origin-top-right animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between px-3 py-2 border-b border-slate-100 bg-slate-50 rounded-t-2xl">
+              <button onClick={() => setPickerYear(y => y - 1)} className="p-1 rounded-xl hover:bg-slate-200">
                 <ChevronLeft className="h-4 w-4 text-slate-600" />
               </button>
-              <span className="text-sm font-black text-slate-900">{pickerYear}</span>
-              <button onClick={() => setPickerYear(y => y + 1)} className="p-1.5 rounded-xl hover:bg-slate-200 transition-colors">
+              <span className="text-xs font-black text-slate-900">{pickerYear}</span>
+              <button onClick={() => setPickerYear(y => y + 1)} className="p-1 rounded-xl hover:bg-slate-200">
                 <ChevronRight className="h-4 w-4 text-slate-600" />
               </button>
             </div>
-            <div className="grid grid-cols-3 gap-1.5 p-3">
+            <div className="grid grid-cols-3 gap-1 p-2">
               {MONTH_NAMES.map((name, idx) => {
                 const isSelected = selectedYear === pickerYear && selectedMonth === idx;
                 const isCurrentMonth = now.getFullYear() === pickerYear && now.getMonth() === idx;
@@ -218,11 +223,11 @@ export function Dashboard({ onNavigate }: DashboardProps) {
                       setShowMonthPicker(false);
                     }}
                     className={cn(
-                      "py-2 rounded-xl text-xs font-bold transition-all",
+                      "py-1.5 rounded-lg text-[10px] font-bold transition-all",
                       isSelected
-                        ? "bg-slate-900 text-white shadow-md transform scale-105"
+                        ? "bg-slate-900 text-white"
                         : isCurrentMonth
-                           ? "bg-emerald-50 text-emerald-700 border-emerald-200 border"
+                           ? "bg-emerald-50 text-emerald-700 border-emerald-100 border"
                            : "bg-slate-50 text-slate-600 hover:bg-slate-100"
                     )}
                   >
@@ -235,281 +240,163 @@ export function Dashboard({ onNavigate }: DashboardProps) {
         )}
       </header>
 
-      <main className="flex-1 px-4 py-4 space-y-3 pb-4">
-
-
+      <main className="flex-1 px-3 py-3 space-y-2.5 overflow-hidden">
         {/* ═══════ NO TARGET STATE ═══════ */}
         {!currentTarget ? (
-          <>
-            {/* Warning card */}
-            <div className="bg-white rounded-[2rem] p-8 text-center border-2 border-amber-100 shadow-sm">
-              <div className="w-14 h-14 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <AlertTriangle className="h-7 w-7 text-amber-500" />
-              </div>
-              <h2 className="text-2xl font-black text-slate-900 mb-2">Target Belum Diatur</h2>
-              <p className="text-sm text-slate-500 font-medium mb-6 max-w-[220px] mx-auto leading-snug">
-                Silakan atur target bulanan Anda sebelum memulai aktivitas penjualan.
-              </p>
-              <button
-                onClick={() => openForm(thisYear, thisMonth)}
-                className="w-full bg-emerald-600 active:scale-[0.98] active:bg-emerald-700 transition-all text-white text-lg font-black py-5 px-6 rounded-[1.5rem] shadow-xl shadow-emerald-200 flex items-center justify-center gap-3 border-b-4 border-emerald-800"
-              >
-                <Flag className="h-6 w-6" />
-                ATUR TARGET SEKARANG
-              </button>
+          <div className="bg-white rounded-[1.5rem] p-6 text-center border-2 border-amber-50 shadow-sm">
+            <div className="w-12 h-12 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-3">
+              <AlertTriangle className="h-6 w-6 text-amber-500" />
             </div>
-
-            {/* Blurred/locked stat previews */}
-            <div className="grid grid-cols-2 gap-3 opacity-50 pointer-events-none select-none">
-              <div className="bg-white p-5 rounded-[1.75rem] border-2 border-slate-100 shadow-sm flex flex-col gap-2">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
-                    <ShoppingCart className="h-4 w-4 text-blue-400" />
-                  </div>
-                  <span className="text-[10px] font-black text-slate-300 uppercase tracking-wider">Omset</span>
-                </div>
-                <p className="text-3xl font-black text-slate-200 tracking-tighter">——</p>
-              </div>
-              <div className="bg-white p-5 rounded-[1.75rem] border-2 border-slate-100 shadow-sm flex flex-col gap-2">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-lg bg-orange-50 flex items-center justify-center">
-                    <Package className="h-4 w-4 text-orange-300" />
-                  </div>
-                  <span className="text-[10px] font-black text-slate-300 uppercase tracking-wider">Terjual</span>
-                </div>
-                <p className="text-3xl font-black text-slate-200 tracking-tighter">——</p>
-              </div>
-              {/* Hide Stok Tersedia as per user request */}
-              {/* <div className="col-span-2 bg-white p-5 rounded-[1.75rem] border-2 border-slate-100 shadow-sm flex flex-col gap-2">
-                <span className="text-[10px] font-black text-slate-300 uppercase tracking-wider">Stok Tersedia</span>
-                <p className="text-4xl font-black text-slate-200 tracking-tighter">— Item</p>
-              </div> */}
-            </div>
-
-            {/* Locked CTA buttons */}
-            <div className="flex gap-3">
-              <div className="flex-1 bg-slate-200 py-5 px-4 rounded-[1.5rem] flex flex-col items-center justify-center gap-1">
-                <Lock className="h-6 w-6 text-slate-400" />
-                <span className="font-black text-xs uppercase tracking-wide text-slate-400">Tambah Order</span>
-              </div>
-              <div className="flex-1 bg-slate-200 py-5 px-4 rounded-[1.5rem] flex flex-col items-center justify-center gap-1">
-                <Lock className="h-6 w-6 text-slate-400" />
-                <span className="font-black text-xs uppercase tracking-wide text-slate-400">Restok</span>
-              </div>
-            </div>
-          </>
+            <h2 className="text-xl font-black text-slate-900 mb-1">Target Kosong</h2>
+            <p className="text-xs text-slate-500 mb-4 max-w-[200px] mx-auto">
+              Atur target bulanan agar performa bisnis terpantau.
+            </p>
+            <button
+              onClick={() => openForm(thisYear, thisMonth)}
+              className="w-full bg-emerald-600 text-white text-sm font-black py-4 px-6 rounded-2xl shadow-lg flex items-center justify-center gap-2"
+            >
+              <Flag className="h-5 w-5" />
+              ATUR SEKARANG
+            </button>
+          </div>
         ) : (
-          /* ═══════ ACTIVE TARGET STATE ═══════ */
-          <>
-            {/* Total Keuntungan Card */}
-            <section className="bg-slate-900 rounded-[2rem] p-6 text-white shadow-2xl relative overflow-hidden ring-1 ring-white/10">
-              <div className="absolute -top-12 -right-12 w-40 h-40 bg-emerald-500/20 rounded-full blur-3xl pointer-events-none" />
+          /* ═══════ ACTIVE TARGET STATE (BENTO GRID) ═══════ */
+          <div className="flex flex-col gap-2.5">
+            {/* Keuntungan Card - Compact */}
+            <section className="bg-slate-900 rounded-[1.5rem] p-4 text-white shadow-xl relative overflow-hidden ring-1 ring-white/10">
+              <div className="absolute -top-12 -right-12 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none" />
               <div className="relative z-10">
-                {/* Label */}
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Total Keuntungan</span>
-                  <div className="flex items-center gap-1.5 bg-emerald-500/20 px-2.5 py-1 rounded-lg">
-                    <TrendingUp className="h-3 w-3 text-emerald-400" />
-                    <span className="text-[10px] font-black text-emerald-400">+{profitPct}%</span>
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Keuntungan</span>
+                  <div className="flex items-center gap-2">
+                    <button onClick={() => setIncludeBiaya(false)} className={cn("text-[9px] font-black px-2 py-0.5 rounded", !includeBiaya ? "bg-emerald-500 text-white" : "bg-white/5 text-slate-500")}>Bersih</button>
+                    <button onClick={() => setIncludeBiaya(true)} className={cn("text-[9px] font-black px-2 py-0.5 rounded", includeBiaya ? "bg-emerald-500 text-white" : "bg-white/5 text-slate-500")}>Kotor</button>
                   </div>
                 </div>
 
-                {/* Include/Exclude Biaya Toggle */}
-                <div className="flex items-center gap-2 mb-3">
-                  <button
-                    onClick={() => setIncludeBiaya(false)}
-                    className={cn(
-                      "px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wide transition-all border",
-                      !includeBiaya
-                        ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
-                        : "bg-white/5 text-slate-500 border-white/10 hover:bg-white/10"
-                    )}
-                  >
-                    Tanpa Biaya
-                  </button>
-                  <button
-                    onClick={() => setIncludeBiaya(true)}
-                    className={cn(
-                      "px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wide transition-all border",
-                      includeBiaya
-                        ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
-                        : "bg-white/5 text-slate-500 border-white/10 hover:bg-white/10"
-                    )}
-                  >
-                    Dengan Biaya
-                  </button>
-                </div>
-
-                {/* Amount */}
-                <div className="flex items-baseline gap-1 mb-1.5">
-                  <span className="text-emerald-400 text-2xl font-black">Rp</span>
-                  <span className={cn(
-                    'text-5xl font-black tracking-tighter leading-none',
-                    displayedProfit >= 0 ? 'text-emerald-400' : 'text-red-400'
-                  )}>
+                <div className="flex items-baseline gap-1 mb-2">
+                  <span className="text-emerald-400 text-xl font-black">Rp</span>
+                  <span className={cn('text-4xl font-black tracking-tighter leading-none', displayedProfit >= 0 ? 'text-emerald-400' : 'text-red-400')}>
                     {formatCurrency(displayedProfit).replace('Rp', '').trim()}
                   </span>
                 </div>
-                {/* Progress */}
-                <div className="flex items-center gap-2 mb-1">
-                  <div className="flex-1 h-2.5 bg-white/10 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-emerald-400 rounded-full transition-all duration-700"
-                      style={{ width: `${profitPct}%` }}
-                    />
+
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 h-1.5 bg-white/10 rounded-full overflow-hidden">
+                    <div className="h-full bg-emerald-400 rounded-full" style={{ width: `${profitPct}%` }} />
                   </div>
-                  <span className="text-xs font-black text-slate-400 shrink-0">{profitPct}% tercapai</span>
+                  <span className="text-[10px] font-black text-emerald-400 shrink-0">{profitPct}%</span>
                 </div>
-                <p className="text-[10px] text-slate-500 mb-4">
-                  Target: {formatShortCurrency(currentTarget.targetProfit)}
-                </p>
-                {/* Action buttons */}
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setView('list')}
-                    className="flex items-center gap-1.5 bg-white/10 px-3 py-2 rounded-xl border border-white/5 hover:bg-white/20 active:scale-95 transition-all"
-                  >
-                    <ListFilter className="h-4 w-4 text-white" />
-                    <span className="text-xs font-bold text-white">Lihat Semua</span>
-                    <ChevronRight className="h-3.5 w-3.5 text-slate-400" />
-                  </button>
-                  <button
-                    onClick={() => onNavigate('orders')}
-                    className="flex items-center gap-1.5 bg-white/10 px-3 py-2 rounded-xl border border-white/5 hover:bg-white/20 active:scale-95 transition-all"
-                  >
-                    <span className="text-xs font-bold text-white">Riwayat</span>
-                    <ChevronRight className="h-3.5 w-3.5 text-slate-400" />
-                  </button>
+                
+                <div className="flex items-center justify-between mt-3 pt-3 border-t border-white/5">
+                   <button onClick={() => setView('list')} className="text-[10px] font-bold text-slate-400 flex items-center gap-1">
+                     <ListFilter className="w-3 h-3" /> Rekap Target
+                   </button>
+                   <button onClick={() => onNavigate('orders')} className="text-[10px] font-bold text-emerald-400 flex items-center gap-1">
+                     Riwayat <ChevronRight className="w-3 h-3" />
+                   </button>
                 </div>
               </div>
             </section>
 
-            {/* Omset + Terjual */}
-            <div className="grid grid-cols-2 gap-3">
+            {/* Stats Grid - 2 Columns */}
+            <div className="grid grid-cols-2 gap-2.5">
               {/* Omset */}
-              <div className="bg-white p-5 rounded-[1.75rem] border-2 border-slate-100 shadow-sm flex flex-col gap-2">
-                <div className="flex items-center gap-2 justify-between">
-                  <div className="flex items-center gap-1.5">
-                    <div className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center">
-                      <ShoppingCart className="h-3.5 w-3.5 text-blue-600" />
-                    </div>
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Omset</span>
+              <div className="bg-white p-3.5 rounded-[1.25rem] border border-slate-100 shadow-sm flex flex-col justify-between min-h-[90px]">
+                <div className="flex items-center gap-1.5">
+                  <div className="w-6 h-6 rounded-md bg-blue-50 flex items-center justify-center">
+                    <ShoppingCart className="h-3 w-3 text-blue-600" />
                   </div>
-                  {/* Mini circle indicator */}
-                  <div className="relative w-10 h-10 shrink-0">
-                    <svg viewBox="0 0 36 36" className="w-full h-full -rotate-90">
-                      <circle cx="18" cy="18" r="15" fill="none" stroke="#e2e8f0" strokeWidth="3" />
-                      <circle cx="18" cy="18" r="15" fill="none" stroke="#3b82f6" strokeWidth="3"
-                        strokeDasharray={`${2 * Math.PI * 15}`}
-                        strokeDashoffset={`${2 * Math.PI * 15 * (1 - Math.min(monthRevenue / (currentTarget.targetProfit * 1.5), 1))}`}
-                        strokeLinecap="round" />
-                    </svg>
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <span className="text-[10px] font-black text-slate-700">{omsetPct}%</span>
+                  <span className="text-[9px] font-black text-slate-400 uppercase tracking-tighter">Omset</span>
+                </div>
+                <div>
+                  <p className="text-xl font-black text-slate-900 tracking-tighter leading-tight">{formatShortCurrency(monthRevenue)}</p>
+                  <div className="flex items-center gap-1 mt-1">
+                    <div className="flex-1 h-1 bg-slate-50 rounded-full overflow-hidden">
+                      <div className="h-full bg-blue-400" style={{ width: `${omsetPct}%` }} />
                     </div>
+                    <span className="text-[8px] font-bold text-slate-400">{omsetPct}%</span>
                   </div>
                 </div>
-                <p className="text-3xl font-black text-slate-900 tracking-tighter">{formatShortCurrency(monthRevenue)}</p>
               </div>
 
               {/* Terjual */}
-              <div className="bg-white p-5 rounded-[1.75rem] border-2 border-slate-100 shadow-sm flex flex-col gap-2">
-                <div className="flex items-center gap-2 justify-between">
-                  <div className="flex items-center gap-1.5">
-                    <div className="w-7 h-7 rounded-lg bg-orange-50 flex items-center justify-center">
-                      <Package className="h-3.5 w-3.5 text-orange-600" />
-                    </div>
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Terjual</span>
+              <div className="bg-white p-3.5 rounded-[1.25rem] border border-slate-100 shadow-sm flex flex-col justify-between min-h-[90px]">
+                <div className="flex items-center gap-1.5">
+                  <div className="w-6 h-6 rounded-md bg-orange-50 flex items-center justify-center">
+                    <Package className="h-3 w-3 text-orange-600" />
                   </div>
-                  {/* Mini circle */}
-                  <div className="relative w-10 h-10 shrink-0">
-                    <svg viewBox="0 0 36 36" className="w-full h-full -rotate-90">
-                      <circle cx="18" cy="18" r="15" fill="none" stroke="#e2e8f0" strokeWidth="3" />
-                      <circle cx="18" cy="18" r="15" fill="none" stroke={qtyPct >= 80 ? '#f97316' : '#fb923c'} strokeWidth="3"
-                        strokeDasharray={`${2 * Math.PI * 15}`}
-                        strokeDashoffset={`${2 * Math.PI * 15 * (1 - qtyPct / 100)}`}
-                        strokeLinecap="round" />
-                    </svg>
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <span className="text-[10px] font-black text-slate-700">{qtyPct}%</span>
+                  <span className="text-[9px] font-black text-slate-400 uppercase tracking-tighter">Terjual</span>
+                </div>
+                <div>
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-xl font-black text-slate-900 tracking-tighter leading-tight">{monthQty}</span>
+                    <span className="text-[9px] font-bold text-slate-400">pcs</span>
+                  </div>
+                  <div className="flex items-center gap-1 mt-1">
+                    <div className="flex-1 h-1 bg-slate-50 rounded-full overflow-hidden">
+                      <div className="h-full bg-orange-400" style={{ width: `${qtyPct}%` }} />
                     </div>
+                    <span className="text-[8px] font-bold text-slate-400">{qtyPct}%</span>
                   </div>
                 </div>
-                <div className="flex items-baseline gap-1">
-                  <span className="text-3xl font-black text-slate-900 tracking-tighter">{monthQty}</span>
-                  <span className="text-xs font-bold text-slate-400">pcs</span>
-                </div>
-                {currentTarget.targetQty > 0 && (
-                  <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-orange-400 rounded-full"
-                      style={{ width: `${qtyPct}%` }}
-                    />
-                  </div>
-                )}
-                {currentTarget.targetQty > 0 && (
-                  <p className="text-[10px] text-slate-400">Target: {currentTarget.targetQty} pcs</p>
-                )}
               </div>
 
-              {/* Restok Bulan Ini */}
-              <button
-                onClick={() => onNavigate('stock')}
-                className="col-span-2 bg-white p-5 rounded-[1.75rem] border-2 border-slate-100 shadow-sm flex items-center justify-between active:bg-slate-50 active:scale-[0.99] transition-all text-left"
-              >
-                <div className="flex items-center gap-4 flex-1">
-                  <div className="w-12 h-12 rounded-2xl bg-emerald-50 flex items-center justify-center shrink-0">
-                    <Package className="h-6 w-6 text-emerald-600" />
+              {/* Restok */}
+              <button onClick={() => onNavigate('stock')} className="bg-white p-3.5 rounded-[1.25rem] border border-slate-100 shadow-sm flex flex-col justify-between active:scale-95 transition-all min-h-[90px]">
+                <div className="flex items-center gap-1.5">
+                  <div className="w-6 h-6 rounded-md bg-emerald-50 flex items-center justify-center">
+                    <PackagePlus className="h-3 w-3 text-emerald-600" />
                   </div>
-                  <div className="flex-1">
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Restok Bulan Ini</span>
-                    <p className="text-4xl font-black tracking-tighter leading-none text-slate-900 mt-0.5">
-                      {monthRestockQty} <span className="text-2xl">botol</span>
-                    </p>
-                    {currentTarget.targetStock > 0 && (
-                      <>
-                        <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden mt-2">
-                          <div
-                            className="h-full rounded-full bg-emerald-400"
-                            style={{ width: `${Math.min(stockPct, 100)}%` }}
-                          />
-                        </div>
-                        <p className="text-[10px] text-slate-400 mt-0.5">Target: {currentTarget.targetStock} botol</p>
-                      </>
-                    )}
+                  <span className="text-[9px] font-black text-slate-400 uppercase tracking-tighter">Restok</span>
+                </div>
+                <div>
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-xl font-black text-slate-900 tracking-tighter leading-tight">{monthRestockQty}</span>
+                    <span className="text-[9px] font-bold text-slate-400">btl</span>
+                  </div>
+                  <div className="flex items-center gap-1 mt-1">
+                    <div className="flex-1 h-1 bg-slate-50 rounded-full overflow-hidden">
+                      <div className="h-full bg-emerald-400" style={{ width: `${stockPct}%` }} />
+                    </div>
+                    <span className="text-[8px] font-bold text-slate-400">{stockPct}%</span>
                   </div>
                 </div>
-                <ChevronRight className="h-6 w-6 text-slate-300 shrink-0" />
+              </button>
+
+              {/* Pelanggan Aktif (FILTERED) */}
+              <button onClick={() => setView('customer-growth')} className="bg-white p-3.5 rounded-[1.25rem] border border-slate-100 shadow-sm flex flex-col justify-between active:scale-95 transition-all min-h-[90px]">
+                <div className="flex items-center gap-1.5">
+                  <div className="w-6 h-6 rounded-md bg-purple-50 flex items-center justify-center">
+                    <Users className="h-3 w-3 text-purple-600" />
+                  </div>
+                  <span className="text-[9px] font-black text-slate-400 uppercase tracking-tighter">Aktif</span>
+                </div>
+                <div>
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-xl font-black text-slate-900 tracking-tighter leading-tight">{activeTotal}</span>
+                    <span className="text-[9px] font-bold text-slate-400">org</span>
+                  </div>
+                  <div className="flex flex-col gap-0.5 mt-1">
+                    <div className="flex items-center justify-between text-[8px] font-bold">
+                      <span className="text-emerald-600">{activeMitra} Mitra</span>
+                      <span className="text-slate-400">{activeKonsumen} Kons</span>
+                    </div>
+                  </div>
+                </div>
               </button>
             </div>
 
-            {/* Total Pelanggan Card */}
-            <button
-              onClick={() => setView('customer-growth')}
-              className="w-full text-left bg-white p-5 rounded-[1.75rem] border-2 border-slate-100 shadow-sm flex items-center justify-between active:scale-[0.99] active:bg-slate-50 transition-all"
-            >
-              <div className="flex items-center gap-4">
-                <div className="w-14 h-14 rounded-3xl bg-blue-50 flex items-center justify-center shrink-0">
-                  <Users className="h-7 w-7 text-blue-600 fill-blue-600" />
-                </div>
-                <div>
-                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-0.5">Total Pelanggan</span>
-                  <p className="text-4xl font-black text-slate-900 tracking-tighter leading-none">{totalCustomers}</p>
-                </div>
-              </div>
-              <div className="flex flex-col items-end gap-1 text-right">
-                <div className="flex items-center gap-1.5">
-                  <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
-                  <span className="text-sm font-bold text-emerald-600">{totalMitra} Mitra</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <div className="w-2 h-2 rounded-full bg-slate-200"></div>
-                  <span className="text-sm font-bold text-slate-500">{totalKonsumen} Konsumen</span>
-                </div>
-              </div>
-            </button>
-
-          </>
+            {/* Quick Actions - Super Compact */}
+            <div className="grid grid-cols-2 gap-2">
+               <button onClick={() => onNavigate('orders', 'add')} className="bg-emerald-600 hover:bg-emerald-700 text-white p-3 rounded-xl flex items-center justify-center gap-2 transition-all shadow-md active:scale-95">
+                 <Plus className="w-4 h-4" /> <span className="text-xs font-black uppercase">Order</span>
+               </button>
+               <button onClick={() => onNavigate('stock')} className="bg-white border-2 border-slate-100 text-slate-900 p-3 rounded-xl flex items-center justify-center gap-2 transition-all shadow-sm active:scale-95">
+                 <PackagePlus className="w-4 h-4 text-emerald-600" /> <span className="text-xs font-black uppercase tracking-tight">Restok</span>
+               </button>
+            </div>
+          </div>
         )}
       </main>
     </div>

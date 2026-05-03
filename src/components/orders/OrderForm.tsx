@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { X, ArrowRight, CheckCircle2, User, Phone, MapPin, Package, Plus, Minus, Search, Calendar, Check, Loader2 } from 'lucide-react';
+import { X, ArrowRight, ArrowLeft, CheckCircle2, User, Phone, MapPin, Package, Plus, Minus, Search, Calendar, Check, Loader2, UserPlus, Edit2, Trash2, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatCurrency } from '@/lib/formatters';
 import { useProfile } from '@/hooks/useProfile';
@@ -27,6 +27,7 @@ interface OrderFormProps {
     customerPhone: string;
     tier: TierType;
     items: OrderItem[];
+    expenses?: { name: string, amount: number }[];
     orderDate?: string;
     customerAddress?: string;
     customerId?: string;
@@ -35,7 +36,7 @@ interface OrderFormProps {
 
 type Step = 'info' | 'products' | 'summary';
 
-export function OrderForm({ customers, submitting, onSubmit, onCancel, initialData }: OrderFormProps) {
+export function OrderForm({ customers, submitting, onSubmit, onCancel, onEditCustomer, initialData }: OrderFormProps) {
   const { products, loading: productsLoading } = useProducts();
   const [step, setStep] = useState<Step>('info');
   
@@ -46,6 +47,10 @@ export function OrderForm({ customers, submitting, onSubmit, onCancel, initialDa
   const [orderDate, setOrderDate] = useState(initialData?.orderDate || new Date().toISOString().split('T')[0]);
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(initialData?.customerId || null);
   const [items, setItems] = useState<OrderItem[]>(initialData?.items || []);
+  const [expenses, setExpenses] = useState<{ name: string, amount: number }[]>(initialData?.expenses || []);
+  
+  const [newExpName, setNewExpName] = useState('');
+  const [newExpAmount, setNewExpAmount] = useState('');
 
   const [showCustomerSearch, setShowCustomerSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -104,7 +109,9 @@ export function OrderForm({ customers, submitting, onSubmit, onCancel, initialDa
   }, [products, productsLoading, tier, recalcItems, items.length]);
 
   const totalQty = items.reduce((s, i) => s + i.quantity, 0);
-  const totalPrice = items.reduce((s, i) => s + i.subtotal, 0);
+  const itemsTotalPrice = items.reduce((s, i) => s + i.subtotal, 0);
+  const totalExpenses = expenses.reduce((s, e) => s + e.amount, 0);
+  const grandTotal = itemsTotalPrice + totalExpenses;
   const activeItems = items.filter(i => i.quantity > 0);
 
   const changeQty = (name: string, delta: number) => {
@@ -123,21 +130,36 @@ export function OrderForm({ customers, submitting, onSubmit, onCancel, initialDa
     setTier((c.tier || 'satuan').toLowerCase() as TierType);
     setSelectedCustomerId(c.id);
     setShowCustomerSearch(false);
+    setSearchQuery('');
   };
 
-  const filteredCustomers = customers.filter(c => c.name.toLowerCase().includes((searchQuery || customerName).toLowerCase()));
+  const addExpense = () => {
+    if (!newExpName || !newExpAmount) return;
+    setExpenses(prev => [...prev, { name: newExpName, amount: Number(newExpAmount) }]);
+    setNewExpName('');
+    setNewExpAmount('');
+  };
+
+  const removeExpense = (index: number) => {
+    setExpenses(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const filteredCustomers = customers.filter(c => 
+    c.name.toLowerCase().includes((searchQuery || customerName).toLowerCase()) ||
+    (c.phone && c.phone.includes(searchQuery || customerName))
+  );
 
   return (
     <div className="flex flex-col h-full bg-slate-50">
       {/* Step Indicator */}
-      <div className="bg-white border-b border-slate-100 px-6 py-4">
+      <div className="bg-white border-b border-slate-100 px-6 py-4 shrink-0">
         <div className="flex items-center justify-between max-w-sm mx-auto">
           {['info', 'products', 'summary'].map((s, i) => {
             const isActive = step === s;
             const isDone = ['info', 'products', 'summary'].indexOf(step) > i;
             return (
               <div key={s} className="flex flex-col items-center gap-2 flex-1">
-                <div className={cn("h-1.5 w-full rounded-full transition-all duration-500", 
+                <div className={cn("h-1.5 w-[80%] rounded-full transition-all duration-500", 
                   isDone ? "bg-emerald-500" : isActive ? "bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.3)]" : "bg-slate-100")} />
                 <span className={cn("text-[9px] font-black uppercase tracking-widest", isActive ? "text-emerald-600" : "text-slate-300")}>
                   {s === 'info' ? 'Pelanggan' : s === 'products' ? 'Produk' : 'Review'}
@@ -167,20 +189,59 @@ export function OrderForm({ customers, submitting, onSubmit, onCancel, initialDa
                 <div className="space-y-1.5 relative">
                   <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Nama Pelanggan</Label>
                   <div className="relative">
-                    <Input placeholder="Cari atau ketik nama..." value={customerName} 
-                      onChange={e => { setCustomerName(e.target.value); setShowCustomerSearch(true); }} 
+                    <Input 
+                      placeholder="Cari atau ketik nama..." 
+                      value={customerName} 
+                      onChange={e => { setCustomerName(e.target.value); setSearchQuery(e.target.value); setShowCustomerSearch(true); }} 
                       onFocus={() => setShowCustomerSearch(true)}
-                      className="h-12 bg-slate-50 border-slate-100 rounded-xl font-bold text-sm" />
-                    {showCustomerSearch && customerName && (
-                      <div className="absolute z-50 left-0 right-0 top-full mt-2 bg-white rounded-2xl shadow-2xl border border-slate-100 max-h-52 overflow-y-auto p-2">
-                        {filteredCustomers.map(c => (
-                          <button key={c.id} onClick={() => selectCustomer(c)} className="w-full p-3 text-left hover:bg-slate-50 rounded-xl flex items-center justify-between group">
-                            <div><p className="text-sm font-bold text-slate-800">{c.name}</p><p className="text-[10px] text-slate-400 font-black uppercase">{c.tier}</p></div>
-                          </button>
-                        ))}
-                      </div>
+                      className="h-12 bg-slate-50 border-slate-100 rounded-xl font-bold text-sm pr-10" 
+                    />
+                    {selectedCustomerId && (
+                      <button 
+                        onClick={() => {
+                          const c = customers.find(x => x.id === selectedCustomerId);
+                          if (c && onEditCustomer) onEditCustomer(c);
+                        }}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-emerald-600 hover:text-emerald-700 p-1.5 bg-white rounded-lg border border-slate-100 shadow-sm"
+                      >
+                        <Edit2 className="h-3.5 w-3.5" />
+                      </button>
                     )}
                   </div>
+                  {showCustomerSearch && searchQuery && (
+                    <div className="absolute z-50 left-0 right-0 top-full mt-2 bg-white rounded-2xl shadow-2xl border border-slate-100 max-h-52 overflow-y-auto p-2">
+                      {filteredCustomers.length > 0 ? (
+                        <>
+                          <p className="px-3 py-2 text-[9px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-50 mb-1">Hasil Pencarian</p>
+                          {filteredCustomers.map(c => (
+                            <button key={c.id} onClick={() => selectCustomer(c)} className="w-full p-3 text-left hover:bg-emerald-50/50 rounded-xl flex items-center justify-between group transition-colors">
+                              <div>
+                                <p className="text-sm font-bold text-slate-800 group-hover:text-emerald-700">{c.name}</p>
+                                <p className="text-[10px] text-slate-400 font-black uppercase mt-0.5">{c.tier} {c.phone ? `• ${c.phone}` : ''}</p>
+                              </div>
+                              <ChevronRight className="h-4 w-4 text-slate-300 group-hover:text-emerald-400" />
+                            </button>
+                          ))}
+                        </>
+                      ) : (
+                        <div className="p-2">
+                           <button 
+                            onClick={() => {
+                              if (onEditCustomer) {
+                                onEditCustomer({ name: searchQuery, tier: 'satuan' } as Customer);
+                                setShowCustomerSearch(false);
+                              }
+                            }}
+                            className="w-full p-4 text-center bg-emerald-50 rounded-xl border border-dashed border-emerald-200 flex flex-col items-center gap-2 group hover:bg-emerald-100/50 transition-colors"
+                          >
+                            <UserPlus className="h-6 w-6 text-emerald-600" />
+                            <p className="text-sm font-black text-emerald-700">Tambah Pelanggan Baru</p>
+                            <p className="text-[10px] font-bold text-emerald-500 uppercase">"{searchQuery}"</p>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 <div className="space-y-1.5">
@@ -215,7 +276,7 @@ export function OrderForm({ customers, submitting, onSubmit, onCancel, initialDa
                           <p className="text-sm font-black text-slate-800 truncate">{item.productName}</p>
                           <p className="text-[11px] font-black text-emerald-600 mt-0.5">{formatCurrency(item.pricePerBottle)}</p>
                         </div>
-                        <div className="flex items-center gap-1.5 bg-white rounded-xl p-1 border border-slate-200">
+                        <div className="flex items-center gap-1.5 bg-white rounded-xl p-1 border border-slate-200 shadow-sm">
                           <button onClick={() => changeQty(item.productName, -1)} className="w-8 h-8 flex items-center justify-center text-slate-400"><Minus className="h-3 w-3" /></button>
                           <span className="w-6 text-center text-sm font-black text-slate-800">{item.quantity}</span>
                           <button onClick={() => changeQty(item.productName, 1)} className="w-8 h-8 flex items-center justify-center bg-emerald-600 text-white rounded-lg"><Plus className="h-3 w-3" /></button>
@@ -224,30 +285,85 @@ export function OrderForm({ customers, submitting, onSubmit, onCancel, initialDa
                     </div>
                   ))}
                 </div>
-                <button onClick={() => setStep('summary')} disabled={totalQty === 0} className="w-full h-14 bg-slate-800 text-white rounded-2xl font-black">CEK PESANAN</button>
+                <div className="p-4 bg-slate-800 rounded-2xl flex items-center justify-between text-white shadow-xl">
+                  <div>
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Total Sementara</p>
+                    <p className="text-lg font-black">{formatCurrency(itemsTotalPrice)}</p>
+                  </div>
+                  <button onClick={() => setStep('summary')} disabled={totalQty === 0} className="bg-emerald-600 px-6 py-2.5 rounded-xl font-black text-[11px] uppercase tracking-wider">Cek Pesanan</button>
+                </div>
               </div>
             </div>
           )}
 
           {step === 'summary' && (
-            <div className="space-y-4 animate-in fade-in duration-300">
+            <div className="space-y-4 animate-in fade-in duration-300 pb-10">
               <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm space-y-6">
-                <div className="flex items-center justify-between"><h2 className="text-lg font-black text-slate-800">Review Order</h2><div className="bg-emerald-50 text-emerald-600 px-3 py-1 rounded-full text-[10px] font-black uppercase">{tier}</div></div>
-                <div className="space-y-3">
-                  {activeItems.map((item, idx) => (
-                    <div key={idx} className="flex justify-between items-center py-2 border-b border-slate-50 last:border-0">
-                      <div><p className="text-sm font-bold text-slate-800">{item.productName}</p><p className="text-xs text-slate-500 font-medium">{item.quantity} x {formatCurrency(item.pricePerBottle)}</p></div>
-                      <p className="text-sm font-black text-slate-800">{formatCurrency(item.subtotal)}</p>
+                {/* Customer Info Header */}
+                <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100 flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-xl bg-white border border-slate-100 flex items-center justify-center text-emerald-600 shrink-0 shadow-sm"><User className="h-6 w-6" /></div>
+                  <div className="min-w-0">
+                    <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-0.5">Pelanggan</p>
+                    <h3 className="text-base font-black text-slate-800 truncate">{customerName}</h3>
+                    <p className="text-[10px] font-bold text-slate-500">{customerPhone || 'Tanpa No. WhatsApp'}</p>
+                  </div>
+                  <div className="ml-auto bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full text-[10px] font-black uppercase">{tier}</div>
+                </div>
+
+                <div className="space-y-4">
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Rincian Produk</p>
+                  <div className="space-y-3 bg-slate-50/50 rounded-2xl p-4 border border-slate-50">
+                    {activeItems.map((item, idx) => (
+                      <div key={idx} className="flex justify-between items-center py-2 border-b border-slate-100 last:border-0">
+                        <div>
+                          <p className="text-sm font-bold text-slate-800">{item.productName}</p>
+                          <p className="text-[11px] text-slate-500 font-bold">{item.quantity} x {formatCurrency(item.pricePerBottle)}</p>
+                        </div>
+                        <p className="text-sm font-black text-slate-800">{formatCurrency(item.subtotal)}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Additional Expenses Section */}
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between px-1">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Pengeluaran Tambahan</p>
+                    <p className="text-[10px] font-black text-slate-500">{formatCurrency(totalExpenses)}</p>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    {expenses.length > 0 && (
+                      <div className="space-y-2 mb-3">
+                        {expenses.map((exp, idx) => (
+                          <div key={idx} className="flex items-center justify-between p-3 bg-orange-50 border border-orange-100 rounded-xl">
+                            <p className="text-xs font-bold text-orange-800">{exp.name}</p>
+                            <div className="flex items-center gap-3">
+                              <p className="text-xs font-black text-orange-600">{formatCurrency(exp.amount)}</p>
+                              <button onClick={() => removeExpense(idx)} className="text-orange-300 hover:text-red-500 transition-colors"><Trash2 className="h-3.5 w-3.5" /></button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    
+                    <div className="flex gap-2 p-1.5 bg-slate-50 rounded-2xl border border-slate-100">
+                      <Input placeholder="Nama (ongkir, dll)" value={newExpName} onChange={e => setNewExpName(e.target.value)} className="h-10 bg-white border-slate-100 rounded-xl text-xs font-bold flex-1" />
+                      <Input type="number" placeholder="Rp" value={newExpAmount} onChange={e => setNewExpAmount(e.target.value)} className="h-10 bg-white border-slate-100 rounded-xl text-xs font-bold w-24" />
+                      <button onClick={addExpense} disabled={!newExpName || !newExpAmount} className="w-10 h-10 flex items-center justify-center bg-emerald-100 text-emerald-600 rounded-xl active:scale-90 transition-all disabled:opacity-30"><Plus className="h-4 w-4" /></button>
                     </div>
-                  ))}
+                  </div>
                 </div>
-                <div className="pt-4 border-t border-slate-100 flex justify-between items-center">
-                  <p className="font-black text-slate-500 text-sm">TOTAL AKHIR</p>
-                  <p className="text-2xl font-black text-emerald-600">{formatCurrency(totalPrice)}</p>
+
+                <div className="pt-4 border-t border-slate-100 flex justify-between items-center px-1">
+                  <div>
+                    <p className="font-black text-slate-400 text-[10px] uppercase tracking-widest mb-1">Total Akhir</p>
+                    <p className="text-2xl font-black text-emerald-600">{formatCurrency(grandTotal)}</p>
+                  </div>
+                  <button onClick={() => onSubmit({ customerName, customerPhone, customerAddress, tier, items: activeItems, expenses, createdAt: new Date(orderDate).toISOString() })} disabled={submitting} className="h-14 px-8 bg-emerald-600 text-white rounded-2xl font-black shadow-xl">
+                    {submitting ? <Loader2 className="h-5 w-5 animate-spin mx-auto" /> : 'SIMPAN PERUBAHAN'}
+                  </button>
                 </div>
-                <button onClick={() => onSubmit({ customerName, customerPhone, customerAddress, tier, items: activeItems, createdAt: new Date(orderDate).toISOString() })} disabled={submitting} className="w-full h-14 bg-emerald-600 text-white rounded-2xl font-black shadow-xl">
-                   {submitting ? <Loader2 className="h-5 w-5 animate-spin mx-auto" /> : 'SIMPAN PERUBAHAN'}
-                </button>
               </div>
             </div>
           )}
