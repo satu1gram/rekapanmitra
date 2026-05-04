@@ -213,7 +213,7 @@ export function SettingsPage() {
         <footer className="text-center py-6">
           <p className="text-xs font-black text-slate-400 tracking-[0.2em] uppercase">Rekapan Mitra</p>
           <div className="flex justify-center items-center gap-2 mt-2 opacity-60">
-            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Version 1.0.3</span>
+            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Version 2.1.0</span>
             <span className="w-1 h-1 bg-slate-400 rounded-full" />
             <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Made in Malang 🇮🇩</span>
           </div>

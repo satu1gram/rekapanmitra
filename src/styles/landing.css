@@ -58,6 +58,20 @@
     --font-body: 'DM Sans', sans-serif;
 }
 
+@keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-20px); }
+}
+
+@keyframes float-sm {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+}
+
+.animate-float-sm {
+    animation: float-sm 5s ease-in-out infinite;
+}
+
 html {
     scroll-behavior: smooth
 }

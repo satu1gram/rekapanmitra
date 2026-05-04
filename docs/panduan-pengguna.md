@@ -74,6 +74,8 @@ Aplikasi sekarang mengelompokkan setiap transaksi Anda berdasarkan tanggal (**Ri
 6. Tambahkan catatan jika perlu
 7. Klik **Simpan** — pesanan langsung tercatat!
 
+> 💡 **Biaya Tambahan (Baru!):** Anda kini bisa menambahkan biaya pengiriman (ongkir) atau biaya lainnya langsung saat membuat pesanan. Cukup klik tombol **"+ Tambah Biaya"** di form order. Profit bersih Anda akan otomatis terhitung setelah dipotong biaya-biaya ini.
+
 > **Cara baca harga bertingkat (tier):**  
 > Contoh: 1-9 pcs = Rp 15.000/pcs, 10-49 pcs = Rp 13.000/pcs, 50+ pcs = Rp 11.000/pcs  
 > Sistem akan otomatis menghitung harga yang benar berdasarkan total pesanan Anda.

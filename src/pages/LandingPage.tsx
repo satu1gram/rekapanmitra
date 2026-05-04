@@ -1,653 +1,284 @@
 import React, { useEffect, useState } from 'react';
-import '@/styles/landing.css';
-import {
-    Rocket, MessageCircle, FileEdit, Settings, Sparkles,
-    MessageSquareQuote, CircleHelp, Package, Wallet, Users,
-    Calculator, BarChart3, Store, Check, ChevronDown, Heart,
-    Mail, Lock, TrendingUp, ShoppingCart, Target, Shield,
-    Smartphone, Gift, Code2, Lightbulb, Clock, ArrowRight,
-    Bell, FileSpreadsheet, GitMerge, Zap, User, ArrowDown
+import { 
+  Rocket, MessageCircle, ShieldCheck, Sparkles, 
+  Zap, Package, Wallet, Users, BarChart3, 
+  Check, ChevronDown, Heart, Shield, 
+  Smartphone, Code2, Clock, ArrowRight,
+  Send, Globe, ArrowDownRight, Bot, MousePointer2,
+  Layout
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { cn } from '@/lib/utils';
+import '@/styles/landing.css';
+
+// ════ DUMMY SCREEN COMPONENT ════
+const ScreenPlaceholder = ({ className, title, imageSrc }: { className?: string, title: string, imageSrc?: string }) => (
+  <div className={cn(
+    "relative aspect-[9/19] w-full bg-gradient-to-br from-emerald-500 to-teal-700 rounded-[2.5rem] shadow-2xl overflow-hidden border-[6px] border-white/10 ring-1 ring-slate-900/5",
+    className
+  )}>
+    {imageSrc ? (
+      <img src={imageSrc} alt={title} className="w-full h-full object-cover" />
+    ) : (
+      <div className="w-full h-full flex flex-col items-center justify-center p-6 text-center">
+        <div className="w-12 h-12 bg-white/20 rounded-2xl mb-4 flex items-center justify-center backdrop-blur-md">
+          <Layout className="text-white w-6 h-6" />
+        </div>
+        <p className="text-white/40 text-[10px] font-black uppercase tracking-widest leading-tight">
+          {title} <br /> <span className="opacity-50">Placeholder</span>
+        </p>
+      </div>
+    )}
+  </div>
+);
 
 export default function LandingPage() {
-    const [scrolled, setScrolled] = useState(false);
-    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-    const [activeFaq, setActiveFaq] = useState<number | null>(null);
+  const [scrolled, setScrolled] = useState(false);
+  const [activeFaq, setActiveFaq] = useState<number | null>(null);
 
-    useEffect(() => {
-        const handleScroll = () => setScrolled(window.scrollY > 50);
-        window.addEventListener('scroll', handleScroll);
+  useEffect(() => {
+    const handleScroll = () => setScrolled(window.scrollY > 20);
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
-        const observer = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) entry.target.classList.add('visible');
-            });
-        }, { threshold: 0.1 });
+  const toggleFaq = (index: number) => setActiveFaq(activeFaq === index ? null : index);
 
-        document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
-
-        return () => {
-            window.removeEventListener('scroll', handleScroll);
-            document.querySelectorAll('.reveal').forEach(el => observer.unobserve(el));
-        };
-    }, []);
-
-    const toggleMenu = () => setMobileMenuOpen(!mobileMenuOpen);
-    const toggleFaq = (index: number) => setActiveFaq(activeFaq === index ? null : index);
-
-    return (
-        <div className="landing-page-wrapper relative">
-
-            {/* ════ STICKY MOBILE CTA ════ */}
-            <div className="sticky-cta" id="stickyCta">
-                <Link to="/dashboard" className="btn btn-primary">
-                    <Rocket className="icon" size={18} /> Coba Gratis
-                </Link>
-                <a href="https://wa.me/6287782697973?text=Halo%2C%20saya%20ingin%20tahu%20lebih%20lanjut%20tentang%20Rekapan%20Mitra"
-                    target="_blank" rel="noopener noreferrer" className="btn btn-wa">
-                    <MessageCircle className="icon" size={18} /> Chat WA
-                </a>
-            </div>
-
-            {/* ════ NAV ════ */}
-            <nav className={`nav ${scrolled ? 'scrolled' : ''}`} id="nav">
-                <div className="nav-inner">
-                    <a href="#" className="nav-logo">
-                        <img src="/pwa-192x192.png" alt="Logo Rekapan Mitra"
-                            style={{ width: '34px', height: '34px', objectFit: 'contain', borderRadius: '8px' }} />
-                        Rekapan <span>Mitra</span>
-                    </a>
-                    <div className="nav-links">
-                        <a href="#masalah">Masalah</a>
-                        <a href="#cara-kerja">Cara Kerja</a>
-                        <a href="#fitur">Fitur</a>
-                        <a href="#founder">Tim</a>
-                        <a href="#faq">FAQ</a>
-                        <a href="https://wa.me/6287782697973" target="_blank" rel="noopener noreferrer"
-                            className="btn btn-wa" style={{ padding: '.6rem 1.2rem', fontSize: '.8125rem' }}>
-                            <MessageCircle className="icon" size={18} /> Chat WA
-                        </a>
-                        <Link to="/dashboard" className="btn btn-primary"
-                            style={{ padding: '.6rem 1.25rem', fontSize: '.8125rem' }}>
-                            Coba Gratis
-                        </Link>
-                    </div>
-                    <button className={`nav-hamburger ${mobileMenuOpen ? 'open' : ''}`}
-                        onClick={toggleMenu} aria-label="Menu">
-                        <span /><span /><span />
-                    </button>
-                </div>
-            </nav>
-
-            {/* ════ MOBILE MENU ════ */}
-            <div className={`mobile-menu ${mobileMenuOpen ? 'open' : ''}`} onClick={toggleMenu}>
-                <a href="#masalah" className="mobile-link"><FileEdit className="icon" size={18} /> Masalah</a>
-                <a href="#cara-kerja" className="mobile-link"><Settings className="icon" size={18} /> Cara Kerja</a>
-                <a href="#fitur" className="mobile-link"><Sparkles className="icon" size={18} /> Fitur</a>
-                <a href="#founder" className="mobile-link"><User className="icon" size={18} /> Tim</a>
-                <a href="#faq" className="mobile-link"><CircleHelp className="icon" size={18} /> FAQ</a>
-                <a href="https://wa.me/6287782697973?text=Halo%2C%20saya%20ingin%20tahu%20lebih%20lanjut%20tentang%20Rekapan%20Mitra"
-                    target="_blank" rel="noopener noreferrer" className="mobile-wa" style={{ marginTop: 'auto' }}>
-                    <MessageCircle className="icon" size={18} /> Chat via WhatsApp
-                </a>
-            </div>
-
-            {/* ════ HERO ════ */}
-            <section className="hero" id="hero">
-                <div className="hc-bg" aria-hidden="true">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%">
-                        <defs>
-                            <pattern id="hc" x="0" y="0" width="56" height="48" patternUnits="userSpaceOnUse">
-                                <polygon points="14,2 42,2 56,24 42,46 14,46 0,24"
-                                    fill="none" stroke="#059669" strokeWidth="1.2" />
-                            </pattern>
-                        </defs>
-                        <rect width="100%" height="100%" fill="url(#hc)" />
-                    </svg>
-                </div>
-
-                <div className="hero-inner">
-                    <div>
-                        <div className="hero-badge">
-                            <span className="dot" />
-                            Baru Dirilis &mdash; Akses Gratis untuk Early Adopter
-                        </div>
-                        <h1>Kelola Bisnis Anda dalam <em>Satu Genggaman</em></h1>
-                        <p>Pantau keuntungan real-time, catat pesanan, kelola stok, dan bangun jaringan pelanggan
-                            — semua dari HP Anda. Tanpa ribet, tanpa lembar Excel.</p>
-                        <div className="hero-cta">
-                            <Link to="/dashboard" className="btn btn-primary btn-large">
-                                <Rocket className="icon" size={18} /> Coba Sekarang &mdash; Gratis
-                            </Link>
-                            <a href="#cara-kerja" className="btn btn-outline btn-large">
-                                Lihat Cara Kerja
-                            </a>
-                        </div>
-                    </div>
-
-                    <div className="hero-visual">
-                        <div className="hero-mockup group relative">
-                            <div className="hero-screen overflow-y-auto" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-                                <style>{`.hero-screen::-webkit-scrollbar { display: none; }`}</style>
-                                <img src="/dashboard-mockup-real.png" alt="Tampilan Dashboard Rekapan Mitra"
-                                    className="w-full h-auto min-h-full object-top hover:animate-none" />
-                            </div>
-                            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/70 backdrop-blur-sm px-3 py-1.5 rounded-full text-[10px] text-white font-medium flex items-center gap-1.5 opacity-80 group-hover:opacity-0 transition-opacity pointer-events-none">
-                                <ArrowDown size={12} className="animate-bounce" /> Sentuh & Geser
-                            </div>
-                        </div>
-                        <div className="float-badge float-1">
-                            <div className="float-icon" style={{ background: '#d1fae5', color: '#059669' }}>
-                                <Package className="icon" size={18} />
-                            </div>
-                            Stok: 19 item
-                        </div>
-                        <div className="float-badge float-2">
-                            <div className="float-icon" style={{ background: '#fef3c7', color: '#d97706' }}>
-                                <Wallet className="icon" size={18} />
-                            </div>
-                            +Rp 100rb/btl
-                        </div>
-                        <div className="float-badge float-3">
-                            <div className="float-icon" style={{ background: '#e0f2fe', color: '#0284c7' }}>
-                                <Users className="icon" size={18} />
-                            </div>
-                            10 pelanggan
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            {/* ════ HONEST FEATURE PILLS — menggantikan stats fiktif ════ */}
-            <div className="stats-bar">
-                <div className="stats-bar-inner">
-                    <div className="stat-item reveal">
-                        <div className="stat-icon-wrap" style={{ color: '#059669' }}>
-                            <Gift className="icon icon-lg" size={28} />
-                        </div>
-                        <div className="stat-num">100%</div>
-                        <div className="stat-desc">Gratis Selamanya</div>
-                    </div>
-                    <div className="stat-item reveal">
-                        <div className="stat-icon-wrap" style={{ color: '#0284c7' }}>
-                            <Smartphone className="icon icon-lg" size={28} />
-                        </div>
-                        <div className="stat-num">PWA</div>
-                        <div className="stat-desc">Langsung dari Browser HP</div>
-                    </div>
-                    <div className="stat-item reveal">
-                        <div className="stat-icon-wrap" style={{ color: '#7c3aed' }}>
-                            <Shield className="icon icon-lg" size={28} />
-                        </div>
-                        <div className="stat-num">Aman</div>
-                        <div className="stat-desc">Data Terenkripsi Penuh</div>
-                    </div>
-                    <div className="stat-item reveal">
-                        <div className="stat-icon-wrap" style={{ color: '#d97706' }}>
-                            <Code2 className="icon icon-lg" size={28} />
-                        </div>
-                        <div className="stat-num">Oleh Mitra</div>
-                        <div className="stat-desc">Dibuat untuk Kebutuhan Nyata</div>
-                    </div>
-                </div>
-            </div>
-
-            {/* ════ PAIN POINTS ════ */}
-            <section className="section pain" id="masalah">
-                <div className="section-inner text-center">
-                    <span className="section-label reveal">Masalah Umum</span>
-                    <h2 className="section-title reveal">Masih Catat Penjualan di Buku atau WA?</h2>
-                    <p className="section-desc mx-auto reveal">
-                        Banyak mitra yang menghadapi masalah ini setiap hari. Rekapan Mitra hadir sebagai solusinya.
-                    </p>
-                    <div className="pain-grid">
-                        <div className="pain-card reveal">
-                            <div className="pain-icon" style={{ background: '#fef2f2' }}>
-                                <FileEdit className="icon icon-xl" size={28} />
-                            </div>
-                            <h3>Catatan Berantakan</h3>
-                            <p>Pesanan tersebar di WhatsApp, buku catatan, dan notes HP yang tercecer. Sulit melacak
-                                siapa pesan apa dan kapan.</p>
-                        </div>
-                        <div className="pain-card reveal">
-                            <div className="pain-icon" style={{ background: '#fefce8' }}>
-                                <Calculator className="icon icon-xl" size={28} />
-                            </div>
-                            <h3>Bingung Hitung Margin</h3>
-                            <p>Harga modal berbeda tiap level mitra, margin per botol berubah-ubah. Salah hitung sama
-                                dengan rugi tanpa disadari.</p>
-                        </div>
-                        <div className="pain-card reveal">
-                            <div className="pain-icon" style={{ background: '#eff6ff' }}>
-                                <BarChart3 className="icon icon-xl" size={28} />
-                            </div>
-                            <h3>Tidak Tahu Untung Rugi</h3>
-                            <p>Di akhir bulan baru sadar uangnya habis ke mana. Tidak ada laporan keuntungan yang
-                                jelas dan real-time.</p>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            {/* ════ HOW IT WORKS ════ */}
-            <section className="section" id="cara-kerja">
-                <div className="section-inner text-center">
-                    <span className="section-label reveal">Cara Kerja</span>
-                    <h2 className="section-title reveal">3 Langkah Mulai Untung Lebih Terukur</h2>
-                    <p className="section-desc mx-auto reveal">
-                        Tidak perlu keahlian teknis. Dalam hitungan menit, bisnis Anda sudah terdigitalisasi.
-                    </p>
-                    <div className="steps-grid">
-                        <div className="step-card reveal">
-                            <div className="step-num">1</div>
-                            <h3>Daftar &amp; Setup Toko</h3>
-                            <p>Buat akun gratis, pilih level mitra Anda, dan setup toko online publik dalam
-                                hitungan menit.</p>
-                            <span className="step-arrow"><ArrowRight size={20} /></span>
-                        </div>
-                        <div className="step-card reveal">
-                            <div className="step-num">2</div>
-                            <h3>Catat Pesanan &amp; Stok</h3>
-                            <p>Tambah order baru, restok barang, dan sistem otomatis hitung margin keuntungan per
-                                transaksi.</p>
-                            <span className="step-arrow"><ArrowRight size={20} /></span>
-                        </div>
-                        <div className="step-card reveal">
-                            <div className="step-num">3</div>
-                            <h3>Pantau Keuntungan</h3>
-                            <p>Dashboard real-time menampilkan omset, profit, target bulanan, dan pertumbuhan
-                                pelanggan Anda.</p>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            {/* ════ FEATURES ════ */}
-            <section className="section features" id="fitur">
-                <div className="section-inner text-center">
-                    <span className="section-label reveal">Fitur Unggulan</span>
-                    <h2 className="section-title reveal">Semua yang Anda Butuhkan, dalam Satu Aplikasi</h2>
-                    <div className="feat-grid">
-                        <div className="feat-card reveal">
-                            <div className="feat-icon" style={{ background: '#d1fae5', color: '#059669' }}>
-                                <TrendingUp className="icon icon-xl" size={28} />
-                            </div>
-                            <h3>Dashboard Keuntungan</h3>
-                            <p>Lihat total keuntungan, omset, dan jumlah terjual dalam satu layar. Bandingkan
-                                performa antar bulan.</p>
-                        </div>
-                        <div className="feat-card reveal">
-                            <div className="feat-icon" style={{ background: '#e0e7ff', color: '#4f46e5' }}>
-                                <ShoppingCart className="icon icon-xl" size={28} />
-                            </div>
-                            <h3>Manajemen Order</h3>
-                            <p>Catat pesanan dengan harga tier otomatis. Margin terhitung langsung berdasarkan
-                                level mitra Anda.</p>
-                        </div>
-                        <div className="feat-card reveal">
-                            <div className="feat-icon" style={{ background: '#fef3c7', color: '#d97706' }}>
-                                <Package className="icon icon-xl" size={28} />
-                            </div>
-                            <h3>Tracking Stok Real-time</h3>
-                            <p>Pantau stok masuk-keluar, notifikasi stok rendah, dan histori lengkap setiap
-                                pergerakan barang.</p>
-                        </div>
-                        <div className="feat-card reveal">
-                            <div className="feat-icon" style={{ background: '#fce7f3', color: '#db2777' }}>
-                                <Users className="icon icon-xl" size={28} />
-                            </div>
-                            <h3>Manajemen Pelanggan</h3>
-                            <p>Database pelanggan lengkap dengan histori transaksi. Kenali pelanggan setia Anda
-                                dengan mudah.</p>
-                        </div>
-                        <div className="feat-card reveal">
-                            <div className="feat-icon" style={{ background: '#f3e8ff', color: '#9333ea' }}>
-                                <Target className="icon icon-xl" size={28} />
-                            </div>
-                            <h3>Target Bulanan</h3>
-                            <p>Atur target profit, kuantitas, dan stok tiap bulan. Lacak progress menuju
-                                pencapaian Anda.</p>
-                        </div>
-                        <div className="feat-card reveal">
-                            <div className="feat-icon" style={{ background: '#ccfbf1', color: '#0d9488' }}>
-                                <Store className="icon icon-xl" size={28} />
-                            </div>
-                            <h3>Toko Online Publik</h3>
-                            <p>Punya link toko sendiri yang bisa dibagikan. Pelanggan order langsung tanpa perlu
-                                chat WA.</p>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            {/* ════ BENEFITS ════ */}
-            <section className="section" id="manfaat">
-                <div className="section-inner text-center">
-                    <span className="section-label reveal">Kenapa Rekapan Mitra?</span>
-                    <h2 className="section-title reveal">Bisnis Lebih Terukur, Keuntungan Lebih Jelas</h2>
-                    <div className="benefits-grid" style={{ textAlign: 'left' }}>
-                        <div className="benefit reveal">
-                            <div className="benefit-check"><Check className="icon" size={18} /></div>
-                            <div>
-                                <h3>Tahu Untung Setiap Saat</h3>
-                                <p>Margin per botol dihitung otomatis sesuai level mitra. Tidak perlu kalkulator
-                                    lagi.</p>
-                            </div>
-                        </div>
-                        <div className="benefit reveal">
-                            <div className="benefit-check"><Check className="icon" size={18} /></div>
-                            <div>
-                                <h3>Hemat Waktu Rekap Manual</h3>
-                                <p>Tidak perlu rekap di buku atau Excel. Semua tercatat otomatis per transaksi
-                                    langsung dari HP.</p>
-                            </div>
-                        </div>
-                        <div className="benefit reveal">
-                            <div className="benefit-check"><Check className="icon" size={18} /></div>
-                            <div>
-                                <h3>Stok Tidak Pernah Telat</h3>
-                                <p>Peringatan stok rendah memastikan Anda restok sebelum kehabisan. Peluang
-                                    jualan tidak terlewat.</p>
-                            </div>
-                        </div>
-                        <div className="benefit reveal">
-                            <div className="benefit-check"><Check className="icon" size={18} /></div>
-                            <div>
-                                <h3>Pelanggan Lebih Terkelola</h3>
-                                <p>Database pelanggan lengkap dengan riwayat transaksi. Tahu siapa pelanggan
-                                    setia Anda.</p>
-                            </div>
-                        </div>
-                        <div className="benefit reveal">
-                            <div className="benefit-check"><Check className="icon" size={18} /></div>
-                            <div>
-                                <h3>Toko Online Tanpa Ribet</h3>
-                                <p>Link toko bisa langsung dibagikan ke sosial media. Pelanggan pesan sendiri
-                                    — efisien.</p>
-                            </div>
-                        </div>
-                        <div className="benefit reveal">
-                            <div className="benefit-check"><Check className="icon" size={18} /></div>
-                            <div>
-                                <h3>Gratis Sepenuhnya</h3>
-                                <p>Tidak ada biaya langganan. Semua fitur tersedia gratis untuk seluruh level
-                                    mitra BP.</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            {/* ════ FOUNDER STORY — menggantikan testimoni palsu ════ */}
-            <section className="section founder-section" id="founder">
-                <div className="section-inner">
-                    <div className="text-center">
-                        <span className="section-label reveal">Tim Pembuat</span>
-                        <h2 className="section-title reveal">Dibuat oleh Mitra, untuk Mitra</h2>
-                        <p className="section-desc mx-auto reveal">
-                            Aplikasi ini lahir dari masalah nyata yang kami rasakan sendiri sebagai pelaku bisnis
-                            herbal.
-                        </p>
-                    </div>
-
-                    <div className="founder-card reveal">
-                        <div className="founder-avatar-wrap">
-                            {/* Avatar ilustrasi SVG — tidak menggunakan foto agar tidak menyesatkan */}
-                            <svg width="80" height="80" viewBox="0 0 80 80" fill="none"
-                                xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                                <circle cx="40" cy="40" r="40" fill="#d1fae5" />
-                                <circle cx="40" cy="32" r="13" fill="#059669" />
-                                <ellipse cx="40" cy="62" rx="20" ry="13" fill="#059669" />
-                            </svg>
-                        </div>
-                        <div className="founder-content">
-                            <div className="founder-tag">
-                                <Code2 size={14} /> Pengembang Aplikasi
-                            </div>
-                            <h3>Tim Rekapan Mitra</h3>
-                            <blockquote className="founder-quote">
-                                "Kami adalah pelaku usaha mandiri yang menghadapi masalah yang sama persis seperti
-                                Anda — pesanan di WA, margin dihitung manual, stok tidak terpantau. Aplikasi ini
-                                kami bangun untuk menyelesaikan masalah kami sendiri, dan kami membukanya gratis
-                                untuk membantu semua mitra dan reseller."
-                            </blockquote>
-                            <p className="founder-note">
-                                Rekapan Mitra baru saja dirilis. Kami sangat menghargai setiap feedback dan
-                                masukan dari pengguna pertama kami untuk terus memperbaiki aplikasi ini bersama-sama.
-                            </p>
-                            <div className="founder-cta-row">
-                                <a href="https://wa.me/6287782697973?text=Halo%2C%20saya%20ingin%20memberi%20feedback%20untuk%20Rekapan%20Mitra"
-                                    target="_blank" rel="noopener noreferrer" className="btn btn-wa btn-sm">
-                                    <MessageCircle size={16} /> Beri Feedback via WA
-                                </a>
-                                <Link to="/dashboard" className="btn btn-outline btn-sm">
-                                    Coba Aplikasinya
-                                </Link>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Value pillars — pengganti stat bar palsu dengan klaim yang bisa diverifikasi */}
-                    <div className="founder-pillars reveal">
-                        <div className="founder-pillar">
-                            <div className="pillar-icon" style={{ background: '#d1fae5', color: '#059669' }}>
-                                <Shield size={22} />
-                            </div>
-                            <div>
-                                <strong>Data Hanya Milik Anda</strong>
-                                <span>Row Level Security — tidak ada yang bisa melihat data mitra lain</span>
-                            </div>
-                        </div>
-                        <div className="founder-pillar">
-                            <div className="pillar-icon" style={{ background: '#e0e7ff', color: '#4f46e5' }}>
-                                <Gift size={22} />
-                            </div>
-                            <div>
-                                <strong>Gratis Tanpa Batas Waktu</strong>
-                                <span>Tidak ada trial, tidak ada freemium — semua fitur terbuka penuh</span>
-                            </div>
-                        </div>
-                        <div className="founder-pillar">
-                            <div className="pillar-icon" style={{ background: '#fef3c7', color: '#d97706' }}>
-                                <Zap size={22} />
-                            </div>
-                            <div>
-                                <strong>Selalu Dikembangkan</strong>
-                                <span>Update rutin berdasarkan feedback langsung dari pengguna aktif</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            {/* ════ ROADMAP ════ */}
-            <section className="section roadmap-section" id="roadmap">
-                <div className="section-inner text-center">
-                    <span className="section-label reveal">Yang Akan Datang</span>
-                    <h2 className="section-title reveal">Kami Terus Berkembang untuk Anda</h2>
-                    <p className="section-desc mx-auto reveal">
-                        Berikut fitur-fitur yang sedang dalam pengembangan. Feedback Anda menentukan prioritas
-                        kami.
-                    </p>
-
-                    <div className="roadmap-grid">
-                        <div className="roadmap-card reveal">
-                            <div className="roadmap-status status-progress">
-                                <Clock size={13} /> Dalam Pengembangan
-                            </div>
-                            <div className="roadmap-icon" style={{ background: '#d1fae5', color: '#059669' }}>
-                                <FileSpreadsheet size={24} />
-                            </div>
-                            <h3>Export Laporan</h3>
-                            <p>Unduh rekap bulanan ke format PDF atau Excel langsung dari dashboard Anda.</p>
-                        </div>
-                        <div className="roadmap-card reveal">
-                            <div className="roadmap-status status-planned">
-                                <Lightbulb size={13} /> Direncanakan
-                            </div>
-                            <div className="roadmap-icon" style={{ background: '#e0e7ff', color: '#4f46e5' }}>
-                                <Bell size={24} />
-                            </div>
-                            <h3>Notifikasi WhatsApp</h3>
-                            <p>Terima notifikasi pesanan baru dan peringatan stok rendah langsung di WA Anda.</p>
-                        </div>
-                        <div className="roadmap-card reveal">
-                            <div className="roadmap-status status-planned">
-                                <Lightbulb size={13} /> Direncanakan
-                            </div>
-                            <div className="roadmap-icon" style={{ background: '#fef3c7', color: '#d97706' }}>
-                                <GitMerge size={24} />
-                            </div>
-                            <h3>Multi-Toko</h3>
-                            <p>Kelola beberapa toko atau produk berbeda dalam satu akun yang terintegrasi.</p>
-                        </div>
-                        <div className="roadmap-card reveal">
-                            <div className="roadmap-status status-planned">
-                                <Lightbulb size={13} /> Direncanakan
-                            </div>
-                            <div className="roadmap-icon" style={{ background: '#fce7f3', color: '#db2777' }}>
-                                <BarChart3 size={24} />
-                            </div>
-                            <h3>Analisis Pelanggan</h3>
-                            <p>Segmentasi pelanggan berdasarkan frekuensi beli, nilai transaksi, dan produk favorit.</p>
-                        </div>
-                    </div>
-
-                    <div className="roadmap-cta reveal">
-                        <p>Ada ide fitur yang Anda butuhkan?</p>
-                        <a href="https://wa.me/6287782697973?text=Halo%2C%20saya%20punya%20usulan%20fitur%20untuk%20Rekapan%20Mitra"
-                            target="_blank" rel="noopener noreferrer" className="btn btn-outline">
-                            <MessageCircle size={16} /> Usulkan Fitur via WA
-                        </a>
-                    </div>
-                </div>
-            </section>
-
-            {/* ════ FAQ ════ */}
-            <section className="section" id="faq">
-                <div className="section-inner text-center">
-                    <span className="section-label reveal">FAQ</span>
-                    <h2 className="section-title reveal">Pertanyaan yang Sering Diajukan</h2>
-                    <div className="faq-list" style={{ textAlign: 'left' }}>
-                        {[
-                            {
-                                q: 'Apakah aplikasi ini benar-benar gratis?',
-                                a: 'Ya, Rekapan Mitra sepenuhnya gratis untuk semua level mitra — dari Reseller hingga Special Entrepreneur (SE). Tidak ada biaya langganan, tidak ada fitur berbayar, tidak ada batasan waktu.'
-                            },
-                            {
-                                q: 'Bagaimana harga modal dihitung otomatis?',
-                                a: 'Harga modal otomatis menyesuaikan berdasarkan level mitra Anda. Contoh: Reseller Rp 216rb/btl, Agen Rp 198rb, Agen Plus Rp 180rb, SAP Rp 170rb, SE Rp 150rb. Anda juga bisa membuat level harga kustom sendiri.'
-                            },
-                            {
-                                q: 'Apakah bisa diakses dari HP tanpa install?',
-                                a: 'Tentu. Rekapan Mitra adalah Progressive Web App (PWA) yang dioptimalkan untuk mobile. Anda bisa mengaksesnya langsung dari browser dan menambahkannya ke home screen seperti aplikasi biasa — tanpa perlu download dari App Store.'
-                            },
-                            {
-                                q: 'Apa itu Toko Online Publik?',
-                                a: 'Setiap mitra mendapat link toko unik yang bisa dibagikan ke pelanggan. Pelanggan bisa melihat produk dan langsung membuat pesanan tanpa harus chat di WhatsApp — hemat waktu Anda dan mempermudah pelanggan.'
-                            },
-                            {
-                                q: 'Apakah data bisnis saya aman?',
-                                a: 'Ya, data tersimpan di cloud dengan enkripsi penuh dan Row Level Security (Supabase). Hanya Anda yang bisa mengakses data bisnis Anda sendiri. Tidak ada yang bisa melihat data mitra lain.'
-                            },
-                            {
-                                q: 'Bagaimana cara mulai menggunakannya?',
-                                a: 'Sangat mudah. Klik tombol "Coba Gratis", buat akun dengan email, pilih level mitra Anda, dan langsung mulai catat pesanan pertama Anda. Seluruh proses tidak lebih dari 5 menit.'
-                            },
-                        ].map((item, i) => (
-                            <div key={i} className={`faq-item ${activeFaq === i ? 'open' : ''}`}>
-                                <button className="faq-q" onClick={() => toggleFaq(i)}>
-                                    {item.q}
-                                    <i className="faq-chevron">
-                                        <ChevronDown className="icon" size={18} />
-                                    </i>
-                                </button>
-                                <div className="faq-a"><p>{item.a}</p></div>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            </section>
-
-            {/* ════ CTA SECTION ════ */}
-            <section className="cta-section" id="daftar">
-                <div className="hc-bg" aria-hidden="true">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%">
-                        <defs>
-                            <pattern id="hc2" x="0" y="0" width="56" height="48" patternUnits="userSpaceOnUse">
-                                <polygon points="14,2 42,2 56,24 42,46 14,46 0,24"
-                                    fill="none" stroke="#ffffff" strokeWidth="1" />
-                            </pattern>
-                        </defs>
-                        <rect width="100%" height="100%" fill="url(#hc2)" />
-                    </svg>
-                </div>
-                <div className="section-inner">
-                    <h2 className="reveal">Siap Kelola Bisnis Anda<br />Lebih Profesional?</h2>
-                    <p className="reveal">
-                        Jadilah pengguna pertama Rekapan Mitra. Coba gratis, tanpa kartu kredit, tanpa komitmen
-                        — dan bantu kami berkembang dengan feedback Anda.
-                    </p>
-                    <div className="cta-btns reveal">
-                        <Link to="/dashboard" className="btn btn-primary btn-large">
-                            <Rocket className="icon" size={18} /> Coba Gratis Sekarang
-                        </Link>
-                        <a href="https://wa.me/6287782697973?text=Halo%2C%20saya%20mau%20coba%20Rekapan%20Mitra"
-                            target="_blank" rel="noopener noreferrer" className="btn btn-wa btn-large">
-                            <MessageCircle className="icon" size={18} /> Tanya via WhatsApp
-                        </a>
-                    </div>
-                </div>
-            </section>
-
-            {/* ════ FOOTER ════ */}
-            <div className="footer-main">
-                <div className="footer-inner">
-                    <div className="footer-brand">
-                        <div className="nav-logo" style={{ marginBottom: '.75rem', color: 'white' }}>
-                            <img src="/pwa-192x192.png" alt="Logo"
-                                style={{ width: '28px', height: '28px', objectFit: 'contain', borderRadius: '6px' }} />
-                            Rekapan <span style={{ color: 'white' }}>Mitra</span>
-                        </div>
-                        <p>Aplikasi pencatatan bisnis untuk mitra dan reseller. Pantau keuntungan, stok, pesanan,
-                            dan pelanggan dalam satu genggaman.</p>
-                        <p style={{ marginTop: '.75rem', fontSize: '.8rem' }}>
-                            Made with <Heart className="icon icon-sm" style={{ color: '#ef4444' }} size={14} /> in Indonesia
-                        </p>
-                    </div>
-                    <div className="footer-col">
-                        <h4>Menu</h4>
-                        <a href="#masalah">Masalah</a>
-                        <a href="#cara-kerja">Cara Kerja</a>
-                        <a href="#fitur">Fitur</a>
-                        <a href="#manfaat">Manfaat</a>
-                        <a href="#founder">Tim</a>
-                        <a href="#roadmap">Roadmap</a>
-                        <a href="#faq">FAQ</a>
-                    </div>
-                    <div className="footer-col">
-                        <h4>Kontak &amp; Bantuan</h4>
-                        <a href="https://wa.me/6287782697973" target="_blank" rel="noopener noreferrer">
-                            <MessageCircle className="icon" size={18} /> Chat WhatsApp
-                        </a>
-                        <a href="mailto:hello@rekapanmitra.id">
-                            <Mail className="icon" size={18} /> Email Kami
-                        </a>
-                        <Link to="/dashboard">
-                            <Rocket className="icon" size={18} /> Coba Gratis
-                        </Link>
-                        <a href="/login">
-                            <Lock className="icon" size={18} /> Login
-                        </a>
-                    </div>
-                </div>
-            </div>
-            <div className="footer-bottom">
-                &copy; 2026 Rekapan Mitra &middot; Hak Cipta Dilindungi &middot;{' '}
-                <a href="/privasi" style={{ color: '#059669' }}>Kebijakan Privasi</a>
-            </div>
-
+  return (
+    <div className="min-h-screen bg-[#F8FAFC] font-sans text-slate-900 selection:bg-emerald-100 selection:text-emerald-900">
+      
+      {/* ════ NAVIGATION ════ */}
+      <nav className={cn(
+        "fixed top-0 left-0 right-0 z-[100] transition-all duration-300 px-6 py-3",
+        scrolled ? "bg-white/90 backdrop-blur-md shadow-sm border-b border-slate-100" : "bg-transparent"
+      )}>
+        <div className="max-w-6xl mx-auto flex items-center justify-between">
+          <div className="flex items-center">
+            <img 
+              src="/icon-rekapan-mitra.png" 
+              alt="Rekapan Mitra" 
+              className="h-10 w-auto object-contain"
+            />
+          </div>
+          
+          <div className="hidden md:flex items-center gap-6">
+            <a href="#fitur" className="text-xs font-bold text-slate-500 hover:text-emerald-600 transition-colors">Fitur</a>
+            <a href="#mockup" className="text-xs font-bold text-slate-500 hover:text-emerald-600 transition-colors">Preview</a>
+            <a href="#faq" className="text-xs font-bold text-slate-500 hover:text-emerald-600 transition-colors">FAQ</a>
+            <Link to="/login" className="text-xs font-bold text-slate-500 hover:text-emerald-600 transition-colors">Masuk</Link>
+            <Link to="/dashboard" className="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2 rounded-full text-xs font-black transition-all shadow-md active:scale-95 flex items-center justify-center">
+              Coba Gratis
+            </Link>
+          </div>
         </div>
-    );
+      </nav>
+
+      {/* ════ HERO SECTION ════ */}
+      <section className="relative pt-24 pb-12 overflow-hidden bg-gradient-to-b from-emerald-50/50 to-white">
+        <div className="max-w-6xl mx-auto px-6 relative z-10">
+          <div className="grid lg:grid-cols-12 gap-12 items-center">
+            <div className="lg:col-span-7 space-y-6 text-left">
+              <div className="flex flex-col sm:flex-row items-start gap-3">
+                <div className="inline-flex items-center gap-2 px-3 py-1 bg-emerald-100/50 rounded-full border border-emerald-200/50">
+                  <Sparkles className="w-3 h-3 text-emerald-600" />
+                  <span className="text-[10px] font-black uppercase tracking-wider text-emerald-700">Digitalisasi Mitra BP — v2.1.0</span>
+                </div>
+                <div className="inline-flex items-center gap-2 px-3 py-1 bg-slate-100 rounded-full border border-slate-200">
+                  <ShieldCheck className="w-3 h-3 text-slate-500" />
+                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">Investasi Terjangkau</span>
+                </div>
+              </div>
+              
+              <h1 className="text-4xl lg:text-6xl font-black text-slate-900 leading-[1.1] tracking-tighter">
+                Satu Aplikasi Untuk <br />
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-teal-500">
+                  Semua Rekap Pesanan.
+                </span>
+              </h1>
+              
+              <p className="text-base text-slate-500 leading-relaxed max-w-lg font-medium">
+                Solusi cerdas rekapitulasi harian Mitra BP. Forward pesan WA ke Bot Telegram, pantau profit, dan kelola stok secara otomatis.
+              </p>
+              
+              <div className="flex flex-col sm:flex-row items-center gap-3 justify-start">
+                <Link to="/dashboard" className="w-full sm:w-auto h-12 px-10 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-black text-sm shadow-xl shadow-emerald-200 transition-all active:scale-95 flex items-center justify-center gap-2">
+                  <Rocket className="w-4 h-4" /> Mulai Gratis Sekarang
+                </Link>
+                <a href="https://wa.me/6287782697973" className="w-full sm:w-auto h-12 px-10 bg-white border border-slate-200 text-slate-600 rounded-xl font-black text-sm hover:bg-slate-50 transition-all flex items-center justify-center gap-2 text-center">
+                  <MessageCircle className="w-4 h-4" /> Tanya via WA
+                </a>
+              </div>
+            </div>
+
+            <div className="lg:col-span-5 relative h-[500px]">
+              <div className="absolute top-0 right-0 w-[240px] z-10 animate-float-sm">
+                <ScreenPlaceholder title="Dashboard" />
+              </div>
+              <div className="absolute top-10 right-24 w-[240px] z-20 animate-float">
+                <ScreenPlaceholder title="Telegram Bot" className="bg-gradient-to-br from-blue-500 to-emerald-600" />
+              </div>
+              <div className="absolute top-20 right-48 w-[240px] z-30 animate-float-sm" style={{ animationDelay: '1s' }}>
+                <ScreenPlaceholder title="Order Form" className="bg-gradient-to-br from-slate-700 to-slate-900" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ════ MOCKUP SHOWCASE ════ */}
+      <section id="mockup" className="py-20 bg-white border-y border-slate-100 overflow-hidden">
+        <div className="max-w-6xl mx-auto px-6">
+          <div className="grid md:grid-cols-2 gap-16 items-center">
+            <div className="space-y-6">
+              <h2 className="text-3xl font-black text-slate-900 tracking-tight leading-tight">
+                Intip Kemudahan Di Dalam Aplikasi
+              </h2>
+              <p className="text-slate-500 font-medium text-sm text-left">
+                Kami mendesain setiap layar dengan satu tujuan: **Kecepatan**. Tanpa bingkai HP yang menghalangi, lihat betapa bersihnya antarmuka kami.
+              </p>
+              <div className="grid grid-cols-2 gap-3 pt-4">
+                {[
+                  { icon: Bot, label: "AI Bot Parser", desc: "Otomatis deteksi chat WA." },
+                  { icon: BarChart3, label: "Bento Dashboard", desc: "Data vital satu layar." },
+                  { icon: Package, label: "Inventory Sync", desc: "Stok otomatis berkurang." },
+                  { icon: Wallet, label: "Atomic Profit", desc: "Detail pengeluaran per order." }
+                ].map((item, idx) => (
+                  <div key={idx} className="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex flex-col items-start text-left">
+                    <item.icon className="w-5 h-5 text-emerald-600 mb-2" />
+                    <h4 className="text-xs font-black text-slate-800">{item.label}</h4>
+                    <p className="text-[9px] text-slate-400 font-bold">{item.desc}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+            
+            <div className="relative flex justify-center py-10">
+               <div className="relative w-full flex justify-center items-center gap-4">
+                  <div className="w-[180px] -rotate-6 transition-transform hover:rotate-0 hover:z-50 duration-500 hidden sm:block">
+                    <ScreenPlaceholder title="Stats" />
+                  </div>
+                  <div className="w-[200px] z-10 shadow-2xl scale-110">
+                    <ScreenPlaceholder title="Main App" className="bg-gradient-to-br from-emerald-600 to-teal-500" />
+                  </div>
+                  <div className="w-[180px] rotate-6 transition-transform hover:rotate-0 hover:z-50 duration-500 hidden sm:block">
+                    <ScreenPlaceholder title="Orders" className="bg-gradient-to-br from-slate-800 to-black" />
+                  </div>
+               </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ════ COMPACT BENTO GRID ════ */}
+      <section id="fitur" className="py-20 bg-slate-50/50">
+        <div className="max-w-6xl mx-auto px-6">
+          <div className="grid md:grid-cols-4 gap-4">
+            <div className="md:col-span-2 bg-emerald-600 rounded-3xl p-8 text-white relative overflow-hidden group">
+               <div className="relative z-10">
+                 <h3 className="text-2xl font-black mb-3 italic">"Tahu untung tiap hari"</h3>
+                 <p className="text-emerald-100 text-sm font-medium leading-relaxed max-w-xs">
+                   Dashboard cerdas yang menghitung otomatis modal & margin sesuai level mitra Anda secara real-time.
+                 </p>
+               </div>
+               <BarChart3 className="absolute -bottom-6 -right-6 w-32 h-32 opacity-10" />
+            </div>
+            
+            <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm flex flex-col justify-between items-start text-left">
+               <div className="w-10 h-10 bg-sky-50 rounded-xl flex items-center justify-center text-sky-600 mb-2">
+                  <Bot className="w-5 h-5" />
+               </div>
+               <div>
+                  <h4 className="text-sm font-black text-slate-900 mb-1">Bot Terintegrasi</h4>
+                  <p className="text-[10px] text-slate-400 font-bold leading-tight">Input via Telegram tanpa manual.</p>
+               </div>
+            </div>
+
+            <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm flex flex-col justify-between items-start text-left">
+               <div className="w-10 h-10 bg-amber-50 rounded-xl flex items-center justify-center text-amber-600 mb-2">
+                  <ShieldCheck className="w-5 h-5" />
+               </div>
+               <div>
+                  <h4 className="text-sm font-black text-slate-900 mb-1">PWA Support</h4>
+                  <p className="text-[10px] text-slate-400 font-bold leading-tight">Buka langsung di browser HP.</p>
+               </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ════ FAQ ════ */}
+      <section id="faq" className="py-16 bg-white">
+        <div className="max-w-2xl mx-auto px-6">
+          <div className="text-left mb-10">
+            <h2 className="text-2xl font-black text-slate-900 tracking-tight">Paling Sering Ditanyakan</h2>
+          </div>
+          <div className="space-y-3">
+            {[
+              { q: 'Bagaimana cara kerja Bot Telegram?', a: 'Forward pesan pesanan pelanggan ke @RekapanMitraBot. Bot akan mem-parsing data secara otomatis ke dashboard Anda.' },
+              { q: 'Apakah aman untuk data bisnis saya?', a: 'Sangat aman. Kami menggunakan enkripsi Row Level Security (RLS) dari Supabase.' },
+              { q: 'Bagaimana jika saya ganti level mitra?', a: 'Sistem akan otomatis menyesuaikan harga modal untuk semua order berikutnya.' }
+            ].map((faq, i) => (
+              <div key={i} className="bg-slate-50 rounded-2xl border border-slate-100 overflow-hidden">
+                <button 
+                  onClick={() => toggleFaq(i)}
+                  className="w-full px-6 py-4 text-left flex items-center justify-between hover:bg-emerald-50 transition-colors"
+                >
+                  <span className="text-sm font-black text-slate-700">{faq.q}</span>
+                  <ChevronDown className={cn("w-4 h-4 text-slate-400 transition-transform", activeFaq === i && "rotate-180")} />
+                </button>
+                {activeFaq === i && (
+                  <div className="px-6 pb-4 animate-in slide-in-from-top-1 duration-200 text-xs text-slate-500 font-bold leading-relaxed">
+                    {faq.a}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ════ FINAL CTA ════ */}
+      <section className="py-20 relative overflow-hidden bg-slate-950">
+        <div className="max-w-4xl mx-auto px-6 text-center space-y-6 relative z-10">
+          <h2 className="text-3xl lg:text-5xl font-black text-white leading-tight tracking-tight">
+            Digitalisasi Bisnis <br /> <span className="text-emerald-500">Mulai Dari Sini.</span>
+          </h2>
+          <p className="text-slate-500 text-sm font-bold max-w-xl mx-auto uppercase tracking-[0.2em]">
+            Tanpa Instalasi · Investasi Berkelanjutan
+          </p>
+          <div className="flex flex-col sm:flex-row items-center gap-3 justify-center pt-6">
+             <Link to="/dashboard" className="w-full sm:w-auto h-14 px-12 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-black text-base shadow-lg active:scale-95 transition-all flex items-center justify-center">
+               Mulai Perjalanan Gratis
+             </Link>
+             <a href="https://wa.me/6287782697973" className="w-full sm:w-auto h-14 px-12 bg-white/5 hover:bg-white/10 text-white rounded-xl font-black text-base border border-white/10 transition-all flex items-center justify-center">
+               Tanya via WhatsApp
+             </a>
+          </div>
+        </div>
+      </section>
+
+      {/* ════ FOOTER ════ */}
+      <footer className="py-12 bg-white border-t border-slate-100">
+        <div className="max-w-6xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-8">
+          <div className="flex items-center">
+            <img 
+              src="/icon-rekapan-mitra.png" 
+              alt="Rekapan Mitra" 
+              className="h-10 w-auto object-contain"
+            />
+          </div>
+          
+          <div className="flex gap-8 text-[11px] font-black uppercase tracking-[0.2em] text-slate-500">
+            <a href="#" className="hover:text-emerald-600 transition-colors">Syarat & Ketentuan</a>
+            <a href="#" className="hover:text-emerald-600 transition-colors">Kebijakan Privasi</a>
+          </div>
+
+          <p className="text-slate-400 text-[10px] font-black tracking-widest uppercase">
+            © 2026 mitrabp.biz.id
+          </p>
+        </div>
+      </footer>
+
+    </div>
+  );
 }

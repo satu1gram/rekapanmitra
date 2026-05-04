@@ -1,73 +1,54 @@
-# Welcome to your Lovable project
+# 🚀 Rekapan Mitra: Solusi Pintar Kelola Pesanan & Stok
 
-## Project info
+**Rekapan Mitra** adalah platform manajemen pesanan dan stok yang dirancang khusus untuk mitra bisnis BP Group. Aplikasi ini membantu Anda mengotomatiskan rekapitulasi harian, memantau profit secara akurat, dan mempercepat input pesanan melalui integrasi Bot Telegram yang cerdas.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+---
 
-## How can I edit this code?
+## 🛠️ Langkah Memulai (Panduan Pengguna)
 
-There are several ways of editing your application.
+Ikuti langkah-langkah di bawah ini untuk mulai mengoptimalkan bisnis Anda:
 
-**Use Lovable**
+### 1. Pendaftaran & Akses
+*   Akses dashboard melalui [mitrabp.biz.id](https://mitrabp.biz.id).
+*   Lakukan pendaftaran akun baru menggunakan email aktif.
+*   Setelah login, Anda akan langsung diarahkan ke **Dashboard Utama** yang menampilkan ringkasan performa bulanan Anda.
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+### 2. Setup Produk & Stok
+Sebelum memulai transaksi, pastikan data produk Anda sudah siap:
+*   Buka menu **Produk**.
+*   Tambahkan stok awal untuk setiap produk yang Anda miliki.
+*   Sistem secara otomatis akan menghitung sisa stok setiap kali ada pesanan masuk.
 
-Changes made via Lovable will be committed automatically to this repo.
+### 3. Aktivasi Bot Telegram (Fitur Unggulan)
+Input pesanan kini bisa secepat mengetik chat!
+*   Cari bot di Telegram: `@RekapanMitraBot` (atau sesuai username bot Anda).
+*   Ketik perintah `/daftar [slug-toko-anda]` untuk menghubungkan bot dengan akun dashboard Anda.
+*   **Cara Pakai**: Anda cukup mem-forward pesan order dari pelanggan (Nama, No HP, Produk) ke bot, dan bot akan otomatis mendeteksi data tersebut.
+*   Konfirmasi pesanan di bot, dan data akan langsung muncul di Dashboard secara *real-time*.
 
-**Use your preferred IDE**
+### 4. Manajemen Pesanan & Biaya Tambahan
+Di Dashboard, Anda bisa mengelola pesanan lebih lanjut:
+*   **Update Status**: Tandai pesanan sebagai *Lunas* atau *Dikirim*.
+*   **Biaya Tambahan**: Tambahkan biaya pengiriman (ongkir) atau pengemasan saat membuat/mengedit pesanan untuk mendapatkan perhitungan profit bersih yang akurat.
+*   **Tambah Pelanggan Baru**: Anda bisa menambah data pelanggan baru langsung saat membuat pesanan tanpa harus pindah menu.
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+### 5. Pantau Profit & Rekapitulasi
+Tujuan utama aplikasi ini adalah memberi Anda gambaran bisnis yang jernih:
+*   Gunakan **Dashboard Bento Grid** untuk melihat total omzet, total profit, dan jumlah pelanggan aktif dalam satu layar.
+*   Filter data berdasarkan bulan untuk melihat perkembangan bisnis Anda dari waktu ke waktu.
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+---
 
-Follow these steps:
+## ✨ Fitur Utama
+*   **AI Smart Parsing**: Bot Telegram yang mengerti format chat pesanan Anda.
+*   **Atomic Expense Tracking**: Pantau pengeluaran tambahan per pesanan agar profit tetap presisi.
+*   **Bento Grid Dashboard**: Tampilan modern, compact, dan responsive (nyaman di HP & Desktop).
+*   **Manajemen Mitra & Konsumen**: Pembedaan harga otomatis berdasarkan level (Mitra, Agen, Reseller, atau Konsumen Satuan).
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+---
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+## 🆘 Butuh Bantuan?
+Jika Anda mengalami kendala teknis atau memiliki pertanyaan seputar penggunaan aplikasi, silakan hubungi tim pengembang atau cek menu **Bantuan** di dalam aplikasi.
 
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
-
-**Edit a file directly in GitHub**
-
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
-
-**Use GitHub Codespaces**
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+---
+*Dibuat dengan ❤️ untuk kemajuan Mitra Indonesia.*
