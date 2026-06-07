@@ -9,6 +9,9 @@ import {
   ChevronDown, ChevronLeft, ChevronRight, Calendar, Check, Edit, Trash2, ArrowDown, ArrowUp, Settings2, BarChart3,
   TrendingUp, ShoppingCart, ArrowLeft
 } from 'lucide-react';
+import { ChoiceSheet } from '../bot/ChoiceSheet';
+import { BotModal } from '../bot/BotModal';
+import type { ParsedRestok } from '@/lib/orderParser';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -46,6 +49,8 @@ export function StockPage() {
   const mitraInfo = MITRA_LEVELS[mitraLevel];
 
   const [view, setView] = useState<View>('main');
+  const [showChoiceSheet, setShowChoiceSheet] = useState(false);
+  const [showBotModal, setShowBotModal] = useState(false);
   const [quantity, setQuantity] = useState(1);
   const [buyPrice, setBuyPrice] = useState(mitraInfo.buyPricePerBottle);
   const [notes, setNotes] = useState('');
@@ -527,8 +532,37 @@ export function StockPage() {
 
       <main className="px-4 pt-3 pb-6 space-y-4">
         {/* Main Action (Ultra Compact) */}
+        <ChoiceSheet
+          mode="restok"
+          open={showChoiceSheet}
+          onManual={() => { setShowChoiceSheet(false); resetForm(); setView('restok'); }}
+          onBot={() => { setShowChoiceSheet(false); setShowBotModal(true); }}
+          onClose={() => setShowChoiceSheet(false)}
+        />
+        <BotModal
+          mode="restok"
+          open={showBotModal}
+          onClose={() => setShowBotModal(false)}
+          onConfirmRestok={async (parsed: ParsedRestok & { buyPricePerBottle: number }) => {
+            const totalQty = parsed.items.reduce((s, i) => s + i.qty, 0);
+            if (totalQty < 1) return false;
+            try {
+              await addStock({
+                quantity: totalQty,
+                tier: mitraLevel as any,
+                buyPricePerBottle: parsed.buyPricePerBottle,
+                notes: parsed.items.map(i => `${i.qty}x ${i.nama}`).join(', '),
+              });
+              toast.success(`✅ Restok ${totalQty} botol berhasil dicatat!`);
+              return true;
+            } catch {
+              toast.error('Gagal mencatat restok');
+              return false;
+            }
+          }}
+        />
         <button
-          onClick={() => { resetForm(); setView('restok'); }}
+          onClick={() => setShowChoiceSheet(true)}
           className="w-full flex items-center justify-center gap-2 bg-emerald-600 text-white py-2.5 rounded-xl font-black text-sm shadow-md hover:bg-emerald-700 active:scale-[0.98] transition-all"
         >
           <Plus className="h-4 w-4" />

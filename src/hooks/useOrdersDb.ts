@@ -10,12 +10,83 @@ export interface OrderWithItems extends Order {
   items?: OrderItem[];
 }
 
+const MOCK_DEMO_ORDERS: OrderWithItems[] = [
+  {
+    id: "demo-order-1",
+    user_id: "demo-user-id",
+    customer_id: "cust-1",
+    customer_name: "Budi Santoso",
+    customer_phone: "081234567890",
+    tier: "agen" as any,
+    quantity: 12,
+    price_per_bottle: 191666,
+    total_price: 2300000,
+    buy_price: 1850000,
+    margin: 450000,
+    status: "lunas" as any,
+    created_at: "2026-04-06T10:00:00.000Z",
+  },
+  {
+    id: "demo-order-2",
+    user_id: "demo-user-id",
+    customer_id: "cust-2",
+    customer_name: "Siti Aminah",
+    customer_phone: "085678901234",
+    tier: "reseller" as any,
+    quantity: 5,
+    price_per_bottle: 195000,
+    total_price: 975000,
+    buy_price: 795000,
+    margin: 180000,
+    status: "lunas" as any,
+    created_at: "2026-04-05T14:30:00.000Z",
+  },
+  {
+    id: "demo-order-3",
+    user_id: "demo-user-id",
+    customer_id: "cust-3",
+    customer_name: "Hendra",
+    customer_phone: "089012345678",
+    tier: "satuan" as any,
+    quantity: 1,
+    price_per_bottle: 250000,
+    total_price: 250000,
+    buy_price: 195000,
+    margin: 55000,
+    status: "lunas" as any,
+    created_at: "2026-04-05T09:15:00.000Z",
+  },
+  {
+    id: "demo-order-4",
+    user_id: "demo-user-id",
+    customer_id: "cust-4",
+    customer_name: "Dewi Lestari",
+    customer_phone: "087712345678",
+    tier: "agen" as any,
+    quantity: 10,
+    price_per_bottle: 180000,
+    total_price: 1800000,
+    buy_price: 1450000,
+    margin: 350000,
+    status: "pending" as any,
+    created_at: "2026-04-04T16:45:00.000Z",
+  }
+];
+
 export function useOrders() {
   const { user } = useAuth();
   const [orders, setOrders] = useState<OrderWithItems[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const isDemo = typeof window !== 'undefined' && window.location.search.includes('demo=true');
+
   const fetchOrders = useCallback(async () => {
+    if (isDemo) {
+      setOrders(MOCK_DEMO_ORDERS);
+      setLoading(false);
+      return;
+    }
+
     if (!user) {
       setOrders([]);
       setLoading(false);
@@ -36,13 +107,31 @@ export function useOrders() {
 
     setOrders(data || []);
     setLoading(false);
-  }, [user?.id]);
+  }, [user?.id, isDemo]);
 
   useEffect(() => {
     fetchOrders();
   }, [fetchOrders]);
 
   const fetchOrderItems = useCallback(async (orderId: string): Promise<OrderItem[]> => {
+    if (isDemo) {
+      if (orderId === 'demo-order-1') {
+        return [
+          { id: 'item-1', productName: 'Paket Steffi 10 Botol', productId: 'p1', quantity: 1, pricePerBottle: 1800000, subtotal: 1800000 },
+          { id: 'item-2', productName: 'BP Satuan', productId: 'p2', quantity: 2, pricePerBottle: 250000, subtotal: 500000 }
+        ];
+      }
+      if (orderId === 'demo-order-2') {
+        return [{ id: 'item-3', productName: 'Paket Belgie 5 Botol', productId: 'p3', quantity: 1, pricePerBottle: 975000, subtotal: 975000 }];
+      }
+      if (orderId === 'demo-order-3') {
+        return [{ id: 'item-4', productName: 'BP Satuan', productId: 'p2', quantity: 1, pricePerBottle: 250000, subtotal: 250000 }];
+      }
+      if (orderId === 'demo-order-4') {
+        return [{ id: 'item-5', productName: 'Paket Steffi 10 Botol', productId: 'p1', quantity: 1, pricePerBottle: 1800000, subtotal: 1800000 }];
+      }
+    }
+
     const { data, error } = await supabase
       .from('order_items' as any)
       .select('*')
@@ -62,7 +151,7 @@ export function useOrders() {
       pricePerBottle: Number(item.price_per_bottle),
       subtotal: Number(item.subtotal),
     }));
-  }, []);
+  }, [isDemo]);
 
   const addOrder = useCallback(async (orderData: {
     customerName: string;

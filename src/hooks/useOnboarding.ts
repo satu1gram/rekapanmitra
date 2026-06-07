@@ -34,7 +34,13 @@ export function useOnboarding() {
     const [isComplete, setIsComplete] = useState<boolean | null>(null);
     const [saving, setSaving] = useState(false);
 
+    const isDemo = typeof window !== 'undefined' && window.location.search.includes('demo=true');
+
     useEffect(() => {
+        if (isDemo) {
+            setIsComplete(true);
+            return;
+        }
         // Wait for profile loading to finish before making decisions
         if (profileLoading) return;
 

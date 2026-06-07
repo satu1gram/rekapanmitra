@@ -41,14 +41,16 @@ export function TambahOrderFlow({ customers, submitting, onSubmit, onCancel, onE
   const { products, loading: productsLoading } = useProducts();
   const [step, setStep] = useState<Step>('info');
   
-  const [customerName, setCustomerName] = useState('');
-  const [customerPhone, setCustomerPhone] = useState('');
-  const [customerAddress, setCustomerAddress] = useState('');
-  const [tier, setTier] = useState<TierType>('satuan');
-  const [orderDate, setOrderDate] = useState(new Date().toISOString().split('T')[0]);
+  const isDemo = typeof window !== 'undefined' && window.location.search.includes('demo=true');
+  
+  const [customerName, setCustomerName] = useState(isDemo ? 'Budi Santoso' : '');
+  const [customerPhone, setCustomerPhone] = useState(isDemo ? '081234567890' : '');
+  const [customerAddress, setCustomerAddress] = useState(isDemo ? 'Jl. Sudirman No. 12, Jakarta' : '');
+  const [tier, setTier] = useState<TierType>(isDemo ? 'agen' : 'satuan');
+  const [orderDate, setOrderDate] = useState(isDemo ? '2026-04-06' : new Date().toISOString().split('T')[0]);
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(initialSelectedCustomerId || null);
   const [items, setItems] = useState<ProductItem[]>([]);
-  const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [expenses, setExpenses] = useState<Expense[]>(isDemo ? [{ name: 'Ongkos Kirim', amount: 25000 }] : []);
   
   const [newExpName, setNewExpName] = useState('');
   const [newExpAmount, setNewExpAmount] = useState('');
@@ -107,15 +109,22 @@ export function TambahOrderFlow({ customers, submitting, onSubmit, onCancel, onE
     if (productsLoading || products.length === 0) return;
     const categories = Array.from(new Set(products.map(p => p.category || p.name.split(/[ _]/)[0])));
     if (items.length === 0) {
-      const initialItems = categories.map(cat => ({
-        productName: cat,
-        quantity: 0,
-        pricePerBottle: 250000,
-        subtotal: 0,
-      }));
+      const initialItems = categories.map(cat => {
+        let quantity = 0;
+        if (isDemo) {
+          if (cat === 'STEFFI') quantity = 1;
+          if (cat === 'BP') quantity = 2;
+        }
+        return {
+          productName: cat,
+          quantity,
+          pricePerBottle: 250000,
+          subtotal: 0,
+        };
+      });
       setItems(recalcItems(initialItems, tier));
     }
-  }, [products, productsLoading, tier, recalcItems, items.length]);
+  }, [products, productsLoading, tier, recalcItems, items.length, isDemo]);
 
   const totalQty = items.reduce((s, i) => s + i.quantity, 0);
   const itemsTotalPrice = items.reduce((s, i) => s + i.subtotal, 0);

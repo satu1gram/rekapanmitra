@@ -7,12 +7,11 @@ import { useTargets } from '@/hooks/useTargets';
 import { useCustomers } from '@/hooks/useCustomersDb';
 import { formatCurrency, formatShortCurrency } from '@/lib/formatters';
 import {
-  TrendingUp, Package, ShoppingCart, Plus, PackagePlus,
-  Loader2, AlertTriangle, ChevronRight, ChevronLeft, ChevronDown,
-  Flag, Lock, ListFilter, Users
+  Package, ShoppingCart, PackagePlus,
+  AlertTriangle, ChevronRight, ChevronLeft, ChevronDown,
+  Flag, ListFilter, Users, CheckCircle2, Hourglass, Medal
 } from 'lucide-react';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
-import { LOW_STOCK_THRESHOLD } from '@/types';
 import { cn } from '@/lib/utils';
 import { TargetForm } from './TargetForm';
 import { TargetList } from './TargetList';
@@ -45,27 +44,33 @@ export function Dashboard({ onNavigate }: DashboardProps) {
 
   const loading = ordersLoading || stockLoading || expensesLoading || incomeLoading || customersLoading;
 
+  const isDemo = typeof window !== 'undefined' && window.location.search.includes('demo=true');
   const now = new Date();
-  
+
   // UI State
-  const [selectedYear, setSelectedYear] = useState(now.getFullYear());
-  const [selectedMonth, setSelectedMonth] = useState(now.getMonth());
+  const [selectedYear, setSelectedYear] = useState(isDemo ? 2026 : now.getFullYear());
+  const [selectedMonth, setSelectedMonth] = useState(isDemo ? 3 : now.getMonth());
   const [showMonthPicker, setShowMonthPicker] = useState(false);
-  const [pickerYear, setPickerYear] = useState(now.getFullYear());
+  const [pickerYear, setPickerYear] = useState(isDemo ? 2026 : now.getFullYear());
 
   const thisYear = selectedYear;
   const thisMonth = selectedMonth;
 
-  const [view, setView] = useState<'dashboard' | 'form' | 'list' | 'customer-growth'>('dashboard');
+  const [view, setView] = useState<'dashboard' | 'form' | 'list' | 'customer-growth'>(
+    isDemo && typeof window !== 'undefined' && window.location.search.includes('view=growth')
+      ? 'customer-growth'
+      : 'dashboard'
+  );
   const [includeBiaya, setIncludeBiaya] = useState(false);
   const [formYear, setFormYear] = useState(thisYear);
   const [formMonth, setFormMonth] = useState(thisMonth);
 
-  // Current month data — filter by calendar month
+  // Current month data
   const monthOrders = useMemo(() => orders.filter(o => {
     const d = new Date(o.created_at);
     return d.getFullYear() === thisYear && d.getMonth() === thisMonth;
   }), [orders, thisYear, thisMonth]);
+
   const monthRevenue = monthOrders.reduce((sum, o) => sum + Number(o.total_price), 0);
   const monthProfit = monthOrders.reduce((sum, o) => sum + Number(o.margin), 0);
   const monthExpensesTotal = getTotalExpenses(getMonthExpenses());
@@ -74,7 +79,6 @@ export function Dashboard({ onNavigate }: DashboardProps) {
   const displayedProfit = includeBiaya ? monthNetProfit : monthProfit;
   const monthQty = monthOrders.reduce((sum, o) => sum + o.quantity, 0);
 
-  // Restok bulan ini (stock_entries type='in' di bulan berjalan)
   const monthRestockQty = useMemo(() => stockEntries
     .filter(e => {
       if (e.type !== 'in') return false;
@@ -90,23 +94,17 @@ export function Dashboard({ onNavigate }: DashboardProps) {
     thisMonth === 0 ? 11 : thisMonth - 1
   );
 
-  // Progress calculations
   const profitPct = currentTarget && currentTarget.targetProfit > 0
-    ? Math.min(Math.round((displayedProfit / currentTarget.targetProfit) * 100), 100)
-    : 0;
+    ? Math.min(Math.round((displayedProfit / currentTarget.targetProfit) * 100), 100) : 0;
   const qtyPct = currentTarget && currentTarget.targetQty > 0
-    ? Math.min(Math.round((monthQty / currentTarget.targetQty) * 100), 100)
-    : 0;
+    ? Math.min(Math.round((monthQty / currentTarget.targetQty) * 100), 100) : 0;
   const stockPct = currentTarget && currentTarget.targetStock > 0
-    ? Math.min(Math.round((monthRestockQty / currentTarget.targetStock) * 100), 100)
-    : 0;
+    ? Math.min(Math.round((monthRestockQty / currentTarget.targetStock) * 100), 100) : 0;
   const omsetPct = currentTarget && currentTarget.targetProfit > 0
-    ? Math.min(Math.round((monthRevenue / (currentTarget.targetProfit * 1.5)) * 100), 100)
-    : 0;
+    ? Math.min(Math.round((monthRevenue / (currentTarget.targetProfit * 1.5)) * 100), 100) : 0;
 
   const monthName = `${MONTH_NAMES[thisMonth]} ${thisYear}`;
 
-  // Achievements per month for TargetList
   const achievements = useMemo(() => {
     const map: Record<string, { profit: number; qty: number }> = {};
     for (const o of orders) {
@@ -119,7 +117,6 @@ export function Dashboard({ onNavigate }: DashboardProps) {
     return map;
   }, [orders]);
 
-  // Customer statistics (Option A: Active Customers in selected month)
   const monthActiveCustomers = useMemo(() => {
     const activeCustomerIds = new Set(monthOrders.map(o => o.customer_id).filter(Boolean));
     return customers.filter(c => activeCustomerIds.has(c.id));
@@ -133,11 +130,8 @@ export function Dashboard({ onNavigate }: DashboardProps) {
     setFormYear(year); setFormMonth(month); setView('form');
   };
 
-  if (loading) {
-    return <LoadingScreen variant="dashboard" />;
-  }
+  if (loading) return <LoadingScreen variant="dashboard" />;
 
-  // ── FORM MODE ──
   if (view === 'form') {
     return (
       <TargetForm
@@ -153,7 +147,6 @@ export function Dashboard({ onNavigate }: DashboardProps) {
     );
   }
 
-  // ── LIST MODE ──
   if (view === 'list') {
     return (
       <TargetList
@@ -166,31 +159,24 @@ export function Dashboard({ onNavigate }: DashboardProps) {
     );
   }
 
-  // ── CUSTOMER GROWTH MODE ──
   if (view === 'customer-growth') {
     return <CustomerGrowthPage onBack={() => setView('dashboard')} />;
   }
 
   // ── DASHBOARD MODE ──
   return (
-    <div className="flex flex-col min-h-[calc(100vh-80px)] bg-background">
-      {/* Header - Compact */}
+    <div className="flex flex-col bg-background">
+      {/* Header */}
       <header className="sticky top-0 z-30 bg-card/80 backdrop-blur-md border-b border-border px-4 py-2">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <img src="/pwa-192x192.png" alt="Logo" className="w-8 h-8 object-contain rounded-lg shadow-sm" />
-            <div className="flex flex-col">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter leading-none">
-                {getGreeting()}
-              </span>
-              <h1 className="text-sm font-black text-slate-900 leading-none">Beranda</h1>
-            </div>
+          <div className="flex flex-col">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter leading-none">
+              {getGreeting()}
+            </span>
+            <h1 className="text-sm font-black text-slate-900 leading-none">Beranda</h1>
           </div>
-          <button 
-            onClick={() => {
-              setPickerYear(selectedYear);
-              setShowMonthPicker(p => !p);
-            }}
+          <button
+            onClick={() => { setPickerYear(selectedYear); setShowMonthPicker(p => !p); }}
             className="flex items-center gap-1.5 bg-slate-900 text-white px-3 py-1.5 rounded-full shadow-sm cursor-pointer active:scale-95 transition-all"
           >
             <span className="text-xs font-bold tracking-tight capitalize">{monthName}</span>
@@ -217,18 +203,12 @@ export function Dashboard({ onNavigate }: DashboardProps) {
                 return (
                   <button
                     key={idx}
-                    onClick={() => {
-                      setSelectedYear(pickerYear);
-                      setSelectedMonth(idx);
-                      setShowMonthPicker(false);
-                    }}
+                    onClick={() => { setSelectedYear(pickerYear); setSelectedMonth(idx); setShowMonthPicker(false); }}
                     className={cn(
                       "py-1.5 rounded-lg text-[10px] font-bold transition-all",
-                      isSelected
-                        ? "bg-slate-900 text-white"
-                        : isCurrentMonth
-                           ? "bg-emerald-50 text-emerald-700 border-emerald-100 border"
-                           : "bg-slate-50 text-slate-600 hover:bg-slate-100"
+                      isSelected ? "bg-slate-900 text-white"
+                        : isCurrentMonth ? "bg-emerald-50 text-emerald-700 border-emerald-100 border"
+                        : "bg-slate-50 text-slate-600 hover:bg-slate-100"
                     )}
                   >
                     {name.slice(0, 3)}
@@ -240,9 +220,9 @@ export function Dashboard({ onNavigate }: DashboardProps) {
         )}
       </header>
 
-      <main className="flex-1 px-3 py-3 space-y-2.5 overflow-hidden">
-        {/* ═══════ NO TARGET STATE ═══════ */}
+      <main className="px-3 py-3 space-y-2">
         {!currentTarget ? (
+          /* ── No Target ── */
           <div className="bg-white rounded-[1.5rem] p-6 text-center border-2 border-amber-50 shadow-sm">
             <div className="w-12 h-12 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-3">
               <AlertTriangle className="h-6 w-6 text-amber-500" />
@@ -260,142 +240,210 @@ export function Dashboard({ onNavigate }: DashboardProps) {
             </button>
           </div>
         ) : (
-          /* ═══════ ACTIVE TARGET STATE (BENTO GRID) ═══════ */
-          <div className="flex flex-col gap-2.5">
-            {/* Keuntungan Card - Compact */}
-            <section className="bg-slate-900 rounded-[1.5rem] p-4 text-white shadow-xl relative overflow-hidden ring-1 ring-white/10">
-              <div className="absolute -top-12 -right-12 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none" />
+          /* ── Active Dashboard ── */
+          <div className="flex flex-col gap-2">
+            {/* Keuntungan Card */}
+            <section className="bg-slate-900 rounded-2xl p-4 text-white shadow-lg relative overflow-hidden">
+              <div className="absolute -top-8 -right-8 w-28 h-28 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none" />
               <div className="relative z-10">
-                <div className="flex items-center justify-between mb-1.5">
+                <div className="flex items-center justify-between mb-1">
                   <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Keuntungan</span>
-                  <div className="flex items-center gap-2">
-                    <button onClick={() => setIncludeBiaya(false)} className={cn("text-[9px] font-black px-2 py-0.5 rounded", !includeBiaya ? "bg-emerald-500 text-white" : "bg-white/5 text-slate-500")}>Bersih</button>
-                    <button onClick={() => setIncludeBiaya(true)} className={cn("text-[9px] font-black px-2 py-0.5 rounded", includeBiaya ? "bg-emerald-500 text-white" : "bg-white/5 text-slate-500")}>Kotor</button>
+                  <div className="flex items-center gap-1.5">
+                    <button onClick={() => setIncludeBiaya(false)} className={cn("text-[9px] font-black px-2 py-0.5 rounded-md transition-colors", !includeBiaya ? "bg-emerald-500 text-white" : "bg-white/5 text-slate-500")}>Bersih</button>
+                    <button onClick={() => setIncludeBiaya(true)} className={cn("text-[9px] font-black px-2 py-0.5 rounded-md transition-colors", includeBiaya ? "bg-emerald-500 text-white" : "bg-white/5 text-slate-500")}>Kotor</button>
                   </div>
                 </div>
-
                 <div className="flex items-baseline gap-1 mb-2">
-                  <span className="text-emerald-400 text-xl font-black">Rp</span>
-                  <span className={cn('text-4xl font-black tracking-tighter leading-none', displayedProfit >= 0 ? 'text-emerald-400' : 'text-red-400')}>
+                  <span className="text-emerald-400 text-lg font-black">Rp</span>
+                  <span className={cn('text-3xl font-black tracking-tighter leading-none', displayedProfit >= 0 ? 'text-emerald-400' : 'text-red-400')}>
                     {formatCurrency(displayedProfit).replace('Rp', '').trim()}
                   </span>
                 </div>
-
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 mb-2">
                   <div className="flex-1 h-1.5 bg-white/10 rounded-full overflow-hidden">
-                    <div className="h-full bg-emerald-400 rounded-full" style={{ width: `${profitPct}%` }} />
+                    <div className="h-full bg-emerald-400 rounded-full transition-all duration-700" style={{ width: `${profitPct}%` }} />
                   </div>
                   <span className="text-[10px] font-black text-emerald-400 shrink-0">{profitPct}%</span>
                 </div>
-                
-                <div className="flex items-center justify-between mt-3 pt-3 border-t border-white/5">
-                   <button onClick={() => setView('list')} className="text-[10px] font-bold text-slate-400 flex items-center gap-1">
-                     <ListFilter className="w-3 h-3" /> Rekap Target
-                   </button>
-                   <button onClick={() => onNavigate('orders')} className="text-[10px] font-bold text-emerald-400 flex items-center gap-1">
-                     Riwayat <ChevronRight className="w-3 h-3" />
-                   </button>
+                <div className="flex items-center justify-between pt-2 border-t border-white/5">
+                  <button onClick={() => setView('list')} className="text-[10px] font-bold text-slate-400 flex items-center gap-1 active:text-slate-200">
+                    <ListFilter className="w-3 h-3" /> Rekap Target
+                  </button>
+                  <button onClick={() => onNavigate('orders')} className="text-[10px] font-bold text-emerald-400 flex items-center gap-1 active:text-emerald-300">
+                    Riwayat <ChevronRight className="w-3 h-3" />
+                  </button>
                 </div>
               </div>
             </section>
 
-            {/* Stats Grid - 2 Columns */}
-            <div className="grid grid-cols-2 gap-2.5">
-              {/* Omset */}
-              <div className="bg-white p-3.5 rounded-[1.25rem] border border-slate-100 shadow-sm flex flex-col justify-between min-h-[90px]">
-                <div className="flex items-center gap-1.5">
-                  <div className="w-6 h-6 rounded-md bg-blue-50 flex items-center justify-center">
-                    <ShoppingCart className="h-3 w-3 text-blue-600" />
+            {/* Omset + Terjual — 2 column grid */}
+            <div className="grid grid-cols-2 gap-2">
+              <div className="bg-white rounded-2xl p-3 border border-slate-100 shadow-sm">
+                <div className="flex items-center gap-1.5 mb-2">
+                  <div className="w-5 h-5 rounded-md bg-blue-50 flex items-center justify-center shrink-0">
+                    <ShoppingCart className="h-2.5 w-2.5 text-blue-600" />
                   </div>
                   <span className="text-[9px] font-black text-slate-400 uppercase tracking-tighter">Omset</span>
                 </div>
-                <div>
-                  <p className="text-xl font-black text-slate-900 tracking-tighter leading-tight">{formatShortCurrency(monthRevenue)}</p>
-                  <div className="flex items-center gap-1 mt-1">
-                    <div className="flex-1 h-1 bg-slate-50 rounded-full overflow-hidden">
-                      <div className="h-full bg-blue-400" style={{ width: `${omsetPct}%` }} />
-                    </div>
-                    <span className="text-[8px] font-bold text-slate-400">{omsetPct}%</span>
+                <p className="text-2xl font-black text-slate-900 tracking-tighter leading-none">{formatShortCurrency(monthRevenue)}</p>
+                <div className="flex items-center gap-1 mt-1.5">
+                  <div className="flex-1 h-1 bg-slate-100 rounded-full overflow-hidden">
+                    <div className="h-full bg-blue-400 rounded-full transition-all duration-700" style={{ width: `${omsetPct}%` }} />
                   </div>
+                  <span className="text-[8px] font-bold text-slate-400">{omsetPct}%</span>
                 </div>
               </div>
 
-              {/* Terjual */}
-              <div className="bg-white p-3.5 rounded-[1.25rem] border border-slate-100 shadow-sm flex flex-col justify-between min-h-[90px]">
-                <div className="flex items-center gap-1.5">
-                  <div className="w-6 h-6 rounded-md bg-orange-50 flex items-center justify-center">
-                    <Package className="h-3 w-3 text-orange-600" />
+              <div className="bg-white rounded-2xl p-3 border border-slate-100 shadow-sm">
+                <div className="flex items-center gap-1.5 mb-2">
+                  <div className="w-5 h-5 rounded-md bg-orange-50 flex items-center justify-center shrink-0">
+                    <Package className="h-2.5 w-2.5 text-orange-600" />
                   </div>
                   <span className="text-[9px] font-black text-slate-400 uppercase tracking-tighter">Terjual</span>
                 </div>
-                <div>
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-xl font-black text-slate-900 tracking-tighter leading-tight">{monthQty}</span>
-                    <span className="text-[9px] font-bold text-slate-400">pcs</span>
+                <div className="flex items-baseline gap-1">
+                  <span className="text-2xl font-black text-slate-900 tracking-tighter leading-none">{monthQty}</span>
+                  <span className="text-[10px] font-bold text-slate-400">pcs</span>
+                </div>
+                <div className="flex items-center gap-1 mt-1.5">
+                  <div className="flex-1 h-1 bg-slate-100 rounded-full overflow-hidden">
+                    <div className="h-full bg-orange-400 rounded-full transition-all duration-700" style={{ width: `${qtyPct}%` }} />
                   </div>
-                  <div className="flex items-center gap-1 mt-1">
-                    <div className="flex-1 h-1 bg-slate-50 rounded-full overflow-hidden">
-                      <div className="h-full bg-orange-400" style={{ width: `${qtyPct}%` }} />
-                    </div>
-                    <span className="text-[8px] font-bold text-slate-400">{qtyPct}%</span>
-                  </div>
+                  <span className="text-[8px] font-bold text-slate-400">{qtyPct}%</span>
                 </div>
               </div>
+            </div>
 
-              {/* Restok */}
-              <button onClick={() => onNavigate('stock')} className="bg-white p-3.5 rounded-[1.25rem] border border-slate-100 shadow-sm flex flex-col justify-between active:scale-95 transition-all min-h-[90px]">
-                <div className="flex items-center gap-1.5">
-                  <div className="w-6 h-6 rounded-md bg-emerald-50 flex items-center justify-center">
-                    <PackagePlus className="h-3 w-3 text-emerald-600" />
+            {/* Restok + Aktif — single card, 2 rows */}
+            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+              <button
+                onClick={() => onNavigate('stock')}
+                className="w-full flex items-center justify-between px-3 py-3 active:bg-slate-50 transition-colors border-b border-slate-50"
+              >
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-emerald-50 flex items-center justify-center shrink-0">
+                    <PackagePlus className="h-4 w-4 text-emerald-600" />
                   </div>
-                  <span className="text-[9px] font-black text-slate-400 uppercase tracking-tighter">Restok</span>
-                </div>
-                <div>
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-xl font-black text-slate-900 tracking-tighter leading-tight">{monthRestockQty}</span>
-                    <span className="text-[9px] font-bold text-slate-400">btl</span>
-                  </div>
-                  <div className="flex items-center gap-1 mt-1">
-                    <div className="flex-1 h-1 bg-slate-50 rounded-full overflow-hidden">
-                      <div className="h-full bg-emerald-400" style={{ width: `${stockPct}%` }} />
+                  <div className="text-left">
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-tighter leading-none">Restok Bulan Ini</p>
+                    <div className="flex items-baseline gap-1 mt-0.5">
+                      <span className="text-2xl font-black text-slate-900 tracking-tighter leading-none">{monthRestockQty}</span>
+                      <span className="text-[10px] font-bold text-slate-400">btl</span>
                     </div>
-                    <span className="text-[8px] font-bold text-slate-400">{stockPct}%</span>
                   </div>
+                </div>
+                <div className="flex flex-col items-end gap-1">
+                  <span className="text-[9px] font-black text-emerald-600">{stockPct}%</span>
+                  <div className="w-16 h-1 bg-slate-100 rounded-full overflow-hidden">
+                    <div className="h-full bg-emerald-400 rounded-full transition-all duration-700" style={{ width: `${stockPct}%` }} />
+                  </div>
+                  <ChevronRight className="h-3.5 w-3.5 text-slate-300" />
                 </div>
               </button>
 
-              {/* Pelanggan Aktif (FILTERED) */}
-              <button onClick={() => setView('customer-growth')} className="bg-white p-3.5 rounded-[1.25rem] border border-slate-100 shadow-sm flex flex-col justify-between active:scale-95 transition-all min-h-[90px]">
-                <div className="flex items-center gap-1.5">
-                  <div className="w-6 h-6 rounded-md bg-purple-50 flex items-center justify-center">
-                    <Users className="h-3 w-3 text-purple-600" />
+              <button
+                onClick={() => setView('customer-growth')}
+                className="w-full flex items-center justify-between px-3 py-3 active:bg-slate-50 transition-colors"
+              >
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-purple-50 flex items-center justify-center shrink-0">
+                    <Users className="h-4 w-4 text-purple-600" />
                   </div>
-                  <span className="text-[9px] font-black text-slate-400 uppercase tracking-tighter">Aktif</span>
-                </div>
-                <div>
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-xl font-black text-slate-900 tracking-tighter leading-tight">{activeTotal}</span>
-                    <span className="text-[9px] font-bold text-slate-400">org</span>
-                  </div>
-                  <div className="flex flex-col gap-0.5 mt-1">
-                    <div className="flex items-center justify-between text-[8px] font-bold">
-                      <span className="text-emerald-600">{activeMitra} Mitra</span>
-                      <span className="text-slate-400">{activeKonsumen} Kons</span>
+                  <div className="text-left">
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-tighter leading-none">Pelanggan Aktif</p>
+                    <div className="flex items-baseline gap-1 mt-0.5">
+                      <span className="text-2xl font-black text-slate-900 tracking-tighter leading-none">{activeTotal}</span>
+                      <span className="text-[10px] font-bold text-slate-400">org</span>
                     </div>
                   </div>
+                </div>
+                <div className="flex flex-col items-end gap-1.5">
+                  <div className="flex gap-2 text-[9px] font-bold">
+                    <span className="text-emerald-600">{activeMitra} Mitra</span>
+                    <span className="text-slate-400">{activeKonsumen} Kons</span>
+                  </div>
+                  <ChevronRight className="h-3.5 w-3.5 text-slate-300" />
                 </div>
               </button>
             </div>
 
-            {/* Quick Actions - Super Compact */}
-            <div className="grid grid-cols-2 gap-2">
-               <button onClick={() => onNavigate('orders', 'add')} className="bg-emerald-600 hover:bg-emerald-700 text-white p-3 rounded-xl flex items-center justify-center gap-2 transition-all shadow-md active:scale-95">
-                 <Plus className="w-4 h-4" /> <span className="text-xs font-black uppercase">Order</span>
-               </button>
-               <button onClick={() => onNavigate('stock')} className="bg-white border-2 border-slate-100 text-slate-900 p-3 rounded-xl flex items-center justify-center gap-2 transition-all shadow-sm active:scale-95">
-                 <PackagePlus className="w-4 h-4 text-emerald-600" /> <span className="text-xs font-black uppercase tracking-tight">Restok</span>
-               </button>
-            </div>
+            {/* ── Top 5 Mitra ── */}
+            {(() => {
+              // Hitung total botol per pelanggan dari monthOrders
+              const mitraMap = new Map<string, { name: string; qty: number; revenue: number }>();
+              for (const o of monthOrders) {
+                const key = o.customer_id || o.customer_name || 'unknown';
+                const existing = mitraMap.get(key);
+                if (existing) {
+                  existing.qty += o.quantity;
+                  existing.revenue += Number(o.total_price);
+                } else {
+                  mitraMap.set(key, {
+                    name: o.customer_name || 'Tanpa Nama',
+                    qty: o.quantity,
+                    revenue: Number(o.total_price),
+                  });
+                }
+              }
+              const topMitra = Array.from(mitraMap.values())
+                .sort((a, b) => b.qty - a.qty)
+                .slice(0, 5);
+
+              if (topMitra.length === 0) return null;
+
+              const medals = ['🥇', '🥈', '🥉', '4', '5'];
+              const medalColors = [
+                'text-amber-500 bg-amber-50',
+                'text-slate-400 bg-slate-50',
+                'text-orange-400 bg-orange-50',
+                'text-slate-400 bg-slate-50',
+                'text-slate-400 bg-slate-50',
+              ];
+
+              return (
+                <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+                  <div className="flex items-center justify-between px-3 pt-3 pb-2">
+                    <div className="flex items-center gap-1.5">
+                      <Medal className="w-3.5 h-3.5 text-amber-500" />
+                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Top Mitra Bulan Ini</span>
+                    </div>
+                    <button onClick={() => onNavigate('orders')} className="text-[9px] font-bold text-emerald-600 flex items-center gap-0.5">
+                      Riwayat <ChevronRight className="w-3 h-3" />
+                    </button>
+                  </div>
+                  {topMitra.map((mitra, i) => {
+                    const isLast = i === topMitra.length - 1;
+                    const isTop3 = i < 3;
+                    return (
+                      <div
+                        key={mitra.name + i}
+                        className={cn(
+                          'flex items-center gap-2.5 px-3 py-2',
+                          !isLast && 'border-b border-slate-50'
+                        )}
+                      >
+                        {/* Rank badge */}
+                        <span className={cn(
+                          'w-6 h-6 rounded-lg flex items-center justify-center text-[10px] font-black shrink-0',
+                          medalColors[i]
+                        )}>
+                          {isTop3 ? medals[i] : medals[i]}
+                        </span>
+                        {/* Name + qty */}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-bold text-slate-800 truncate leading-tight">{mitra.name}</p>
+                          <p className="text-[9px] text-slate-400 font-medium leading-tight">{mitra.qty} botol</p>
+                        </div>
+                        {/* Revenue */}
+                        <span className="text-xs font-black text-slate-700 shrink-0">
+                          {formatShortCurrency(mitra.revenue)}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()}
           </div>
         )}
       </main>

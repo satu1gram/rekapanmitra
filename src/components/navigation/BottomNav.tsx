@@ -3,7 +3,6 @@ import { NAV_PRIMARY_ITEMS } from './NavItems';
 import { cn } from '@/lib/utils';
 import { Plus } from 'lucide-react';
 
-// Map TabId → path URL
 const TAB_PATHS: Record<string, string> = {
   dashboard: '/dashboard',
   orders: '/riwayat',
@@ -20,27 +19,44 @@ export function BottomNav() {
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-30 bg-white border-t border-slate-100 shadow-[0_-4px_24px_rgba(0,0,0,0.06)] pb-[env(safe-area-inset-bottom)]">
-      <div className="mx-auto flex max-w-lg items-end justify-around h-[4.5rem] px-2 relative">
+      <div className="mx-auto flex max-w-lg items-stretch justify-around h-[4.5rem] px-2 relative">
+
         {NAV_PRIMARY_ITEMS.map((item, index) => {
           const Icon = item.icon;
           const path = TAB_PATHS[item.id] ?? '/';
 
-          const link = (
+          // Regular nav tab
+          const navTab = (
             <NavLink
               key={item.id}
               to={path}
               end={path === '/dashboard'}
-              className={({ isActive }) =>
-                cn(
-                  'flex flex-col items-center justify-center w-16 gap-1 pb-[0.6rem] transition-colors',
-                  isActive ? 'text-[#059669]' : 'text-slate-400 hover:text-slate-600'
-                )
-              }
+              className="relative flex flex-col items-center justify-center flex-1 gap-0.5 transition-colors"
             >
               {({ isActive }) => (
                 <>
-                  <Icon className={cn('h-6 w-6', isActive && 'stroke-[2.5px]')} />
-                  <span className="text-[10px] font-bold tracking-tight">{item.label}</span>
+                  {/* Top active indicator */}
+                  <span className={cn(
+                    'absolute top-0 left-1/2 -translate-x-1/2 h-0.5 w-8 rounded-full transition-all duration-300',
+                    isActive ? 'bg-emerald-500' : 'bg-transparent'
+                  )} />
+                  {/* Icon */}
+                  <span className={cn(
+                    'flex items-center justify-center w-8 h-8 rounded-xl transition-all duration-200',
+                    isActive ? 'bg-emerald-50' : ''
+                  )}>
+                    <Icon className={cn(
+                      'h-5 w-5 transition-all duration-200',
+                      isActive ? 'text-emerald-600 stroke-[2.5px]' : 'text-slate-400 stroke-2'
+                    )} />
+                  </span>
+                  {/* Label */}
+                  <span className={cn(
+                    'text-[9px] font-bold tracking-tight transition-colors duration-200',
+                    isActive ? 'text-emerald-600' : 'text-slate-400'
+                  )}>
+                    {item.label}
+                  </span>
                 </>
               )}
             </NavLink>
@@ -48,20 +64,25 @@ export function BottomNav() {
 
           if (index === 1) {
             return [
-              link,
-              <div key="add-button" className="relative flex flex-col items-center justify-center w-16 gap-1 pb-[0.6rem] transition-colors">
+              navTab,
+              // TAMBAH — same flex-1 structure, aligned with others
+              <div key="add-button" className="relative flex flex-col items-center justify-center flex-1 gap-0.5">
+                {/* Top indicator — always hidden (not a route) */}
+                <span className="absolute top-0 left-1/2 -translate-x-1/2 h-0.5 w-8 rounded-full bg-transparent" />
+                {/* Icon wrapper */}
                 <button
                   onClick={handleAddClick}
-                  className="flex items-center justify-center w-11 h-11 rounded-2xl bg-[#059669] text-white shadow-lg shadow-emerald-600/20 transform transition-transform active:scale-95 z-40"
+                  className="flex items-center justify-center w-8 h-8 rounded-xl bg-slate-100 text-slate-500 transition-all active:scale-95 active:bg-emerald-50 active:text-emerald-600"
                 >
-                  <Plus className="w-6 h-6" strokeWidth={2.5} />
+                  <Plus className="w-5 h-5 stroke-2" />
                 </button>
-                <span className="text-[10px] font-bold text-[#059669] whitespace-nowrap tracking-tight">TAMBAH</span>
-              </div>
+                {/* Label */}
+                <span className="text-[9px] font-bold tracking-tight text-slate-400">TAMBAH</span>
+              </div>,
             ];
           }
 
-          return link;
+          return navTab;
         })}
       </div>
     </nav>

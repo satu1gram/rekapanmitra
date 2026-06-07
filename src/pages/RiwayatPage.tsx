@@ -4,21 +4,25 @@ import { OrdersPage } from '@/components/orders/OrdersPage';
 
 export default function RiwayatPage() {
     const location = useLocation();
-    const [openAddForm, setOpenAddForm] = useState(location.state?.openAdd === true);
+    const query = new URLSearchParams(location.search);
+    const hasOpenAddParam = query.get('openAdd') === 'true';
+    const [openAddForm, setOpenAddForm] = useState(location.state?.openAdd === true || hasOpenAddParam);
 
     const navigate = useNavigate();
 
     // Watch for location state changes — handles FAB navigation from same page
     useEffect(() => {
-        if (location.state?.openAdd) {
+        if (location.state?.openAdd || hasOpenAddParam) {
             setOpenAddForm(true);
-            // Clear the state so it can be re-triggered if user clicks FAB again 
-            // while staying on this same page
-            navigate(location.pathname, { replace: true, state: {} });
+            if (location.state?.openAdd) {
+                // Clear the state so it can be re-triggered if user clicks FAB again 
+                // while staying on this same page
+                navigate(location.pathname + location.search, { replace: true, state: {} });
+            }
         } else {
             setOpenAddForm(false);
         }
-    }, [location.state, location.pathname, navigate]);
+    }, [location.state, location.pathname, location.search, navigate, hasOpenAddParam]);
 
     return (
         <OrdersPage

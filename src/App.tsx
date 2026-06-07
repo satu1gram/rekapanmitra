@@ -13,7 +13,6 @@ import { LoadingScreen } from "@/components/ui/LoadingScreen";
 import { PWAUpdatePrompt } from "@/components/PWAUpdatePrompt";
 
 // Lazy-load each page → hemat data (code-splitting otomatis via Vite)
-const LandingPage = lazy(() => import("./pages/LandingPage"));
 const AIHealthAdvisorPage = lazy(() => import("./pages/AIHealthAdvisorPage"));
 const DashboardPage = lazy(() => import("./pages/DashboardPage"));
 const RiwayatPage = lazy(() => import("./pages/RiwayatPage"));
@@ -21,6 +20,7 @@ const ProdukPage = lazy(() => import("./pages/ProdukPage"));
 const AkunPage = lazy(() => import("./pages/AkunPage"));
 const PublicOrderPage = lazy(() => import("./pages/PublicOrderPage"));
 const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage").then(m => ({ default: m.ResetPasswordPage })));
+const TelegramMockPage = lazy(() => import("./pages/TelegramMockPage"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -70,11 +70,13 @@ const App = () => (
           }}
         >
           <Routes>
-            {/* Landing page utama — visitor / organic user */}
-            <Route path="/" element={
-              <Suspense fallback={<PageLoader />}><LandingPage /></Suspense>
-            } />
+            {/* Landing page utama dipindah ke Next.js terpisah, arahkan ke login */}
+            <Route path="/" element={<Navigate to="/login" replace />} />
 
+            {/* Telegram Mock Page */}
+            <Route path="/telegram-mock" element={
+              <Suspense fallback={<PageLoader />}><TelegramMockPage /></Suspense>
+            } />
 
             {/* AI Health Advisor page */}
             <Route path="/ai-advisor" element={

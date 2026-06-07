@@ -117,5 +117,26 @@ export function useAuth() {
   if (context === undefined) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
+
+  // Support client-side demo mode via URL parameter
+  const isDemo = typeof window !== 'undefined' && window.location.search.includes('demo=true');
+  if (isDemo) {
+    return {
+      user: {
+        id: 'demo-user-id',
+        email: 'demo@rekapanmitra.com',
+        user_metadata: { name: 'Budi Santoso (Demo)' }
+      } as any,
+      session: {
+        access_token: 'demo-token',
+        user: { id: 'demo-user-id' }
+      } as any,
+      loading: false,
+      signUp: async () => ({ error: null }),
+      signIn: async () => ({ error: null }),
+      signOut: async () => {}
+    };
+  }
+
   return context;
 }

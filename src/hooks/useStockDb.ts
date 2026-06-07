@@ -13,7 +13,35 @@ export function useStock() {
   const [userStock, setUserStock] = useState<UserStock | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const isDemo = typeof window !== 'undefined' && window.location.search.includes('demo=true');
+
   const fetchStock = useCallback(async () => {
+    if (isDemo) {
+      setStockEntries([
+        {
+          id: "demo-stock-entry-1",
+          user_id: "demo-user-id",
+          product_id: "p1",
+          quantity: 80,
+          type: "in",
+          notes: "Restok awal April",
+          created_at: "2026-04-01T08:00:00.000Z",
+          tier: "agen",
+          buy_price_per_bottle: 185000,
+          total_buy_price: 14800000
+        } as any
+      ]);
+      setUserStock({
+        id: "demo-user-stock",
+        user_id: "demo-user-id",
+        current_stock: 120,
+        created_at: "2026-04-01T08:00:00.000Z",
+        updated_at: "2026-04-06T10:00:00.000Z"
+      } as any);
+      setLoading(false);
+      return;
+    }
+
     if (!user) {
       setStockEntries([]);
       setUserStock(null);

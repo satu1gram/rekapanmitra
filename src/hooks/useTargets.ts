@@ -25,8 +25,18 @@ export function useTargets() {
     const [loading, setLoading] = useState(true);
     const [useLocalFallback, setUseLocalFallback] = useState(false);
 
+    const isDemo = typeof window !== 'undefined' && window.location.search.includes('demo=true');
+
     // ── Fetch dari Supabase, fallback ke localStorage jika tabel belum ada ──
     const fetchTargets = useCallback(async () => {
+        if (isDemo) {
+            setTargets([
+                { year: 2026, month: 3, targetProfit: 5000000, targetQty: 100, targetStock: 100 }
+            ]);
+            setLoading(false);
+            return;
+        }
+
         if (!user) { setTargets([]); setLoading(false); return; }
 
         const { data, error } = await supabase

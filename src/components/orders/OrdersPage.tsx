@@ -29,6 +29,9 @@ import { toast } from 'sonner';
 import type { Tables } from '@/integrations/supabase/types';
 import { OrderForm } from './OrderForm';
 import { TambahOrderFlow } from '../order/TambahOrderFlow';
+import { ChoiceSheet } from '../bot/ChoiceSheet';
+import { BotModal } from '../bot/BotModal';
+import type { ParsedOrder } from '@/lib/orderParser';
 import { OrderCard } from './OrderCard';
 import { PerformaPage } from './PerformaPage';
 import { OrderResultPage, OrderResult } from './OrderResultPage';
@@ -66,21 +69,25 @@ export function OrdersPage({ openAddForm = false, onAddFormClose }: OrdersPagePr
     return `${y}-${m}-${day}`;
   };
 
+  const isDemo = typeof window !== 'undefined' && window.location.search.includes('demo=true');
+
   const [startDate, setStartDate] = useState<string>(
-    getLocalYYYYMMDD(new Date(now.getFullYear(), now.getMonth(), 1))
+    isDemo ? "2026-04-01" : getLocalYYYYMMDD(new Date(now.getFullYear(), now.getMonth(), 1))
   );
   const [endDate, setEndDate] = useState<string>(
-    getLocalYYYYMMDD(now)
+    isDemo ? "2026-04-30" : getLocalYYYYMMDD(now)
   );
   const [showMonthPicker, setShowMonthPicker] = useState(false);
-  const [pickerYear, setPickerYear] = useState(now.getFullYear());
+  const [pickerYear, setPickerYear] = useState(isDemo ? 2026 : now.getFullYear());
   const [expandedDays, setExpandedDays] = useState<Set<string>>(new Set());
-  const [showAddModal, setShowAddModal] = useState(openAddForm);
+  const [showChoiceSheet, setShowChoiceSheet] = useState(openAddForm);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [showBotModal, setShowBotModal] = useState(false);
   
   // Sync internal state with prop for external triggers (e.g. BottomNav)
   useEffect(() => {
     if (openAddForm) {
-      setShowAddModal(true);
+      setShowChoiceSheet(true);
     }
   }, [openAddForm]);
   const [submitting, setSubmitting] = useState(false);
@@ -331,6 +338,43 @@ export function OrdersPage({ openAddForm = false, onAddFormClose }: OrdersPagePr
 
   return (
     <div className="flex flex-col min-h-screen bg-background text-slate-900">
+      {/* ChoiceSheet */}
+      <ChoiceSheet
+        mode="order"
+        open={showChoiceSheet}
+        onManual={() => { setShowChoiceSheet(false); onAddFormClose?.(); setShowAddModal(true); }}
+        onBot={() => { setShowChoiceSheet(false); onAddFormClose?.(); setShowBotModal(true); }}
+        onClose={() => { setShowChoiceSheet(false); onAddFormClose?.(); }}
+      />
+
+      {/* Bot Modal */}
+      <BotModal
+        mode="order"
+        open={showBotModal}
+        onClose={() => setShowBotModal(false)}
+        onConfirmOrder={async (parsed: ParsedOrder) => {
+          // Konversi hasil AI ke format handleSubmit
+          const items = parsed.items.map(item => ({
+            productName: item.nama,
+            quantity: item.qty,
+            pricePerBottle: 250000, // harga default satuan — form summary bisa koreksi
+            subtotal: item.qty * 250000,
+          }));
+          // Gunakan tanggal dari chat jika tersedia, fallback ke hari ini
+          const createdAt = parsed.tanggal
+            ? new Date(parsed.tanggal + 'T00:00:00').toISOString()
+            : undefined;
+          const ok = await handleSubmit({
+            customerName: parsed.pelanggan || 'Tidak Diketahui',
+            customerPhone: parsed.hp || '',
+            tier: 'satuan',
+            items,
+            createdAt,
+          });
+          return ok;
+        }}
+      />
+
       {/* Header - Compact & Dynamic */}
       <header className="px-5 pt-4 pb-3 bg-white/95 backdrop-blur-md shadow-sm z-[40] sticky top-0 border-b border-slate-100">
         <div className="flex items-center justify-between gap-3 mb-3">
