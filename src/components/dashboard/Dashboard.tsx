@@ -389,7 +389,17 @@ export function Dashboard({ onNavigate }: DashboardProps) {
                 .sort((a, b) => b.qty - a.qty)
                 .slice(0, 5);
 
-              if (topMitra.length === 0) return null;
+              if (topMitra.length === 0) {
+                return (
+                  <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden p-6 text-center flex flex-col items-center justify-center min-h-[160px]">
+                    <div className="w-12 h-12 bg-slate-50 rounded-2xl flex items-center justify-center mb-3">
+                      <Medal className="w-5 h-5 text-slate-300" />
+                    </div>
+                    <p className="text-xs font-black text-slate-800 mb-1">Belum Ada Transaksi</p>
+                    <p className="text-[10px] font-medium text-slate-400 max-w-[200px]">Top 5 mitra dengan pemesanan terbanyak akan muncul di sini.</p>
+                  </div>
+                );
+              }
 
               const medals = ['🥇', '🥈', '🥉', '4', '5'];
               const medalColors = [
