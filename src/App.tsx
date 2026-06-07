@@ -20,7 +20,7 @@ const ProdukPage = lazy(() => import("./pages/ProdukPage"));
 const AkunPage = lazy(() => import("./pages/AkunPage"));
 const PublicOrderPage = lazy(() => import("./pages/PublicOrderPage"));
 const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage").then(m => ({ default: m.ResetPasswordPage })));
-const TelegramMockPage = lazy(() => import("./pages/TelegramMockPage"));
+
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -73,10 +73,7 @@ const App = () => (
             {/* Landing page utama dipindah ke Next.js terpisah, arahkan ke login */}
             <Route path="/" element={<Navigate to="/login" replace />} />
 
-            {/* Telegram Mock Page */}
-            <Route path="/telegram-mock" element={
-              <Suspense fallback={<PageLoader />}><TelegramMockPage /></Suspense>
-            } />
+
 
             {/* AI Health Advisor page */}
             <Route path="/ai-advisor" element={

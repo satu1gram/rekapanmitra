@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import '@/styles/katalog.css';
+
 import { generateAIAdvice, RAGResult } from '@/lib/geminiRAG';
 import { KATALOG_PRODUCTS } from '@/data/katalogProducts';
 import { AIPreviewPanel } from '@/components/AIPreviewPanel';
