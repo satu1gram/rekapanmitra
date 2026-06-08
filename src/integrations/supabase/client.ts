@@ -3,8 +3,15 @@ import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 import { resilientStorage } from '@/lib/resilientStorage';
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+// Fallback ke nilai hardcoded agar app tidak crash jika env vars tidak di-set
+// di Cloudflare Pages. Nilai ini adalah public/publishable key — aman di source code.
+// Service role key TIDAK boleh ada di sini — taruh di Supabase Secrets.
+const SUPABASE_URL =
+  import.meta.env.VITE_SUPABASE_URL ||
+  'https://kqoitztjohxjnjoxctoz.supabase.co';
+const SUPABASE_PUBLISHABLE_KEY =
+  import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
+  'sb_publishable_3XUK3NfG0_hwtX0NLFSfoA_wR9_s39H';
 
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
