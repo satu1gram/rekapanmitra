@@ -2,11 +2,9 @@
 // Memanggil Supabase Edge Function "parse-order" sebagai proxy aman
 // API key AI TIDAK ada di sini — tersimpan di Supabase secrets
 
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseUrl = import.meta.env.VITE_PUBLIC_SUPABASE_URL as string;
-const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string;
-const supabase = createClient(supabaseUrl, supabaseKey);
+// Gunakan shared singleton — JANGAN buat createClient baru di sini.
+// Ini mencegah "supabaseUrl is required" jika env var tidak di-set.
+import { supabase } from '@/integrations/supabase/client';
 
 // ─── Tipe hasil parsing ───────────────────────────────────────────
 export type ParseIntent = 'order' | 'restok' | 'out_of_scope';
