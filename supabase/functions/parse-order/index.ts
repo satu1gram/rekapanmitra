@@ -126,6 +126,7 @@ serve(async (req) => {
 
     const apiKey = Deno.env.get("OPENAI_API_KEY");
     const apiBase = Deno.env.get("OPENAI_BASE_URL") || "https://ai.sumopod.com/v1";
+    const aiModel = Deno.env.get("OPENAI_MODEL") || "gpt-4o-mini";
 
     if (!apiKey) {
       throw new Error("OPENAI_API_KEY belum dikonfigurasi di Supabase secrets");
@@ -140,7 +141,7 @@ serve(async (req) => {
         Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: "gpt-4o-mini",
+        model: aiModel,
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: text },
