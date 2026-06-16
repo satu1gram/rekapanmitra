@@ -121,12 +121,9 @@ export function OrderCard({
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1 min-w-0">
             <p className="font-bold text-slate-900 text-base leading-tight truncate">{order.customer_name}</p>
-            <p className="text-slate-500 text-sm mt-0.5">{order.customer_phone || 'Tanpa Nomor'}</p>
+            <p className="text-slate-500 text-sm mt-0.5">{order.customer_phone || '-'}</p>
           </div>
           <div className="flex items-center gap-2 shrink-0">
-            <span className={cn('text-xs font-bold px-2.5 py-1 rounded-full', STATUS_STYLE[order.status] || STATUS_STYLE.pending)}>
-              {STATUS_LABEL[order.status] || order.status}
-            </span>
             {expanded
               ? <ChevronUp className="h-5 w-5 text-slate-400" />
               : <ChevronDown className="h-5 w-5 text-slate-400" />}
@@ -234,53 +231,20 @@ export function OrderCard({
                 <Copy className="h-4 w-4" /> Salin Struk
               </button>
 
-              {/* Status actions */}
+              {/* Actions */}
               <div className="flex gap-2">
-                {order.status === 'menunggu_bayar' && (
-                  <>
-                    <button
-                      onClick={e => { e.stopPropagation(); onDelete?.(order.id); }}
-                      className="flex items-center gap-1.5 px-4 py-2.5 bg-white border border-red-200 rounded-xl text-red-500 font-bold text-sm hover:bg-red-50 transition-colors"
-                    >
-                      <Trash2 className="h-4 w-4" /> Tolak
-                    </button>
-                    <button
-                      onClick={e => { e.stopPropagation(); onStatusChange(order.id, 'pending'); }}
-                      className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-orange-500 text-white rounded-xl font-bold text-sm hover:bg-orange-600 transition-colors"
-                    >
-                      <Check className="h-4 w-4" /> Konfirmasi Bayar
-                    </button>
-                  </>
-                )}
-                {order.status === 'pending' && (
-                  <>
-                    <button
-                      onClick={e => { e.stopPropagation(); onEdit(order); }}
-                      className="flex items-center gap-1.5 px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-slate-700 font-bold text-sm hover:bg-slate-50 transition-colors"
-                    >
-                      <Edit className="h-4 w-4" /> Edit
-                    </button>
-                    <button
-                      onClick={e => { e.stopPropagation(); onStatusChange(order.id, 'terkirim'); }}
-                      className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-emerald-600 text-white rounded-xl font-bold text-sm hover:bg-emerald-700 transition-colors"
-                    >
-                      <Truck className="h-4 w-4" /> Tandai Terkirim
-                    </button>
-                  </>
-                )}
-                {order.status === 'terkirim' && (
-                  <button
-                    onClick={e => { e.stopPropagation(); onStatusChange(order.id, 'selesai'); }}
-                    className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-emerald-600 text-white rounded-xl font-bold text-sm hover:bg-emerald-700 transition-colors"
-                  >
-                    <Check className="h-4 w-4" /> Tandai Selesai
-                  </button>
-                )}
-                {order.status === 'selesai' && (
-                  <div className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-emerald-50 text-emerald-700 rounded-xl font-bold text-sm border border-emerald-100">
-                    <Check className="h-4 w-4" /> Selesai
-                  </div>
-                )}
+                <button
+                  onClick={e => { e.stopPropagation(); onDelete?.(order.id); }}
+                  className="flex items-center justify-center gap-1.5 px-4 py-2.5 bg-white border border-red-200 rounded-xl text-red-500 font-bold text-sm hover:bg-red-50 transition-colors"
+                >
+                  <Trash2 className="h-4 w-4" /> Hapus
+                </button>
+                <button
+                  onClick={e => { e.stopPropagation(); onEdit(order); }}
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-slate-800 text-white rounded-xl font-bold text-sm hover:bg-slate-700 transition-colors"
+                >
+                  <Edit className="h-4 w-4" /> Edit
+                </button>
               </div>
             </>
           )}

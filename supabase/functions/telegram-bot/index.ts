@@ -24,6 +24,7 @@ interface SessionData {
     product_name: string;
     quantity: number;
     price: number;
+    subtotal?: number;
     buy_price: number;
   }[];
   last_product_id?: string;
@@ -65,10 +66,7 @@ function getPricingForTier(tier: string, isBeauty: boolean, customLevels: any[] 
   return isBeauty ? data.beauty : data.bp;
 }
 
-function calculatePrice(productName: string, totalQty: number, selectedTier: string, hasBeauty: boolean) {
-  const name = productName.toUpperCase();
-  const isBeauty = name.includes('BELGIE') || name.includes('STEFFI');
-
+function getActiveTier(totalQty: number, selectedTier?: string) {
   let activeTier = (selectedTier || 'satuan').toLowerCase();
   if (activeTier === 'satuan' || !selectedTier) {
     if (totalQty >= 200) activeTier = 'se';
@@ -77,8 +75,71 @@ function calculatePrice(productName: string, totalQty: number, selectedTier: str
     else if (totalQty >= 5) activeTier = 'agen';
     else if (totalQty >= 3) activeTier = 'reseller';
   }
+  return activeTier;
+}
 
-  return Math.round(getPricingForTier(activeTier, isBeauty));
+function calculatePrice(productName: string, totalQty: number, selectedTier: string, hasBeauty: boolean) {
+  const isBeauty = productName.toUpperCase().includes('BELGIE') || productName.toUpperCase().includes('STEFFI');
+  return Math.round(getPricingForTier(getActiveTier(totalQty, selectedTier), isBeauty));
+}
+
+function applyTierPricing(items: SessionData['items'], selectedTier: string, customLevels: any[], myLevel: string) {
+  const totalQty = items.reduce((sum, i) => sum + i.quantity, 0);
+  const activeTier = getActiveTier(totalQty, selectedTier);
+  
+  let bpQty = 0;
+  items.forEach(i => {
+    const isBeauty = i.product_name.toUpperCase().includes('BELGIE') || i.product_name.toUpperCase().includes('STEFFI');
+    if (!isBeauty) bpQty += i.quantity;
+  });
+
+  let bpBundleTotal = 0;
+  if (activeTier === 'reseller') {
+    const bundles = Math.floor(bpQty / 3);
+    const remainder = bpQty % 3;
+    bpBundleTotal = (bundles * 650000) + (remainder * 217000);
+  }
+
+  let totalModal = 0;
+  const updatedItems = items.map(i => {
+    const isBeauty = i.product_name.toUpperCase().includes('BELGIE') || i.product_name.toUpperCase().includes('STEFFI');
+    const buyPrice = getPricingForTier(myLevel, isBeauty, customLevels || []);
+    totalModal += (buyPrice * i.quantity);
+
+    let subtotal = 0;
+    if (!isBeauty && activeTier === 'reseller') {
+      if (bpQty > 0) {
+        subtotal = Math.round((i.quantity / bpQty) * bpBundleTotal);
+      }
+    } else {
+      subtotal = Math.round(getPricingForTier(activeTier, isBeauty)) * i.quantity;
+    }
+
+    return {
+      ...i,
+      price: Math.round(subtotal / i.quantity),
+      subtotal,
+      buy_price: buyPrice
+    };
+  });
+
+  if (activeTier === 'reseller' && bpQty > 0) {
+    let assigned = 0;
+    let lastBpIndex = -1;
+    for (let i = 0; i < updatedItems.length; i++) {
+      const isB = updatedItems[i].product_name.toUpperCase().includes('BELGIE') || updatedItems[i].product_name.toUpperCase().includes('STEFFI');
+      if (!isB) {
+        assigned += updatedItems[i].subtotal!;
+        lastBpIndex = i;
+      }
+    }
+    if (assigned !== bpBundleTotal && lastBpIndex !== -1) {
+      updatedItems[lastBpIndex].subtotal! += (bpBundleTotal - assigned);
+      updatedItems[lastBpIndex].price = Math.round(updatedItems[lastBpIndex].subtotal! / updatedItems[lastBpIndex].quantity);
+    }
+  }
+
+  return { items: updatedItems, buy_price: totalModal };
 }
 
 /**
@@ -239,14 +300,10 @@ async function parseFullText(text: string, tenantId: string): Promise<SessionDat
     const hasBeauty = data.items.some(i => i.product_name.toUpperCase().includes('BELGIE') || i.product_name.toUpperCase().includes('STEFFI'));
 
     // Update Harga Satuan & Total Modal
-    let totalModal = 0;
-    data.items = data.items.map(i => {
-      const price = calculatePrice(i.product_name, totalQty, data.customer_info?.tier || 'satuan', hasBeauty);
-      totalModal += (i.buy_price * i.quantity);
-      return { ...i, price };
-    });
+    const pricingRes = applyTierPricing(data.items, data.customer_info?.tier || 'satuan', customLevels || [], myLevel);
+    data.items = pricingRes.items;
+    data.buy_price = pricingRes.buy_price;
 
-    data.buy_price = totalModal;
     return data;
   }
 
@@ -350,21 +407,9 @@ serve(async (req) => {
         const { data: customLevels } = await supabase.from("user_mitra_levels").select("level_code, buy_price_per_bottle").eq("user_id", conn.tenant_id);
 
         const myLevel = profile?.mitra_level || 'satuan';
-        const tQty = sessionData.items.reduce((s, i) => s + i.quantity, 0);
-        const hasB = sessionData.items.some(i => i.product_name.toUpperCase().includes('BELGIE') || i.product_name.toUpperCase().includes('STEFFI'));
 
-        let totalModal = 0;
-        const items = sessionData.items.map(i => {
-          const isB = i.product_name.toUpperCase().includes('BELGIE') || i.product_name.toUpperCase().includes('STEFFI');
-          const buyPrice = getPricingForTier(myLevel, isB, customLevels || []);
-          totalModal += (buyPrice * i.quantity);
-          return {
-            ...i,
-            price: calculatePrice(i.product_name, tQty, c.tier || 'satuan', hasB),
-            buy_price: buyPrice
-          };
-        });
-        const final = { ...sessionData, items, buy_price: totalModal, customer_info: { id: c.id, name: c.name, type: c.type, tier: c.tier } };
+        const pricingRes = applyTierPricing(sessionData.items, c.tier || 'satuan', customLevels || [], myLevel);
+        const final = { ...sessionData, items: pricingRes.items, buy_price: pricingRes.buy_price, customer_info: { id: c.id, name: c.name, type: c.type, tier: c.tier } };
         await updateSession(chatId, { session_data: final });
         await showSummary(chatId, final);
       } else if (d === "new_customer") {
@@ -372,21 +417,9 @@ serve(async (req) => {
         const { data: customLevels } = await supabase.from("user_mitra_levels").select("level_code, buy_price_per_bottle").eq("user_id", conn.tenant_id);
 
         const myLevel = profile?.mitra_level || 'satuan';
-        const tQty = sessionData.items.reduce((s, i) => s + i.quantity, 0);
-        const hasB = sessionData.items.some(i => i.product_name.toUpperCase().includes('BELGIE') || i.product_name.toUpperCase().includes('STEFFI'));
 
-        let totalModal = 0;
-        const items = sessionData.items.map(i => {
-          const isB = i.product_name.toUpperCase().includes('BELGIE') || i.product_name.toUpperCase().includes('STEFFI');
-          const buyPrice = getPricingForTier(myLevel, isB, customLevels || []);
-          totalModal += (buyPrice * i.quantity);
-          return {
-            ...i,
-            price: calculatePrice(i.product_name, tQty, 'satuan', hasB),
-            buy_price: buyPrice
-          };
-        });
-        const final = { ...sessionData, items, buy_price: totalModal, customer_info: { name: sessionData.customer_info?.name || "Pelanggan Baru", type: "konsumen" } };
+        const pricingRes = applyTierPricing(sessionData.items, 'satuan', customLevels || [], myLevel);
+        const final = { ...sessionData, items: pricingRes.items, buy_price: pricingRes.buy_price, customer_info: { name: sessionData.customer_info?.name || "Pelanggan Baru", type: "konsumen" } };
         await updateSession(chatId, { session_data: final });
         await showSummary(chatId, final);
       }
@@ -471,8 +504,9 @@ async function showProductList(chatId: string, tenantId: string) {
 async function showSummary(chatId: string, sessionData: SessionData) {
   let total = 0;
   const itemLines = sessionData.items.map(i => {
-    total += (i.price * i.quantity);
-    return `• ${i.product_name} x${i.quantity} = Rp ${(i.price * i.quantity).toLocaleString("id-ID")}`;
+    const subtotal = i.subtotal !== undefined ? i.subtotal : (i.price * i.quantity);
+    total += subtotal;
+    return `• ${i.product_name} x${i.quantity} = Rp ${subtotal.toLocaleString("id-ID")}`;
   }).join("\n");
 
   const expTotal = sessionData.expenses?.reduce((s, e) => s + e.amount, 0) || 0;
@@ -537,7 +571,7 @@ async function submitOrder(chatId: string, sessionData: SessionData, tenantId: s
       product_name: i.product_name, // WAJIB ADA
       quantity: i.quantity,
       price_per_bottle: i.price,
-      subtotal: i.price * i.quantity
+      subtotal: i.subtotal !== undefined ? i.subtotal : (i.price * i.quantity)
     })),
     buy_price: sessionData.buy_price,
     order_date: formattedDate // SESUAI RPC

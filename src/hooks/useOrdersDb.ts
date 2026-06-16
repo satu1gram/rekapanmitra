@@ -188,7 +188,7 @@ export function useOrders() {
       buy_price: buyPrice,
       margin,
       transfer_proof_url: orderData.transferProofUrl || null,
-      status: 'pending'
+      status: 'selesai'
     };
 
     if (orderData.createdAt) {
