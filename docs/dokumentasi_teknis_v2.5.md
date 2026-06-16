@@ -1,7 +1,7 @@
 # 📋 Dokumentasi Teknis — Rekapan Mitra BP
 
 > **Sistem Manajemen Bisnis Digital untuk Mitra & Konsumen**  
-> Versi 2.5 · Terakhir diperbarui: 4 Mei 2026
+> Versi 2.5 · Terakhir diperbarui: 16 Juni 2026
 
 ---
 
@@ -29,6 +29,7 @@ Aplikasi ini dapat dipasang di perangkat seperti aplikasi biasa (PWA), bekerja s
 - **Deteksi Otomatis** — Mengenali nama pelanggan, produk, kuantitas, tanggal, dan biaya tambahan (ongkir).
 - **Konfirmasi Interaktif** — Pengguna mengonfirmasi data yang dideteksi sebelum disimpan ke database.
 - **Sinkronisasi Real-time** — Order yang dibuat di bot langsung muncul di Dashboard web.
+- **Konfigurasi AI Model** — Mendukung penggunaan berbagai model OpenAI (atau yang kompatibel) secara dinamis menggunakan *environment variable* `OPENAI_MODEL` (default: `gpt-4o-mini`).
 
 ---
 
