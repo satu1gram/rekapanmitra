@@ -12,7 +12,7 @@ interface BotModalProps {
   mode: ChatMode;
   open: boolean;
   onClose: () => void;
-  onConfirmOrder?: (parsed: ParsedOrder) => Promise<boolean>;
+  onConfirmOrder?: (parsed: ParsedOrder, pricingInfo?: { items: any[], tier: string }) => Promise<boolean>;
   onConfirmRestok?: (parsed: ParsedRestok & { buyPricePerBottle: number }) => Promise<boolean>;
 }
 
@@ -83,6 +83,7 @@ export function BotModal({ mode, open, onClose, onConfirmOrder, onConfirmRestok 
             mitraLevel={mitraLevel as MitraLevel}
             onConfirmOrder={onConfirmOrder}
             onConfirmRestok={onConfirmRestok}
+            onSuccess={onClose}
           />
         </div>
       </div>

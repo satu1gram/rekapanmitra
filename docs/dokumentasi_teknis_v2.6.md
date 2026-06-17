@@ -1,7 +1,7 @@
 # 📋 Dokumentasi Teknis — Rekapan Mitra BP
 
 > **Sistem Manajemen Bisnis Digital untuk Mitra & Konsumen**  
-> Versi 2.5 · Terakhir diperbarui: 16 Juni 2026
+> Versi 2.6 · Terakhir diperbarui: 17 Juni 2026
 
 ---
 

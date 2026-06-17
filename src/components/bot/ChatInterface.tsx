@@ -12,6 +12,7 @@ import {
   type ParseResult, type ParsedOrder, type ParsedRestok, type LearningPattern,
 } from '@/lib/orderParser';
 import { MITRA_LEVELS, TIER_PRICING, type MitraLevel, type TierType } from '@/types';
+import { recalcPricing, getActiveTier, isBeautyProduct, PRICE_TABLE, getTierByQty } from '@/lib/pricing';
 import { useCustomers } from '@/hooks/useCustomersDb';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
@@ -33,8 +34,9 @@ interface ChatMessage {
 interface ChatInterfaceProps {
   mode: ChatMode;
   mitraLevel?: MitraLevel;
-  onConfirmOrder?: (parsed: ParsedOrder) => Promise<boolean>;
+  onConfirmOrder?: (parsed: ParsedOrder, pricingInfo?: { items: { productName: string; quantity: number; pricePerBottle: number; subtotal: number }[], tier: TierType }) => Promise<boolean>;
   onConfirmRestok?: (parsed: ParsedRestok & { buyPricePerBottle: number }) => Promise<boolean>;
+  onSuccess?: () => void;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────
@@ -181,15 +183,17 @@ function CorrectionForm({ result, onSave, onCancel }: {
 }
 
 // ─── Kartu hasil ORDER ────────────────────────────────────────────
-function OrderResultCard({ msg, onCorrect, onConfirm, confirming, mitraLevel }: {
+function OrderResultCard({ msg, onCorrect, onConfirm, confirming, mitraLevel, onSuccess }: {
   msg: ChatMessage;
   onCorrect: (raw: string, corrected: ParsedOrder) => void;
-  onConfirm: (result: ParsedOrder) => void;
+  onConfirm: (result: ParsedOrder, pricingInfo?: { items: { productName: string; quantity: number; pricePerBottle: number; subtotal: number }[], tier: TierType }) => Promise<boolean>;
   confirming: boolean;
   mitraLevel?: MitraLevel;
+  onSuccess?: () => void;
 }) {
   const [showCorrection, setShowCorrection] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
+  const [countdown, setCountdown] = useState<number | null>(null);
   const result = msg.parseResult as ParsedOrder;
   const { customers, getCustomerByName, findCustomerFuzzy } = useCustomers();
 
@@ -218,30 +222,53 @@ function OrderResultCard({ msg, onCorrect, onConfirm, confirming, mitraLevel }: 
   
   // Hitung total qty
   const totalQty = result.items.reduce((sum, item) => sum + item.qty, 0);
-  
-  // Dapatkan tier berdasarkan qty
-  const getTierByQty = (qty: number) => {
-    const tiers = Object.values(TIER_PRICING).sort((a, b) => a.bottles - b.bottles);
-    let matched = tiers[0];
-    for (const t of tiers) {
-      if (qty >= t.bottles) matched = t;
-    }
-    return matched;
-  };
 
-  const customerTierPricing = existingCustomer 
-    ? TIER_PRICING[existingCustomer.tier as TierType] || getTierByQty(totalQty)
-    : getTierByQty(totalQty);
 
-  const totalHargaJual = totalQty * customerTierPricing.pricePerBottle;
-  const hargaModalPerBotol = mitraLevel ? MITRA_LEVELS[mitraLevel].buyPricePerBottle : 217000;
-  const totalProfit = totalHargaJual - (totalQty * hargaModalPerBotol);
+  // Hitung Harga Jual & Profit dengan shared pricing utility
+  const baseTier = (existingCustomer?.tier as TierType) || 'satuan';
+  const activeTier = getActiveTier(baseTier, totalQty);
 
+  // Konversi format item bot ke format pricing utility
+  const pricedItems = recalcPricing(
+    result.items.map(i => ({ productName: i.nama, quantity: i.qty })),
+    baseTier
+  );
+
+  let totalHargaJual = pricedItems.reduce((s, i) => s + i.subtotal, 0);
+
+  // Hitung Modal dari level mitra
+  const myLevelStr = mitraLevel || 'reseller';
+  const myTierData = PRICE_TABLE[myLevelStr] || PRICE_TABLE['reseller'];
+  let totalModal = result.items.reduce((s, item) => {
+    const isBeauty = isBeautyProduct(item.nama);
+    return s + (isBeauty ? myTierData.beauty : myTierData.bp) * item.qty;
+  }, 0);
+
+  const totalProfit = totalHargaJual - totalModal;
+  const customerTierPricing = { label: TIER_PRICING[activeTier]?.label || activeTier };
 
   function handleSaveCorrection(corrected: ParsedOrder | ParsedRestok) {
     onCorrect(result.raw, corrected as ParsedOrder);
     setShowCorrection(false);
   }
+
+  const handleConfirmClick = async () => {
+    const ok = await onConfirm(result, { items: pricedItems, tier: activeTier });
+    if (ok) {
+      setConfirmed(true);
+      setCountdown(10);
+    }
+  };
+
+  useEffect(() => {
+    if (countdown === null) return;
+    if (countdown <= 0) {
+      if (onSuccess) onSuccess();
+      return;
+    }
+    const timer = setTimeout(() => setCountdown(c => c! - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [countdown, onSuccess]);
 
   return (
     <div className="flex">
@@ -305,16 +332,25 @@ function OrderResultCard({ msg, onCorrect, onConfirm, confirming, mitraLevel }: 
             </table>
 
             {!confirmed ? (
-              <button onClick={() => { setConfirmed(true); onConfirm(result); }}
-                disabled={confirming}
-                className="w-full bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white py-2.5 rounded-xl font-black text-[11px] uppercase tracking-wider shadow-md active:scale-95 transition-all disabled:opacity-60 flex items-center justify-center gap-1.5">
-                {confirming ? <div className="w-3 h-3 border-2 border-white/40 border-t-white rounded-full animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
-                {confirming ? 'Menyimpan...' : 'Konfirmasi & Simpan Order'}
-              </button>
-            ) : (
-              <div className="w-full bg-emerald-50 border border-emerald-200 text-emerald-700 py-2.5 rounded-xl font-black text-[11px] text-center">
-                ✅ Order berhasil dicatat!
+              <div className="flex flex-col gap-2">
+                {!result.pelanggan && (
+                  <div className="w-full bg-red-50 text-red-600 border border-red-100 rounded-xl py-2 px-3 text-[10px] font-bold text-center">
+                    ⚠️ Nama pelanggan belum terdeteksi. Silakan koreksi terlebih dahulu.
+                  </div>
+                )}
+                <button onClick={handleConfirmClick}
+                  disabled={confirming || !result.pelanggan}
+                  className="w-full bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white py-2.5 rounded-xl font-black text-[11px] uppercase tracking-wider shadow-md active:scale-95 transition-all disabled:opacity-60 flex items-center justify-center gap-1.5">
+                  {confirming ? <div className="w-3 h-3 border-2 border-white/40 border-t-white rounded-full animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
+                  {confirming ? 'Menyimpan...' : 'Konfirmasi & Simpan Order'}
+                </button>
               </div>
+            ) : (
+              <button onClick={() => onSuccess && onSuccess()}
+                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-xl font-black text-[11px] uppercase tracking-wider shadow-md active:scale-95 transition-all flex flex-col items-center justify-center leading-tight">
+                <span className="flex items-center gap-1.5"><CheckCircle2 className="w-3.5 h-3.5" /> Order berhasil dicatat!</span>
+                <span className="text-[9px] font-medium text-emerald-200 mt-0.5 normal-case">Kembali ke riwayat ({countdown}s)</span>
+              </button>
             )}
 
             {!confirmed && (
@@ -337,15 +373,17 @@ function OrderResultCard({ msg, onCorrect, onConfirm, confirming, mitraLevel }: 
 }
 
 // ─── Kartu hasil RESTOK ───────────────────────────────────────────
-function RestokResultCard({ msg, onCorrect, onConfirm, confirming, mitraLevel }: {
+function RestokResultCard({ msg, onCorrect, onConfirm, confirming, mitraLevel, onSuccess }: {
   msg: ChatMessage;
   onCorrect: (raw: string, corrected: ParsedRestok) => void;
-  onConfirm: (result: ParsedRestok) => void;
+  onConfirm: (result: ParsedRestok) => Promise<boolean>;
   confirming: boolean;
   mitraLevel?: MitraLevel;
+  onSuccess?: () => void;
 }) {
   const [showCorrection, setShowCorrection] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
+  const [countdown, setCountdown] = useState<number | null>(null);
   const result = msg.parseResult as ParsedRestok;
   const buyPrice = mitraLevel ? MITRA_LEVELS[mitraLevel].buyPricePerBottle : 217000;
   const totalQty = result.items.reduce((s, i) => s + i.qty, 0);
@@ -355,6 +393,24 @@ function RestokResultCard({ msg, onCorrect, onConfirm, confirming, mitraLevel }:
     onCorrect(result.raw, corrected as ParsedRestok);
     setShowCorrection(false);
   }
+
+  const handleConfirmClick = async () => {
+    const ok = await onConfirm(result);
+    if (ok) {
+      setConfirmed(true);
+      setCountdown(10);
+    }
+  };
+
+  useEffect(() => {
+    if (countdown === null) return;
+    if (countdown <= 0) {
+      if (onSuccess) onSuccess();
+      return;
+    }
+    const timer = setTimeout(() => setCountdown(c => c! - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [countdown, onSuccess]);
 
   return (
     <div className="flex">
@@ -390,16 +446,18 @@ function RestokResultCard({ msg, onCorrect, onConfirm, confirming, mitraLevel }:
             {result.catatan && <p className="text-[10px] text-slate-500 italic">{result.catatan}</p>}
 
             {!confirmed ? (
-              <button onClick={() => { setConfirmed(true); onConfirm(result); }}
+              <button onClick={handleConfirmClick}
                 disabled={confirming}
                 className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white py-2.5 rounded-xl font-black text-[11px] uppercase tracking-wider shadow-md active:scale-95 transition-all disabled:opacity-60 flex items-center justify-center gap-1.5">
                 {confirming ? <div className="w-3 h-3 border-2 border-white/40 border-t-white rounded-full animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
                 {confirming ? 'Menyimpan...' : 'Konfirmasi Restok'}
               </button>
             ) : (
-              <div className="w-full bg-blue-50 border border-blue-200 text-blue-700 py-2.5 rounded-xl font-black text-[11px] text-center">
-                ✅ Restok berhasil dicatat!
-              </div>
+              <button onClick={() => onSuccess && onSuccess()}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-xl font-black text-[11px] uppercase tracking-wider shadow-md active:scale-95 transition-all flex flex-col items-center justify-center leading-tight">
+                <span className="flex items-center gap-1.5"><CheckCircle2 className="w-3.5 h-3.5" /> Restok berhasil dicatat!</span>
+                <span className="text-[9px] font-medium text-blue-200 mt-0.5 normal-case">Kembali ke riwayat ({countdown}s)</span>
+              </button>
             )}
 
             {!confirmed && (
@@ -452,7 +510,7 @@ function LearningBadge() {
 // ═══════════════════════════════════════════════════════════════════
 // KOMPONEN UTAMA: ChatInterface
 // ═══════════════════════════════════════════════════════════════════
-export function ChatInterface({ mode, mitraLevel, onConfirmOrder, onConfirmRestok }: ChatInterfaceProps) {
+export function ChatInterface({ mode, mitraLevel, onConfirmOrder, onConfirmRestok, onSuccess }: ChatInterfaceProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isTyping, setIsTyping] = useState(false);
   const [inputText, setInputText] = useState('');
@@ -469,34 +527,30 @@ export function ChatInterface({ mode, mitraLevel, onConfirmOrder, onConfirmResto
     return newMsg;
   }, []);
 
-  const handleConfirmOrder = useCallback(async (result: ParsedOrder) => {
-    if (!onConfirmOrder) return;
+  const handleConfirmOrder = useCallback(async (result: ParsedOrder, pricingInfo?: { items: any[], tier: TierType }) => {
+    if (!onConfirmOrder) return false;
     setConfirming(result.raw);
     try {
-      const ok = await onConfirmOrder(result);
-      if (ok) {
-        addMsg({ role: 'bot', type: 'success', text: '✅ **Order berhasil dicatat** ke dashboard!' });
-        scrollToBottom();
-      }
+      const ok = await onConfirmOrder(result, pricingInfo);
+      if (ok) scrollToBottom();
+      return ok;
     } finally {
       setConfirming(null);
     }
-  }, [onConfirmOrder, addMsg, scrollToBottom]);
+  }, [onConfirmOrder, scrollToBottom]);
 
   const handleConfirmRestok = useCallback(async (result: ParsedRestok) => {
-    if (!onConfirmRestok) return;
+    if (!onConfirmRestok) return false;
     const buyPricePerBottle = mitraLevel ? MITRA_LEVELS[mitraLevel].buyPricePerBottle : 217000;
     setConfirming(result.raw);
     try {
       const ok = await onConfirmRestok({ ...result, buyPricePerBottle });
-      if (ok) {
-        addMsg({ role: 'bot', type: 'success', text: '✅ **Restok berhasil dicatat** dan stok diperbarui!' });
-        scrollToBottom();
-      }
+      if (ok) scrollToBottom();
+      return ok;
     } finally {
       setConfirming(null);
     }
-  }, [onConfirmRestok, mitraLevel, addMsg, scrollToBottom]);
+  }, [onConfirmRestok, mitraLevel, scrollToBottom]);
 
   const handleCorrect = useCallback((raw: string, corrected: ParsedOrder | ParsedRestok) => {
     saveLearningPattern({ input: raw, corrected, savedAt: Date.now() } as LearningPattern);
@@ -662,6 +716,7 @@ export function ChatInterface({ mode, mitraLevel, onConfirmOrder, onConfirmResto
                 onConfirm={handleConfirmOrder}
                 confirming={confirming === (msg.parseResult as ParsedOrder)?.raw}
                 mitraLevel={mitraLevel}
+                onSuccess={onSuccess}
               />
             );
             if (msg.type === 'parsed_restok') return (
@@ -670,6 +725,7 @@ export function ChatInterface({ mode, mitraLevel, onConfirmOrder, onConfirmResto
                 onConfirm={handleConfirmRestok}
                 confirming={confirming === (msg.parseResult as ParsedRestok)?.raw}
                 mitraLevel={mitraLevel}
+                onSuccess={onSuccess}
               />
             );
             return <BotTextBubble key={msg.id} msg={msg} />;

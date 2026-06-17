@@ -5,7 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import {
   Mail, Lock, User, Loader2, LogIn, UserPlus, ShieldCheck,
-  Eye, EyeOff, KeyRound, ArrowLeft, MailCheck, RefreshCw
+  Eye, EyeOff, KeyRound, ArrowLeft, MailCheck, RefreshCw, Phone
 } from 'lucide-react';
 
 // Design System
@@ -30,7 +30,10 @@ export function AuthPage() {
   const [showPass, setShowPass] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showConfirmPass, setShowConfirmPass] = useState(false);
   const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
 
   const { user, loading: authLoading } = useAuth();
 
@@ -51,7 +54,9 @@ export function AuthPage() {
         else { toast.success('Berhasil masuk!'); navigate(from, { replace: true }); }
       } else if (mode === 'register') {
         if (!name.trim()) { toast.error('Nama wajib diisi'); setLoading(false); return; }
-        const { error } = await signUp(email, password, name);
+        if (!phone.trim()) { toast.error('Nomor HP wajib diisi'); setLoading(false); return; }
+        if (password !== confirmPassword) { toast.error('Kata sandi tidak cocok'); setLoading(false); return; }
+        const { error } = await signUp(email, password, name, phone);
         if (error) {
           const msg = error.message?.toLowerCase() ?? '';
           if (
@@ -204,20 +209,38 @@ export function AuthPage() {
               <form onSubmit={handleSubmit} className="space-y-3">
                 {/* Nama */}
                 {mode === 'register' && (
-                  <div className="space-y-1">
-                    <label htmlFor="name" className="flex items-center gap-1.5 text-xs font-bold" style={{ color: DS.navy }}>
-                      <User className="h-3.5 w-3.5" style={{ color: DS.gray }} /> Nama Lengkap
-                    </label>
-                    <input
-                      id="name" type="text" placeholder="Nama Anda" value={name}
-                      onChange={e => setName(e.target.value)} required disabled={loading}
-                      className={inputBase}
-                      style={{ '--tw-ring-color': DS.primary } as any}
-                      onFocus={e => e.target.style.borderColor = DS.primary}
-                      onBlur={e => e.target.style.borderColor = '#E2E8F0'}
-                      autoComplete="name"
-                    />
-                  </div>
+                  <>
+                    <div className="space-y-1">
+                      <label htmlFor="name" className="flex items-center gap-1.5 text-xs font-bold" style={{ color: DS.navy }}>
+                        <User className="h-3.5 w-3.5" style={{ color: DS.gray }} /> Nama Lengkap
+                      </label>
+                      <input
+                        id="name" type="text" placeholder="Nama Anda" value={name}
+                        onChange={e => setName(e.target.value)} required disabled={loading}
+                        className={inputBase}
+                        style={{ '--tw-ring-color': DS.primary } as any}
+                        onFocus={e => e.target.style.borderColor = DS.primary}
+                        onBlur={e => e.target.style.borderColor = '#E2E8F0'}
+                        autoComplete="name"
+                      />
+                    </div>
+                    
+                    {/* Nomor HP */}
+                    <div className="space-y-1">
+                      <label htmlFor="phone" className="flex items-center gap-1.5 text-xs font-bold" style={{ color: DS.navy }}>
+                        <Phone className="h-3.5 w-3.5" style={{ color: DS.gray }} /> Nomor HP
+                      </label>
+                      <input
+                        id="phone" type="tel" placeholder="08..." value={phone}
+                        onChange={e => setPhone(e.target.value)} required disabled={loading}
+                        className={inputBase}
+                        style={{ '--tw-ring-color': DS.primary } as any}
+                        onFocus={e => e.target.style.borderColor = DS.primary}
+                        onBlur={e => e.target.style.borderColor = '#E2E8F0'}
+                        autoComplete="tel"
+                      />
+                    </div>
+                  </>
                 )}
 
                 {/* Email */}
@@ -237,44 +260,77 @@ export function AuthPage() {
 
                 {/* Password */}
                 {mode !== 'forgot' && (
-                  <div className="space-y-1">
-                    <label htmlFor="password" className="flex items-center gap-1.5 text-xs font-bold" style={{ color: DS.navy }}>
-                      <Lock className="h-3.5 w-3.5" style={{ color: DS.gray }} /> Kata Sandi
-                    </label>
-                    <div className="relative">
-                      <input
-                        id="password"
-                        type={showPass ? 'text' : 'password'}
-                        placeholder="••••••••"
-                        value={password}
-                        onChange={e => setPassword(e.target.value)}
-                        required minLength={6} disabled={loading}
-                        className={`${inputBase} pr-11 tracking-widest`}
-                        onFocus={e => e.target.style.borderColor = DS.primary}
-                        onBlur={e => e.target.style.borderColor = '#E2E8F0'}
-                        autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
-                      />
-                      <button
-                        type="button" tabIndex={-1}
-                        onClick={() => setShowPass(v => !v)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 p-1 transition-colors"
-                        style={{ color: DS.gray }}
-                      >
-                        {showPass ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                      </button>
-                    </div>
-                    {mode === 'login' && (
-                      <div className="flex justify-end">
+                  <>
+                    <div className="space-y-1">
+                      <label htmlFor="password" className="flex items-center gap-1.5 text-xs font-bold" style={{ color: DS.navy }}>
+                        <Lock className="h-3.5 w-3.5" style={{ color: DS.gray }} /> Kata Sandi
+                      </label>
+                      <div className="relative">
+                        <input
+                          id="password"
+                          type={showPass ? 'text' : 'password'}
+                          placeholder="••••••••"
+                          value={password}
+                          onChange={e => setPassword(e.target.value)}
+                          required minLength={6} disabled={loading}
+                          className={`${inputBase} pr-11 tracking-widest`}
+                          onFocus={e => e.target.style.borderColor = DS.primary}
+                          onBlur={e => e.target.style.borderColor = '#E2E8F0'}
+                          autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
+                        />
                         <button
-                          type="button" onClick={() => setMode('forgot')}
-                          className="text-xs font-semibold hover:underline mt-0.5"
-                          style={{ color: DS.primary }}
+                          type="button" tabIndex={-1}
+                          onClick={() => setShowPass(v => !v)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 p-1 transition-colors"
+                          style={{ color: DS.gray }}
                         >
-                          Lupa password?
+                          {showPass ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                         </button>
                       </div>
+                      {mode === 'login' && (
+                        <div className="flex justify-end">
+                          <button
+                            type="button" onClick={() => setMode('forgot')}
+                            className="text-xs font-semibold hover:underline mt-0.5"
+                            style={{ color: DS.primary }}
+                          >
+                            Lupa password?
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Konfirmasi Password */}
+                    {mode === 'register' && (
+                      <div className="space-y-1">
+                        <label htmlFor="confirmPassword" className="flex items-center gap-1.5 text-xs font-bold" style={{ color: DS.navy }}>
+                          <Lock className="h-3.5 w-3.5" style={{ color: DS.gray }} /> Konfirmasi Kata Sandi
+                        </label>
+                        <div className="relative">
+                          <input
+                            id="confirmPassword"
+                            type={showConfirmPass ? 'text' : 'password'}
+                            placeholder="••••••••"
+                            value={confirmPassword}
+                            onChange={e => setConfirmPassword(e.target.value)}
+                            required minLength={6} disabled={loading}
+                            className={`${inputBase} pr-11 tracking-widest`}
+                            onFocus={e => e.target.style.borderColor = DS.primary}
+                            onBlur={e => e.target.style.borderColor = '#E2E8F0'}
+                            autoComplete="new-password"
+                          />
+                          <button
+                            type="button" tabIndex={-1}
+                            onClick={() => setShowConfirmPass(v => !v)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 p-1 transition-colors"
+                            style={{ color: DS.gray }}
+                          >
+                            {showConfirmPass ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          </button>
+                        </div>
+                      </div>
                     )}
-                  </div>
+                  </>
                 )}
 
                 {/* Submit */}
@@ -300,7 +356,12 @@ export function AuthPage() {
                   <div className="text-center pt-1">
                     <button
                       type="button"
-                      onClick={() => { setMode(mode === 'login' ? 'register' : 'login'); setName(''); }}
+                      onClick={() => { 
+                        setMode(mode === 'login' ? 'register' : 'login'); 
+                        setName(''); 
+                        setPhone(''); 
+                        setConfirmPassword(''); 
+                      }}
                       disabled={loading}
                       className="text-xs font-bold py-1 px-3 rounded-lg transition-colors hover:underline"
                       style={{ color: DS.primary }}

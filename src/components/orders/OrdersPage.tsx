@@ -300,23 +300,26 @@ export function OrdersPage({ openAddForm = false, onAddFormClose }: OrdersPagePr
 
   if (showAddModal) {
     return (
-      <TambahOrderFlow
-        customers={customers}
-        currentStock={currentStock}
-        submitting={submitting}
-        onSubmit={handleSubmit}
-        onCancel={() => {
-          setShowAddModal(false);
-          // Reset status pencarian customer terakhir jika batal
-          (window as any)._lastAddedCustomerId = null;
-        }}
-        onEditCustomer={(c) => { setEditingCustomer(c); }}
-        // Justifikasi: Membaca ID customer yang baru dibuat dari window state
-        initialSelectedCustomerId={(window as any)._lastAddedCustomerId}
-        onRefetchCustomers={refetchCustomers}
-      />
+      <div className="fixed inset-0 z-[60] bg-slate-50 flex flex-col">
+        <TambahOrderFlow
+          customers={customers}
+          currentStock={currentStock}
+          submitting={submitting}
+          onSubmit={handleSubmit}
+          onCancel={() => {
+            setShowAddModal(false);
+            // Reset status pencarian customer terakhir jika batal
+            (window as any)._lastAddedCustomerId = null;
+          }}
+          onEditCustomer={(c) => { setEditingCustomer(c); }}
+          // Justifikasi: Membaca ID customer yang baru dibuat dari window state
+          initialSelectedCustomerId={(window as any)._lastAddedCustomerId}
+          onRefetchCustomers={refetchCustomers}
+        />
+      </div>
     );
   }
+
 
   if (orderResult) {
     return (
@@ -352,9 +355,9 @@ export function OrdersPage({ openAddForm = false, onAddFormClose }: OrdersPagePr
         mode="order"
         open={showBotModal}
         onClose={() => setShowBotModal(false)}
-        onConfirmOrder={async (parsed: ParsedOrder) => {
-          // Konversi hasil AI ke format handleSubmit
-          const items = parsed.items.map(item => ({
+        onConfirmOrder={async (parsed: ParsedOrder, pricingInfo?: { items: any[], tier: string }) => {
+          // Gunakan hasil perhitungan pricingInfo jika ada, kalau tidak fallback ke parsed raw
+          const items = pricingInfo?.items || parsed.items.map(item => ({
             productName: item.nama,
             quantity: item.qty,
             pricePerBottle: 250000, // harga default satuan — form summary bisa koreksi
@@ -367,7 +370,7 @@ export function OrdersPage({ openAddForm = false, onAddFormClose }: OrdersPagePr
           const ok = await handleSubmit({
             customerName: parsed.pelanggan || 'Tidak Diketahui',
             customerPhone: parsed.hp || '',
-            tier: 'satuan',
+            tier: (pricingInfo?.tier as TierType) || 'satuan',
             items,
             createdAt,
           });

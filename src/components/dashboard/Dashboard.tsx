@@ -117,13 +117,19 @@ export function Dashboard({ onNavigate }: DashboardProps) {
     return map;
   }, [orders]);
 
-  const monthActiveCustomers = useMemo(() => {
-    const activeCustomerIds = new Set(monthOrders.map(o => o.customer_id).filter(Boolean));
-    return customers.filter(c => activeCustomerIds.has(c.id));
-  }, [monthOrders, customers]);
+  const activeCustomersData = useMemo(() => {
+    const uniqueCust = new Map<string, { tier: string }>();
+    for (const o of monthOrders) {
+      const key = o.customer_id || o.customer_name || 'unknown';
+      if (!uniqueCust.has(key)) {
+        uniqueCust.set(key, { tier: o.tier });
+      }
+    }
+    return Array.from(uniqueCust.values());
+  }, [monthOrders]);
 
-  const activeTotal = monthActiveCustomers.length;
-  const activeKonsumen = monthActiveCustomers.filter(c => c.tier === 'satuan').length;
+  const activeTotal = activeCustomersData.length;
+  const activeKonsumen = activeCustomersData.filter(c => c.tier === 'satuan').length;
   const activeMitra = activeTotal - activeKonsumen;
 
   const openForm = (year: number, month: number) => {
@@ -278,7 +284,7 @@ export function Dashboard({ onNavigate }: DashboardProps) {
 
             {/* Omset + Terjual — 2 column grid */}
             <div className="grid grid-cols-2 gap-2">
-              <div className="bg-white rounded-2xl p-3 border border-slate-100 shadow-sm">
+              <div className="bg-white rounded-2xl p-3 border border-slate-100 shadow-sm flex flex-col justify-center">
                 <div className="flex items-center gap-1.5 mb-2">
                   <div className="w-5 h-5 rounded-md bg-blue-50 flex items-center justify-center shrink-0">
                     <ShoppingCart className="h-2.5 w-2.5 text-blue-600" />
@@ -286,12 +292,6 @@ export function Dashboard({ onNavigate }: DashboardProps) {
                   <span className="text-[9px] font-black text-slate-400 uppercase tracking-tighter">Omset</span>
                 </div>
                 <p className="text-2xl font-black text-slate-900 tracking-tighter leading-none">{formatShortCurrency(monthRevenue)}</p>
-                <div className="flex items-center gap-1 mt-1.5">
-                  <div className="flex-1 h-1 bg-slate-100 rounded-full overflow-hidden">
-                    <div className="h-full bg-blue-400 rounded-full transition-all duration-700" style={{ width: `${omsetPct}%` }} />
-                  </div>
-                  <span className="text-[8px] font-bold text-slate-400">{omsetPct}%</span>
-                </div>
               </div>
 
               <div className="bg-white rounded-2xl p-3 border border-slate-100 shadow-sm">

@@ -230,6 +230,93 @@ export function EditCustomerPage({ customer, onBack, onSaved }: EditCustomerPage
           </div>
         )}
 
+        {/* ── TIPE PELANGGAN — tampil pertama ── */}
+        <div className="bg-card rounded-2xl p-4 shadow-sm border border-border/50 space-y-3">
+          <h3 className="text-sm font-black text-muted-foreground uppercase tracking-widest">Tipe Pelanggan</h3>
+
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              onClick={() => setStatus('konsumen')}
+              className={cn(
+                'flex flex-col items-center justify-center py-4 rounded-xl border-2 h-[72px] relative transition-all active:scale-[0.98]',
+                status === 'konsumen'
+                  ? 'bg-primary border-primary text-primary-foreground shadow-md'
+                  : 'bg-card border-border text-muted-foreground hover:border-primary/30'
+              )}
+            >
+              {status === 'konsumen' && (
+                <div className="absolute top-1.5 right-1.5 bg-primary-foreground text-primary rounded-full w-5 h-5 flex items-center justify-center shadow-sm">
+                  <Check className="h-3 w-3" />
+                </div>
+              )}
+              <User className="h-5 w-5 mb-1" />
+              <span className="text-[11px] font-black uppercase tracking-wider">Konsumen</span>
+            </button>
+            <button
+              onClick={() => { setStatus('mitra'); if (!isMitraTier(tier)) setTier('reseller'); }}
+              className={cn(
+                'flex flex-col items-center justify-center py-4 rounded-xl border-2 h-[72px] relative transition-all active:scale-[0.98]',
+                status === 'mitra'
+                  ? 'bg-primary border-primary text-primary-foreground shadow-md'
+                  : 'bg-card border-border text-muted-foreground hover:border-primary/30'
+              )}
+            >
+              {status === 'mitra' && (
+                <div className="absolute top-1.5 right-1.5 bg-primary-foreground text-primary rounded-full w-5 h-5 flex items-center justify-center shadow-sm">
+                  <Check className="h-3 w-3" />
+                </div>
+              )}
+              <Store className="h-5 w-5 mb-1" />
+              <span className="text-[11px] font-black uppercase tracking-wider">Mitra</span>
+            </button>
+          </div>
+
+          {/* Level Mitra — kondisional */}
+          {status === 'mitra' && (
+            <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
+              <p className="text-xs font-black text-muted-foreground uppercase tracking-widest pt-1">Level Mitra</p>
+              <div className="space-y-2">
+                {MITRA_TIERS.map(t => {
+                  const isActive = tier === t.tier;
+                  return (
+                    <button
+                      key={t.tier}
+                      onClick={() => setTier(t.tier)}
+                      className={cn(
+                        'w-full flex items-center justify-between p-3 rounded-xl transition-all active:scale-[0.98] border-2',
+                        isActive
+                          ? 'border-primary bg-primary/10'
+                          : 'border-border bg-card hover:border-primary/30'
+                      )}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className={cn(
+                          'w-9 h-9 rounded-full flex items-center justify-center transition-colors',
+                          isActive ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground'
+                        )}>
+                          {t.icon}
+                        </div>
+                        <div className="text-left">
+                          <h3 className="font-bold text-foreground text-sm leading-tight">{t.label}</h3>
+                          <p className={cn("text-[10px] font-bold mt-0.5", isActive ? 'text-primary' : 'text-muted-foreground')}>
+                            {isActive ? 'Dipilih' : t.desc}
+                          </p>
+                        </div>
+                      </div>
+                      <div className={cn(
+                        'w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0',
+                        isActive ? 'bg-primary border-primary text-primary-foreground' : 'border-border'
+                      )}>
+                        {isActive && <Check className="h-3 w-3" />}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* Form card - same rounded-2xl card pattern */}
         <div className="bg-card rounded-2xl p-4 shadow-sm border border-border/50 space-y-5">
           <h3 className="text-lg font-bold text-foreground flex items-center">
@@ -344,100 +431,7 @@ export function EditCustomerPage({ customer, onBack, onSaved }: EditCustomerPage
           </div>
         </div>
 
-        {/* Status Pelanggan card */}
-        <div className="bg-card rounded-2xl p-4 shadow-sm border border-border/50 space-y-4">
-          <h3 className="text-lg font-bold text-foreground flex items-center">
-            <span className="w-1.5 h-5 bg-primary rounded-full mr-2.5" />
-            Status Pelanggan
-          </h3>
 
-          <div className="grid grid-cols-2 gap-3">
-            <button
-              onClick={() => setStatus('konsumen')}
-              className={cn(
-                'flex flex-col items-center justify-center py-4 rounded-xl border-2 h-[72px] relative transition-all active:scale-[0.98]',
-                status === 'konsumen'
-                  ? 'bg-primary border-primary text-primary-foreground shadow-md'
-                  : 'bg-card border-border text-muted-foreground hover:border-primary/30'
-              )}
-            >
-              {status === 'konsumen' && (
-                <div className="absolute top-1.5 right-1.5 bg-primary-foreground text-primary rounded-full w-5 h-5 flex items-center justify-center shadow-sm">
-                  <Check className="h-3 w-3" />
-                </div>
-              )}
-              <User className="h-5 w-5 mb-1" />
-              <span className="text-[11px] font-black uppercase tracking-wider">Konsumen</span>
-            </button>
-            <button
-              onClick={() => { setStatus('mitra'); if (!isMitraTier(tier)) setTier('reseller'); }}
-              className={cn(
-                'flex flex-col items-center justify-center py-4 rounded-xl border-2 h-[72px] relative transition-all active:scale-[0.98]',
-                status === 'mitra'
-                  ? 'bg-primary border-primary text-primary-foreground shadow-md'
-                  : 'bg-card border-border text-muted-foreground hover:border-primary/30'
-              )}
-            >
-              {status === 'mitra' && (
-                <div className="absolute top-1.5 right-1.5 bg-primary-foreground text-primary rounded-full w-5 h-5 flex items-center justify-center shadow-sm">
-                  <Check className="h-3 w-3" />
-                </div>
-              )}
-              <Store className="h-5 w-5 mb-1" />
-              <span className="text-[11px] font-black uppercase tracking-wider">Mitra</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Level Mitra card */}
-        {status === 'mitra' && (
-          <div className="bg-card rounded-2xl p-4 shadow-sm border border-border/50 space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <h3 className="text-lg font-bold text-foreground flex items-center">
-              <span className="w-1.5 h-5 bg-primary rounded-full mr-2.5" />
-              Level Mitra
-            </h3>
-
-            <div className="space-y-2.5">
-              {MITRA_TIERS.map(t => {
-                const isActive = tier === t.tier;
-                return (
-                  <button
-                    key={t.tier}
-                    onClick={() => setTier(t.tier)}
-                    className={cn(
-                      'w-full flex items-center justify-between p-3 rounded-xl transition-all active:scale-[0.98] border-2',
-                      isActive
-                        ? 'border-primary bg-primary/10'
-                        : 'border-border bg-card hover:border-primary/30'
-                    )}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className={cn(
-                        'w-10 h-10 rounded-full flex items-center justify-center transition-colors',
-                        isActive ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground'
-                      )}>
-                        {t.icon}
-                      </div>
-                      <div className="text-left">
-                        <h3 className="font-bold text-foreground text-sm leading-tight">{t.label}</h3>
-                        {isActive
-                          ? <p className="text-[10px] text-primary font-bold mt-0.5">Level Saat Ini</p>
-                          : <p className="text-[10px] text-muted-foreground font-medium mt-0.5">{t.desc}</p>
-                        }
-                      </div>
-                    </div>
-                    <div className={cn(
-                      'w-6 h-6 rounded-full border-2 flex items-center justify-center',
-                      isActive ? 'bg-primary border-primary text-primary-foreground' : 'border-border'
-                    )}>
-                      {isActive && <Check className="h-3.5 w-3.5" />}
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
       </main>
 
       {/* Save button - positioned fixed so it stays over the bottom nav area */}

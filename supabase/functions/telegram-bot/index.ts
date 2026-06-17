@@ -54,7 +54,7 @@ function getPricingForTier(tier: string, isBeauty: boolean, customLevels: any[] 
 
   // Map Harga Standar
   const pricingMap: Record<string, { bp: number; beauty: number }> = {
-    'satuan': { bp: 250000, beauty: 250000 },
+    'satuan': { bp: 250000, beauty: 195000 },
     'reseller': { bp: 217000, beauty: 195000 },
     'agen': { bp: 198000, beauty: 195000 },
     'agen_plus': { bp: 180000, beauty: 180000 },

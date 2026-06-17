@@ -1,10 +1,10 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
-import { X, ArrowRight, ArrowLeft, CheckCircle2, User, Phone, MapPin, Package, Plus, Minus, Search, Calendar, Check, Loader2, UserPlus, Edit2, Trash2, ChevronRight } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { X, ArrowLeft, CheckCircle2, User, Plus, Minus, ChevronRight, UserPlus, Edit2, Trash2, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatCurrency } from '@/lib/formatters';
-import { useProfile } from '@/hooks/useProfile';
-import { useProducts, Product } from '@/hooks/useProducts';
-import { TierType, TIER_PRICING, MITRA_LEVELS, OrderItem } from '@/types';
+import { useProducts } from '@/hooks/useProducts';
+import { TierType, OrderItem } from '@/types';
+import { recalcPricing } from '@/lib/pricing';
 import type { Tables } from '@/integrations/supabase/types';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -55,44 +55,10 @@ export function OrderForm({ customers, submitting, onSubmit, onCancel, onEditCus
   const [showCustomerSearch, setShowCustomerSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
-  // ── LOGIKA HARGA PUSAT (Updated: Mixed Order Logic) ────────────────────────
-  const calculatePrice = useCallback((productName: string, totalQty: number, selectedTier: TierType, hasBeauty: boolean) => {
-    const name = productName.toUpperCase();
-    const isBeauty = name.includes('BELGIE') || name.includes('STEFFI');
-    
-    let activeTier = selectedTier;
-    if (selectedTier === 'satuan' || !selectedTier) {
-      if (totalQty >= 200) activeTier = 'se';
-      else if (totalQty >= 40) activeTier = 'sap';
-      else if (totalQty >= 10) activeTier = 'agen_plus';
-      else if (totalQty >= 5) activeTier = 'agen';
-      else if (totalQty >= 3) activeTier = 'reseller';
-      else activeTier = 'satuan';
-    }
-
-    const pricingMap: Record<string, { bp: number; beauty: number }> = {
-      'satuan':    { bp: 250000, beauty: 250000 },
-      'reseller':  { bp: hasBeauty ? 217000 : 216666, beauty: 195000 }, // ATURAN 217K MIXED
-      'agen':      { bp: 198000, beauty: 195000 },
-      'agen_plus': { bp: 180000, beauty: 180000 },
-      'sap':       { bp: 170000, beauty: 170000 },
-      'se':        { bp: 150000, beauty: 150000 },
-    };
-
-    const tierData = pricingMap[activeTier] || pricingMap['satuan'];
-    const price = isBeauty ? tierData.beauty : tierData.bp;
-    return Math.round(price);
-  }, []);
-
+  // ── LOGIKA HARGA: Gunakan shared pricing utility ──────────────────────────
   const recalcItems = useCallback((currentItems: OrderItem[], currentTier: TierType) => {
-    const totalQty = currentItems.reduce((s, i) => s + i.quantity, 0);
-    const hasBeauty = currentItems.some(i => i.quantity > 0 && (i.productName.toUpperCase().includes('BELGIE') || i.productName.toUpperCase().includes('STEFFI')));
-    
-    return currentItems.map(item => {
-      const price = calculatePrice(item.productName, totalQty, currentTier, hasBeauty);
-      return { ...item, pricePerBottle: price, subtotal: item.quantity * price };
-    });
-  }, [calculatePrice]);
+    return recalcPricing(currentItems, currentTier);
+  }, []);
 
   useEffect(() => {
     if (productsLoading || products.length === 0) return;
@@ -369,7 +335,22 @@ export function OrderForm({ customers, submitting, onSubmit, onCancel, onEditCus
           )}
         </div>
       </main>
-      <div className="fixed bottom-6 left-1/2 -translate-x-1/2"><button onClick={onCancel} className="bg-white/80 backdrop-blur-md px-6 py-2.5 rounded-full border border-slate-200 text-slate-500 font-black text-[10px] uppercase shadow-lg">BATAL</button></div>
+      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 flex gap-2">
+        {step !== 'info' && (
+          <button 
+            onClick={() => setStep(step === 'summary' ? 'products' : 'info')} 
+            className="bg-white/80 backdrop-blur-md px-6 py-2.5 rounded-full border border-slate-200 text-slate-500 font-black text-[10px] uppercase shadow-lg flex items-center gap-1.5 hover:bg-slate-50 transition-colors"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" /> KEMBALI
+          </button>
+        )}
+        <button 
+          onClick={onCancel} 
+          className="bg-white/80 backdrop-blur-md px-6 py-2.5 rounded-full border border-slate-200 text-slate-500 font-black text-[10px] uppercase shadow-lg hover:bg-slate-50 transition-colors"
+        >
+          BATAL
+        </button>
+      </div>
     </div>
   );
 }
