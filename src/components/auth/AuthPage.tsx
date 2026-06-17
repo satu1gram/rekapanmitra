@@ -381,7 +381,7 @@ export function AuthPage() {
             <ShieldCheck className="h-3.5 w-3.5" />
             <span className="text-xs font-medium">Aman & Terenkripsi</span>
           </div>
-          <p className="text-xs" style={{ color: DS.gray }}>Versi 2.1.0 • 2026</p>
+          <p className="text-xs" style={{ color: DS.gray }}>Versi 2.6.0 • 2026</p>
         </div>
       </main>
     </div>
