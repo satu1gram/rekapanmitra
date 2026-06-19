@@ -179,7 +179,7 @@ export function Dashboard({ onNavigate }: DashboardProps) {
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter leading-none">
               {getGreeting()}
             </span>
-            <h1 className="text-sm font-black text-slate-900 leading-none">Beranda</h1>
+            <h1 className="text-xl font-black tracking-tight text-slate-900 truncate">Beranda</h1>
           </div>
           <button
             onClick={() => { setPickerYear(selectedYear); setShowMonthPicker(p => !p); }}
@@ -291,7 +291,10 @@ export function Dashboard({ onNavigate }: DashboardProps) {
                   </div>
                   <span className="text-[9px] font-black text-slate-400 uppercase tracking-tighter">Omset</span>
                 </div>
-                <p className="text-2xl font-black text-slate-900 tracking-tighter leading-none">{formatShortCurrency(monthRevenue)}</p>
+                <div className="flex items-baseline gap-0.5">
+                  <span className="text-sm font-bold text-slate-500">Rp</span>
+                  <span className="text-2xl font-black text-slate-900 tracking-tighter leading-none">{formatCurrency(monthRevenue).replace('Rp', '').trim()}</span>
+                </div>
               </div>
 
               <div className="bg-white rounded-2xl p-3 border border-slate-100 shadow-sm">
