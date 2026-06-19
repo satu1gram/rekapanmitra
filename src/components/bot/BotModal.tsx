@@ -19,7 +19,7 @@ interface BotModalProps {
 export function BotModal({ mode, open, onClose, onConfirmOrder, onConfirmRestok }: BotModalProps) {
   const [visible, setVisible] = useState(false);
   const [mounted, setMounted] = useState(false);
-  const { mitraLevel } = useProfile();
+  const { mitraLevel, customBuyPrice } = useProfile();
 
   useEffect(() => {
     if (open) {
@@ -81,6 +81,7 @@ export function BotModal({ mode, open, onClose, onConfirmOrder, onConfirmRestok 
           <ChatInterface
             mode={mode}
             mitraLevel={mitraLevel as MitraLevel}
+            customBuyPrice={customBuyPrice}
             onConfirmOrder={onConfirmOrder}
             onConfirmRestok={onConfirmRestok}
             onSuccess={onClose}

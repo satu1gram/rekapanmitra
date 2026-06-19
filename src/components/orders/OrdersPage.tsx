@@ -115,7 +115,7 @@ export function OrdersPage({ openAddForm = false, onAddFormClose }: OrdersPagePr
   } = useOrders();
   const { currentStock } = useStock();
   const { customers, addOrUpdateCustomer, refetch: refetchCustomers } = useCustomers();
-  const { mitraLevel } = useProfile();
+  const { mitraLevel, customBuyPrice } = useProfile();
   const { getTotalExpenses, getExpensesByDateRange } = useGeneralExpenses();
   const { getTotalIncome, getIncomeByDateRange } = useGeneralIncome();
 
@@ -212,9 +212,8 @@ export function OrdersPage({ openAddForm = false, onAddFormClose }: OrdersPagePr
     const totalQuantity = data.items.reduce((sum, item) => sum + item.quantity, 0);
     setSubmitting(true);
     const totalPrice = data.items.reduce((sum, item) => sum + item.subtotal, 0);
-    const totalBuy = MITRA_LEVELS[mitraLevel].buyPricePerBottle * totalQuantity;
     try {
-      await addOrder({ ...data, mitraLevel });
+      await addOrder({ ...data, mitraLevel, customBuyPrice });
       // Remove setShowAddModal(false) and setOrderResult() here so TambahOrderFlow shows its own success UI
       addOrUpdateCustomer({
         customerName: data.customerName,
@@ -272,7 +271,7 @@ export function OrdersPage({ openAddForm = false, onAddFormClose }: OrdersPagePr
     setSubmitting(true);
     try {
       // NOTE: order update only updates order details. customer info update is done via EditCustomerPage.
-      await updateOrder(editingOrder.id, { ...data, mitraLevel });
+      await updateOrder(editingOrder.id, { ...data, mitraLevel, customBuyPrice });
       toast.success('Order berhasil diupdate!');
       setShowEditDialog(false); setEditingOrder(null);
     } catch { toast.error('Gagal mengupdate order'); }
@@ -381,7 +380,7 @@ export function OrdersPage({ openAddForm = false, onAddFormClose }: OrdersPagePr
       {/* Header - Compact & Dynamic */}
       <header className="px-5 pt-4 pb-3 bg-white/95 backdrop-blur-md shadow-sm z-[40] sticky top-0 border-b border-slate-100">
         <div className="flex items-center justify-between gap-3 mb-3">
-          <h1 className="text-xl font-black tracking-tight text-slate-900 truncate">
+          <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 truncate">
             {activeTab === 'orders' ? 'Laporan' : activeTab === 'leaderboard' ? 'Top Mitra' : 'Grafik'}
           </h1>
 
@@ -602,9 +601,12 @@ export function OrdersPage({ openAddForm = false, onAddFormClose }: OrdersPagePr
                   <span className="text-[9px] font-bold text-orange-400 uppercase">pcs</span>
                 </div>
               </div>
-              <p className="text-2xl font-black text-slate-900 tracking-tight leading-tight">
-                {formatCurrency(totalRevenue)}
-              </p>
+              <div className="flex items-baseline gap-1 mt-1">
+                <span className="text-slate-400 font-bold text-base tracking-tight">Rp</span>
+                <span className="text-3xl font-black text-slate-900 tracking-tighter leading-none">
+                  {formatCurrency(totalRevenue).replace('Rp', '').trim()}
+                </span>
+              </div>
             </div>
 
             {/* Keuntungan Bersih */}
@@ -629,10 +631,13 @@ export function OrdersPage({ openAddForm = false, onAddFormClose }: OrdersPagePr
                   <span>{includeCosts ? 'Inkl. Biaya' : 'Eksl. Biaya'}</span>
                 </button>
               </div>
-              <div className="flex items-center gap-3 relative z-10">
-                <p className={cn("text-2xl font-black tracking-tight", netProfit >= 0 ? "text-emerald-600" : "text-red-600")}>
-                  {netProfit < 0 ? '-' : ''}{formatCurrency(Math.abs(netProfit))}
-                </p>
+              <div className="flex items-center gap-3 relative z-10 mt-1">
+                <div className="flex items-baseline gap-1">
+                  <span className={cn("font-bold text-base", netProfit >= 0 ? "text-emerald-500/80" : "text-red-500/80")}>{netProfit < 0 ? '-Rp' : 'Rp'}</span>
+                  <span className={cn("text-3xl font-black tracking-tighter leading-none", netProfit >= 0 ? "text-emerald-600" : "text-red-600")}>
+                    {formatCurrency(Math.abs(netProfit)).replace('Rp', '').trim()}
+                  </span>
+                </div>
                 {totalRevenue > 0 && netProfit !== 0 && (
                   <div className={cn(
                     "flex items-center gap-1 px-2 py-0.5 rounded-full border text-xs font-black",

@@ -70,6 +70,13 @@ Aplikasi ini dapat dipasang di perangkat seperti aplikasi biasa (PWA), bekerja s
 
 ---
 
+### 8. 🎨 UI/UX Pro Max (Design System)
+- **Hierarki Tipografi** — Standarisasi ukuran font yang proporsional di seluruh aplikasi (Tier 1, 2, 3) untuk pengalaman visual premium.
+- **Header Profil Stacked** — Tampilan profil modern dengan lencana level anti-patah (truncate) yang handal untuk teks panjang.
+- **Penyesuaian Responsif** — Komponen kartu dan riwayat menyesuaikan layar sempit tanpa merusak proporsi teks uang.
+
+---
+
 ## 🛠️ Teknologi yang Digunakan
 
 ### Frontend (Tampilan & Logika Aplikasi)

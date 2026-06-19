@@ -179,7 +179,7 @@ export function Dashboard({ onNavigate }: DashboardProps) {
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter leading-none">
               {getGreeting()}
             </span>
-            <h1 className="text-xl font-black tracking-tight text-slate-900 truncate">Beranda</h1>
+            <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 truncate">Beranda</h1>
           </div>
           <button
             onClick={() => { setPickerYear(selectedYear); setShowMonthPicker(p => !p); }}
@@ -259,9 +259,9 @@ export function Dashboard({ onNavigate }: DashboardProps) {
                     <button onClick={() => setIncludeBiaya(true)} className={cn("text-[9px] font-black px-2 py-0.5 rounded-md transition-colors", includeBiaya ? "bg-emerald-500 text-white" : "bg-white/5 text-slate-500")}>Kotor</button>
                   </div>
                 </div>
-                <div className="flex items-baseline gap-1 mb-2">
-                  <span className="text-emerald-400 text-lg font-black">Rp</span>
-                  <span className={cn('text-3xl font-black tracking-tighter leading-none', displayedProfit >= 0 ? 'text-emerald-400' : 'text-red-400')}>
+                <div className="flex items-baseline gap-1.5 mb-2">
+                  <span className="text-emerald-400/80 text-xl font-bold tracking-tight">Rp</span>
+                  <span className={cn('text-4xl font-black tracking-tighter leading-none', displayedProfit >= 0 ? 'text-emerald-400' : 'text-red-400')}>
                     {formatCurrency(displayedProfit).replace('Rp', '').trim()}
                   </span>
                 </div>
@@ -291,8 +291,8 @@ export function Dashboard({ onNavigate }: DashboardProps) {
                   </div>
                   <span className="text-[9px] font-black text-slate-400 uppercase tracking-tighter">Omset</span>
                 </div>
-                <div className="flex items-baseline gap-0.5">
-                  <span className="text-sm font-bold text-slate-500">Rp</span>
+                <div className="flex items-baseline gap-1">
+                  <span className="text-sm font-bold text-slate-400">Rp</span>
                   <span className="text-2xl font-black text-slate-900 tracking-tighter leading-none">{formatCurrency(monthRevenue).replace('Rp', '').trim()}</span>
                 </div>
               </div>

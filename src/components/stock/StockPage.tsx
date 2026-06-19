@@ -476,7 +476,7 @@ export function StockPage() {
       {/* Header - Compact & Integrated */}
       <header className="px-5 pt-4 pb-3 bg-white/95 backdrop-blur-md shadow-sm z-[40] sticky top-0 border-b border-slate-100">
         <div className="flex items-center justify-between gap-3 mb-3">
-          <h1 className="text-xl font-black tracking-tight text-slate-900">Stok</h1>
+          <h1 className="text-2xl font-extrabold tracking-tight text-slate-900">Stok</h1>
           
           <div className="flex items-center gap-2">
             <button
@@ -624,9 +624,12 @@ export function StockPage() {
               <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider">Total Barang Masuk (Restok)</span>
             </div>
             <div className="flex items-end justify-between">
-              <p className="text-2xl font-black text-slate-900 tracking-tight leading-none">
-                {dailySummaries.reduce((a, b) => a + b.totalQtyIn, 0)} <span className="text-[10px] font-bold text-slate-400">btl</span>
-              </p>
+              <div className="flex items-baseline gap-1.5">
+                <span className="text-3xl font-black text-slate-900 tracking-tighter leading-none">
+                  {dailySummaries.reduce((a, b) => a + b.totalQtyIn, 0)}
+                </span>
+                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">btl</span>
+              </div>
               <p className="text-sm font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-lg border border-emerald-100">
                 {formatCurrency(dailySummaries.reduce((a, b) => a + b.totalValueIn, 0))}
               </p>

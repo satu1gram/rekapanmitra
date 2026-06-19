@@ -377,10 +377,6 @@ export function AuthPage() {
 
         {/* Footer */}
         <div className="mt-5 text-center space-y-1">
-          <div className="flex justify-center items-center gap-1.5" style={{ color: DS.gray }}>
-            <ShieldCheck className="h-3.5 w-3.5" />
-            <span className="text-xs font-medium">Aman & Terenkripsi</span>
-          </div>
           <p className="text-xs" style={{ color: DS.gray }}>Versi 2.6.0 • 2026</p>
         </div>
       </main>

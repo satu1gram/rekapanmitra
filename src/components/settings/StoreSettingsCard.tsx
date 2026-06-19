@@ -121,8 +121,8 @@ export function StoreSettingsCard() {
                         <Store className="h-5 w-5 text-[#059669]" />
                     </div>
                     <div>
-                        <h2 className="text-base font-extrabold text-slate-800">Link Toko</h2>
-                        <p className="text-xs text-slate-500 font-medium italic">Link pemesanan publik</p>
+                        <h2 className="text-base font-extrabold text-slate-800">Toko Publik</h2>
+                        <p className="text-[11px] text-slate-500 font-medium mt-0.5 leading-snug max-w-[200px]">Link otomatis untuk pelanggan. Pesanan masuk otomatis tanpa perlu rekap manual.</p>
                     </div>
                 </div>
                 {/* Toggle active/inactive */}

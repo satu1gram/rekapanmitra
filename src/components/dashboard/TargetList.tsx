@@ -130,17 +130,23 @@ export function TargetList({ year, targets, achievements, onBack, onCreate }: Ta
 
                             {/* Target vs Tercapai */}
                             <div className="grid grid-cols-2 gap-3 mb-3">
-                                <div>
+                                <div className="min-w-0">
                                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Target</p>
-                                    <p className="text-xl font-black text-slate-900 leading-none">
-                                        {formatShortCurrency(target.targetProfit)}
-                                    </p>
+                                    <div className="flex items-baseline gap-1 truncate">
+                                        <span className="text-sm font-bold text-slate-500">Rp</span>
+                                        <span className="text-xl font-black text-slate-900 tracking-tighter leading-none truncate">
+                                            {formatShortCurrency(target.targetProfit).replace('Rp', '').trim()}
+                                        </span>
+                                    </div>
                                 </div>
-                                <div className="text-right">
+                                <div className="text-right min-w-0 flex flex-col items-end">
                                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Tercapai</p>
-                                    <p className={cn('text-xl font-black leading-none', achieved.profit >= target.targetProfit && target.targetProfit > 0 ? 'text-emerald-600' : 'text-slate-700')}>
-                                        {formatShortCurrency(achieved.profit)}
-                                    </p>
+                                    <div className="flex items-baseline gap-1 truncate max-w-full justify-end">
+                                        <span className={cn("text-sm font-bold", achieved.profit >= target.targetProfit && target.targetProfit > 0 ? 'text-emerald-500/80' : 'text-slate-500')}>Rp</span>
+                                        <span className={cn('text-xl font-black tracking-tighter leading-none truncate', achieved.profit >= target.targetProfit && target.targetProfit > 0 ? 'text-emerald-600' : 'text-slate-900')}>
+                                            {formatShortCurrency(achieved.profit).replace('Rp', '').trim()}
+                                        </span>
+                                    </div>
                                 </div>
                             </div>
 

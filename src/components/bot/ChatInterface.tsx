@@ -34,6 +34,7 @@ interface ChatMessage {
 interface ChatInterfaceProps {
   mode: ChatMode;
   mitraLevel?: MitraLevel;
+  customBuyPrice?: number | null;
   onConfirmOrder?: (parsed: ParsedOrder, pricingInfo?: { items: { productName: string; quantity: number; pricePerBottle: number; subtotal: number }[], tier: TierType }) => Promise<boolean>;
   onConfirmRestok?: (parsed: ParsedRestok & { buyPricePerBottle: number }) => Promise<boolean>;
   onSuccess?: () => void;
@@ -189,6 +190,7 @@ function OrderResultCard({ msg, onCorrect, onConfirm, confirming, mitraLevel, on
   onConfirm: (result: ParsedOrder, pricingInfo?: { items: { productName: string; quantity: number; pricePerBottle: number; subtotal: number }[], tier: TierType }) => Promise<boolean>;
   confirming: boolean;
   mitraLevel?: MitraLevel;
+  customBuyPrice?: number | null;
   onSuccess?: () => void;
 }) {
   const [showCorrection, setShowCorrection] = useState(false);
@@ -241,7 +243,9 @@ function OrderResultCard({ msg, onCorrect, onConfirm, confirming, mitraLevel, on
   const myTierData = PRICE_TABLE[myLevelStr] || PRICE_TABLE['reseller'];
   let totalModal = result.items.reduce((s, item) => {
     const isBeauty = isBeautyProduct(item.nama);
-    return s + (isBeauty ? myTierData.beauty : myTierData.bp) * item.qty;
+    const standardBuyPrice = isBeauty ? myTierData.beauty : myTierData.bp;
+    const effectiveBuyPrice = mitraLevel === 'custom' && customBuyPrice != null ? customBuyPrice : standardBuyPrice;
+    return s + effectiveBuyPrice * item.qty;
   }, 0);
 
   const totalProfit = totalHargaJual - totalModal;
@@ -379,13 +383,15 @@ function RestokResultCard({ msg, onCorrect, onConfirm, confirming, mitraLevel, o
   onConfirm: (result: ParsedRestok) => Promise<boolean>;
   confirming: boolean;
   mitraLevel?: MitraLevel;
+  customBuyPrice?: number | null;
   onSuccess?: () => void;
 }) {
   const [showCorrection, setShowCorrection] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
   const [countdown, setCountdown] = useState<number | null>(null);
   const result = msg.parseResult as ParsedRestok;
-  const buyPrice = mitraLevel ? MITRA_LEVELS[mitraLevel].buyPricePerBottle : 217000;
+  const standardBuyPrice = mitraLevel ? MITRA_LEVELS[mitraLevel].buyPricePerBottle : 217000;
+  const buyPrice = mitraLevel === 'custom' && customBuyPrice != null ? customBuyPrice : standardBuyPrice;
   const totalQty = result.items.reduce((s, i) => s + i.qty, 0);
   const totalHarga = totalQty * buyPrice;
 
@@ -510,7 +516,7 @@ function LearningBadge() {
 // ═══════════════════════════════════════════════════════════════════
 // KOMPONEN UTAMA: ChatInterface
 // ═══════════════════════════════════════════════════════════════════
-export function ChatInterface({ mode, mitraLevel, onConfirmOrder, onConfirmRestok, onSuccess }: ChatInterfaceProps) {
+export function ChatInterface({ mode, mitraLevel, customBuyPrice, onConfirmOrder, onConfirmRestok, onSuccess }: ChatInterfaceProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isTyping, setIsTyping] = useState(false);
   const [inputText, setInputText] = useState('');
@@ -541,7 +547,8 @@ export function ChatInterface({ mode, mitraLevel, onConfirmOrder, onConfirmResto
 
   const handleConfirmRestok = useCallback(async (result: ParsedRestok) => {
     if (!onConfirmRestok) return false;
-    const buyPricePerBottle = mitraLevel ? MITRA_LEVELS[mitraLevel].buyPricePerBottle : 217000;
+    const standardBuyPrice = mitraLevel ? MITRA_LEVELS[mitraLevel].buyPricePerBottle : 217000;
+    const buyPricePerBottle = mitraLevel === 'custom' && customBuyPrice != null ? customBuyPrice : standardBuyPrice;
     setConfirming(result.raw);
     try {
       const ok = await onConfirmRestok({ ...result, buyPricePerBottle });
@@ -716,6 +723,7 @@ export function ChatInterface({ mode, mitraLevel, onConfirmOrder, onConfirmResto
                 onConfirm={handleConfirmOrder}
                 confirming={confirming === (msg.parseResult as ParsedOrder)?.raw}
                 mitraLevel={mitraLevel}
+                customBuyPrice={customBuyPrice}
                 onSuccess={onSuccess}
               />
             );
@@ -725,6 +733,7 @@ export function ChatInterface({ mode, mitraLevel, onConfirmOrder, onConfirmResto
                 onConfirm={handleConfirmRestok}
                 confirming={confirming === (msg.parseResult as ParsedRestok)?.raw}
                 mitraLevel={mitraLevel}
+                customBuyPrice={customBuyPrice}
                 onSuccess={onSuccess}
               />
             );

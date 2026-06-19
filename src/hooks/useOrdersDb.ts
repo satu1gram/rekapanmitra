@@ -160,6 +160,7 @@ export function useOrders() {
     items: OrderItem[];
     expenses?: { name: string, amount: number }[];
     mitraLevel: MitraLevel;
+    customBuyPrice?: number | null;
     transferProofUrl?: string;
     customerId?: string;
     createdAt?: string;
@@ -170,7 +171,12 @@ export function useOrders() {
 
     const totalQuantity = orderData.items.reduce((sum, item) => sum + item.quantity, 0);
     const totalPrice = orderData.items.reduce((sum, item) => sum + item.subtotal, 0);
-    const buyPrice = mitraInfo.buyPricePerBottle * totalQuantity;
+    
+    const effectiveBuyPricePerBottle = orderData.mitraLevel === 'custom' && orderData.customBuyPrice != null 
+        ? orderData.customBuyPrice 
+        : mitraInfo.buyPricePerBottle;
+
+    const buyPrice = effectiveBuyPricePerBottle * totalQuantity;
     const totalExpenses = orderData.expenses?.reduce((sum, e) => sum + Number(e.amount), 0) || 0;
     const margin = totalPrice - buyPrice - totalExpenses;
 
@@ -257,6 +263,7 @@ export function useOrders() {
     items: OrderItem[];
     expenses?: { name: string, amount: number }[];
     mitraLevel: MitraLevel;
+    customBuyPrice?: number | null;
     transferProofUrl?: string;
     customerId?: string;
     createdAt?: string;
@@ -267,7 +274,12 @@ export function useOrders() {
 
     const totalQuantity = orderData.items.reduce((sum, item) => sum + item.quantity, 0);
     const totalPrice = orderData.items.reduce((sum, item) => sum + item.subtotal, 0);
-    const buyPrice = mitraInfo.buyPricePerBottle * totalQuantity;
+
+    const effectiveBuyPricePerBottle = orderData.mitraLevel === 'custom' && orderData.customBuyPrice != null 
+        ? orderData.customBuyPrice 
+        : mitraInfo.buyPricePerBottle;
+
+    const buyPrice = effectiveBuyPricePerBottle * totalQuantity;
     const totalExpenses = orderData.expenses?.reduce((sum, e) => sum + Number(e.amount), 0) || 0;
     const margin = totalPrice - buyPrice - totalExpenses;
     const avgPricePerBottle = totalQuantity > 0 ? Math.round(totalPrice / totalQuantity) : 0;

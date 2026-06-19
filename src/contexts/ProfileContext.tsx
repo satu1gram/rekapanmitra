@@ -10,6 +10,8 @@ export interface Profile {
   phone: string | null;
   location: string | null;
   mitra_level: MitraLevel;
+  custom_buy_price: number | null;
+  custom_level_name: string | null;
   onboarding_completed: boolean | null;
   created_at: string;
   updated_at: string;
@@ -20,7 +22,8 @@ interface ProfileContextType {
   /** True while the profile for the *current* user has not been fetched yet */
   loading: boolean;
   mitraLevel: MitraLevel;
-  updateMitraLevel: (level: MitraLevel) => Promise<void>;
+  customBuyPrice: number | null;
+  updateMitraLevel: (level: MitraLevel, customData?: { customLevelName: string; customBuyPrice: number }) => Promise<void>;
   updateProfile: (data: { name?: string; phone?: string; location?: string }) => Promise<void>;
   refetch: () => Promise<void>;
 }
@@ -76,16 +79,22 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
   }, [fetchProfile]);
 
   const mitraLevel: MitraLevel = profile?.mitra_level || 'reseller';
+  const customBuyPrice: number | null = profile?.custom_buy_price ?? null;
 
-  const updateMitraLevel = useCallback(async (level: MitraLevel) => {
+  const updateMitraLevel = useCallback(async (level: MitraLevel, customData?: { customLevelName: string; customBuyPrice: number }) => {
     if (!user) throw new Error('User not authenticated');
+    const updatePayload: any = { mitra_level: level };
+    if (level === 'custom' && customData) {
+      updatePayload.custom_level_name = customData.customLevelName;
+      updatePayload.custom_buy_price = customData.customBuyPrice;
+    }
     const { error } = await supabase
       .from('profiles')
-      .update({ mitra_level: level } as any)
+      .update(updatePayload)
       .eq('user_id', user.id);
     if (error) throw error;
-    setProfile(prev => prev ? { ...prev, mitra_level: level } : null);
-  }, [user?.id]);
+    await fetchProfile(); // refetch to get updated custom fields
+  }, [user?.id, fetchProfile]);
 
   const updateProfile = useCallback(async (data: { name?: string; phone?: string; location?: string }) => {
     if (!user) throw new Error('User not authenticated');
@@ -98,7 +107,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
   }, [user?.id, fetchProfile]);
 
   return (
-    <ProfileContext.Provider value={{ profile, loading, mitraLevel, updateMitraLevel, updateProfile, refetch: fetchProfile }}>
+    <ProfileContext.Provider value={{ profile, loading, mitraLevel, customBuyPrice, updateMitraLevel, updateProfile, refetch: fetchProfile }}>
       {children}
     </ProfileContext.Provider>
   );
