@@ -748,6 +748,7 @@ export function OrdersPage({ openAddForm = false, onAddFormClose }: OrdersPagePr
                             onToggleExpand={() => setExpandedOrder(expandedOrder === order.id ? null : order.id)}
                             onStatusChange={handleStatusChange}
                             onEdit={openEditDialog}
+                            onDelete={handleDeleteOrder}
                             fetchOrderExpenses={fetchOrderExpenses}
                             addOrderExpense={addOrderExpense}
                             deleteOrderExpense={deleteOrderExpense}

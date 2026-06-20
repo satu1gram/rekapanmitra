@@ -13,6 +13,7 @@ export interface Profile {
   custom_buy_price: number | null;
   custom_level_name: string | null;
   onboarding_completed: boolean | null;
+  role?: 'admin' | 'mitra';
   created_at: string;
   updated_at: string;
 }

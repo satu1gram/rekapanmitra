@@ -21,6 +21,11 @@ const AkunPage = lazy(() => import("./pages/AkunPage"));
 const PublicOrderPage = lazy(() => import("./pages/PublicOrderPage"));
 const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage").then(m => ({ default: m.ResetPasswordPage })));
 
+// Admin Lazy Loads
+const AdminDashboardPage = lazy(() => import("./pages/admin/AdminDashboardPage"));
+const AdminMitraPage = lazy(() => import("./pages/admin/AdminMitraPage"));
+const AdminLayout = lazy(() => import("./components/admin/AdminLayout").then(m => ({ default: m.AdminLayout })));
+
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -106,6 +111,19 @@ const App = () => (
               } />
               <Route path="akun" element={
                 <Suspense fallback={<PageLoader />}><AkunPage /></Suspense>
+              } />
+            </Route>
+
+            {/* Admin routes — di dalam AdminLayout */}
+            <Route path="/admin" element={
+              <Suspense fallback={<PageLoader />}><AdminLayout /></Suspense>
+            }>
+              <Route index element={<Navigate to="dashboard" replace />} />
+              <Route path="dashboard" element={
+                <Suspense fallback={<PageLoader variant="dashboard" />}><AdminDashboardPage /></Suspense>
+              } />
+              <Route path="mitra" element={
+                <Suspense fallback={<PageLoader variant="list" />}><AdminMitraPage /></Suspense>
               } />
             </Route>
 

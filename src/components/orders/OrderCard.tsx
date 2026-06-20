@@ -18,6 +18,17 @@ import {
 import { generateReceiptText } from '@/lib/receiptGenerator';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import type { Tables } from '@/integrations/supabase/types';
 
 type Order = Tables<'orders'>;
@@ -233,12 +244,34 @@ export function OrderCard({
 
               {/* Actions */}
               <div className="flex gap-2">
-                <button
-                  onClick={e => { e.stopPropagation(); onDelete?.(order.id); }}
-                  className="flex items-center justify-center gap-1.5 px-4 py-2.5 bg-white border border-red-200 rounded-xl text-red-500 font-bold text-sm hover:bg-red-50 transition-colors"
-                >
-                  <Trash2 className="h-4 w-4" /> Hapus
-                </button>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <button
+                      onClick={e => e.stopPropagation()}
+                      className="flex items-center justify-center gap-1.5 px-4 py-2.5 bg-white border border-red-200 rounded-xl text-red-500 font-bold text-sm hover:bg-red-50 transition-colors"
+                    >
+                      <Trash2 className="h-4 w-4" /> Hapus
+                    </button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent onClick={e => e.stopPropagation()} className="rounded-2xl max-w-[90%] sm:max-w-[400px]">
+                    <AlertDialogHeader>
+                      <AlertDialogTitle className="text-xl font-black text-slate-900">Hapus Pesanan?</AlertDialogTitle>
+                      <AlertDialogDescription className="text-sm font-medium text-slate-500">
+                        Tindakan ini tidak bisa dibatalkan. Data pesanan ini, termasuk stok dan riwayat pengeluaran terkait, akan ikut terhapus dari sistem.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter className="mt-2">
+                      <AlertDialogCancel className="rounded-xl font-bold border-slate-200 text-slate-600 hover:bg-slate-100 h-11">Batal</AlertDialogCancel>
+                      <AlertDialogAction 
+                        onClick={() => onDelete?.(order.id)}
+                        className="rounded-xl font-bold bg-red-600 text-white hover:bg-red-700 h-11"
+                      >
+                        Ya, Hapus Permanen
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+
                 <button
                   onClick={e => { e.stopPropagation(); onEdit(order); }}
                   className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-slate-800 text-white rounded-xl font-bold text-sm hover:bg-slate-700 transition-colors"

@@ -1,7 +1,7 @@
 # 📋 Dokumentasi Teknis — Rekapan Mitra BP
 
 > **Sistem Manajemen Bisnis Digital untuk Mitra & Konsumen**  
-> Versi 2.6 · Terakhir diperbarui: 17 Juni 2026
+> Versi 2.6 · Terakhir diperbarui: 21 Juni 2026
 
 ---
 
@@ -21,6 +21,8 @@ Aplikasi ini dapat dipasang di perangkat seperti aplikasi biasa (PWA), bekerja s
 - **Target Bulanan** — Atur target omzet dan pantau pencapaian secara real-time.
 - **Format Mata Uang Standar** — Menggunakan angka penuh dengan pemisah titik (contoh: `Rp 27.800.000`) untuk konsistensi.
 - **Pertumbuhan Pelanggan** — Grafik batang jumlah pelanggan baru per bulan dengan filter tahun dan segmen.
+- **Admin Layout Dinamis** — Bilah navigasi admin (sidebar) yang dapat diciutkan (*collapsible*) untuk memaksimalkan ruang kerja tabel.
+- **Tooltips Cerdas** — Komponen *tooltip* menggunakan Radix UI berlapis *portal* yang anti-terpotong (*overflow-safe*) di semua kartu metrik.
 
 ---
 
@@ -38,13 +40,15 @@ Aplikasi ini dapat dipasang di perangkat seperti aplikasi biasa (PWA), bekerja s
 - **Unlimited Order** — Input jumlah pesanan kini tidak lagi dibatasi oleh stok sistem di UI.
 - **Harga Otomatis Berdasarkan Kuantitas** — Harga menyesuaikan secara otomatis sesuai total jumlah pesanan (tier pricing).
 - **Inline Customer Management** — Tambah atau edit pelanggan langsung dari form order.
+- **Proteksi Hapus Pesanan** — Komponen *AlertDialog* (dialog konfirmasi merah) sebelum pesanan dihapus permanen untuk mencegah salah klik.
 
 ---
 
 ### 4. 👥 Manajemen Pelanggan
-- **Data Pelanggan Lengkap** — Simpan nama, nomor WA, alamat, provinsi, dan kota pelanggan.
+- **Data Pelanggan Lengkap** — Simpan nama, nomor WA, alamat, serta domisili (Provinsi & Kota/Kabupaten) dengan *dropdown* dinamis.
 - **Segmentasi Pelanggan** — Bagi pelanggan menjadi **Mitra** (reseller) dan **Konsumen** (pengguna akhir).
 - **Level Mitra Kustom** — Atur level mitra dengan harga modal yang berbeda-beda.
+- **Pendaftaran & Pembaruan Mandiri** — Pengguna baru dan lama dapat mengisi form pendaftaran domisili lengkap, serta merevisinya melalui menu Ubah Profil.
 
 ---
 

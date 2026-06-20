@@ -4,10 +4,12 @@ import { formatCurrency, formatShortCurrency } from '@/lib/formatters';
 import { useAuth } from '@/hooks/useAuth';
 import { useProfile } from '@/hooks/useProfile';
 import {
-  LogOut, Loader2, Check, Shield, Info, MapPin, ChevronRight, Store, TrendingUp
+  LogOut, Loader2, Check, Shield, Info, MapPin, ChevronRight, Store, TrendingUp, User, Phone, Edit3
 } from 'lucide-react';
+import { useIndonesianRegions } from '@/hooks/useIndonesianRegions';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { StoreSettingsCard } from '@/components/settings/StoreSettingsCard';
@@ -26,7 +28,7 @@ const LEVEL_MARGIN: Record<string, number> = {
 
 export function SettingsPage() {
   const { user, signOut } = useAuth();
-  const { profile, mitraLevel, customBuyPrice, updateMitraLevel } = useProfile();
+  const { profile, mitraLevel, customBuyPrice, updateMitraLevel, updateProfile } = useProfile();
 
   const [loggingOut, setLoggingOut] = useState(false);
   const [savingLevel, setSavingLevel] = useState(false);
@@ -36,6 +38,17 @@ export function SettingsPage() {
   
   const [customNameInput, setCustomNameInput] = useState('');
   const [customPriceInput, setCustomPriceInput] = useState('');
+
+  // Profile Edit State
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [editName, setEditName] = useState('');
+  const [editPhone, setEditPhone] = useState('');
+  const [editProvince, setEditProvince] = useState('');
+  const [editCity, setEditCity] = useState('');
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [formErrors, setFormErrors] = useState<{name?: string, phone?: string, province?: string, city?: string}>({});
+
+  const { provinces, loadingProvinces, cities, loadingCities, fetchCities, setCities } = useIndonesianRegions();
 
   // Pastikan mitraLevel valid, fallback ke 'reseller'
   const safeMitraLevel: MitraLevel = (MITRA_LEVELS[mitraLevel as MitraLevel] ? mitraLevel as MitraLevel : 'reseller');
@@ -66,6 +79,53 @@ export function SettingsPage() {
     }
     catch { toast.error('Gagal mengubah level mitra'); }
     finally { setSavingLevel(false); }
+  };
+
+  const openProfileModal = () => {
+    setEditName(profile?.name || '');
+    setEditPhone(profile?.phone || '');
+    
+    // Attempt to split location if formatted as "City, Province"
+    const locParts = (profile?.location || '').split(', ');
+    if (locParts.length === 2) {
+      setEditCity(locParts[0]);
+      setEditProvince(locParts[1]);
+      const p = provinces.find(x => x.name === locParts[1]);
+      if (p) fetchCities(p.id);
+    } else {
+      setEditCity('');
+      setEditProvince('');
+    }
+    setShowProfileModal(true);
+    setFormErrors({});
+  };
+
+  const handleUpdateProfile = async () => {
+    const errors: {name?: string, phone?: string, province?: string, city?: string} = {};
+    if (!editName.trim()) errors.name = 'Nama wajib diisi';
+    if (!editProvince.trim()) errors.province = 'Provinsi wajib dipilih';
+    if (!editCity.trim()) errors.city = 'Kota/Kab wajib dipilih';
+    
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors);
+      return;
+    }
+    
+    setFormErrors({});
+    setSavingProfile(true);
+    try {
+      await updateProfile({
+        name: editName.trim(),
+        phone: editPhone.trim(),
+        location: `${editCity.trim()}, ${editProvince.trim()}`
+      });
+      toast.success('Profil berhasil diperbarui');
+      setShowProfileModal(false);
+    } catch {
+      toast.error('Gagal memperbarui profil');
+    } finally {
+      setSavingProfile(false);
+    }
   };
 
   return (
@@ -134,7 +194,25 @@ export function SettingsPage() {
         <StoreSettingsCard />
 
         {/* ─── PENGATURAN LAINNYA ─── */}
-        <section className="bg-white rounded-[2rem] p-2 shadow-sm border border-slate-100">
+        <section className="bg-white rounded-[2rem] p-2 shadow-sm border border-slate-100 flex flex-col gap-1">
+          <button
+            onClick={openProfileModal}
+            className="w-full flex items-center justify-between px-4 py-4 rounded-xl hover:bg-slate-50 transition-colors text-left"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center">
+                <Edit3 className="h-3.5 w-3.5 text-blue-500" />
+              </div>
+              <div>
+                <p className="text-sm font-bold text-slate-800">Ubah Profil</p>
+                <p className="text-[10px] text-slate-500 font-medium mt-0.5">Perbarui nama, kontak, dan area pengiriman</p>
+              </div>
+            </div>
+            <ChevronRight className="h-4 w-4 text-slate-400" />
+          </button>
+          
+          <div className="h-[1px] bg-slate-100 mx-4" />
+
           <button
             onClick={handleLogout}
             disabled={loggingOut}
@@ -259,6 +337,118 @@ export function SettingsPage() {
                 className="flex-1 py-3 text-xs font-black text-white bg-[#059669] hover:bg-[#007b55] rounded-xl transition-colors disabled:opacity-50 flex justify-center"
               >
                 {savingLevel ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Simpan Kustom'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── MODAL UBAH PROFIL ─── */}
+      {showProfileModal && (
+        <div className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center sm:p-4">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowProfileModal(false)} />
+          <div className="bg-white rounded-t-[2rem] sm:rounded-[2rem] w-full max-w-md p-6 relative z-10 shadow-2xl animate-in slide-in-from-bottom-10 sm:slide-in-from-bottom-0 sm:zoom-in duration-300 max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-1">
+              <h3 className="text-lg font-black text-slate-800">Ubah Profil</h3>
+              <button onClick={() => setShowProfileModal(false)} className="text-slate-400 hover:text-slate-600 font-bold text-xl leading-none">&times;</button>
+            </div>
+            <p className="text-[11px] text-slate-500 font-medium mb-5">Perbarui data diri dan area demografi Anda.</p>
+
+            <div className="space-y-4">
+              <div>
+                <Label className={cn("text-[10px] font-bold uppercase tracking-widest mb-1.5 block", formErrors.name ? "text-red-500" : "text-slate-500")}>Nama Lengkap</Label>
+                <div className="relative">
+                  <User className={cn("absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4", formErrors.name ? "text-red-400" : "text-slate-400")} />
+                  <Input 
+                    value={editName} 
+                    onChange={e => { setEditName(e.target.value); setFormErrors(p => ({...p, name: undefined})) }} 
+                    placeholder="Nama Lengkap" 
+                    className={cn("pl-9 rounded-xl h-11 focus:ring-[#059669]", formErrors.name ? "border-red-500 focus:border-red-500 focus:ring-red-500/20" : "border-slate-200 focus:border-[#059669]")}
+                  />
+                </div>
+                {formErrors.name && <p className="text-[10px] font-bold text-red-500 mt-1">{formErrors.name}</p>}
+              </div>
+              <div>
+                <Label className={cn("text-[10px] font-bold uppercase tracking-widest mb-1.5 block", formErrors.phone ? "text-red-500" : "text-slate-500")}>Nomor WhatsApp</Label>
+                <div className="relative">
+                  <Phone className={cn("absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4", formErrors.phone ? "text-red-400" : "text-slate-400")} />
+                  <Input 
+                    type="tel"
+                    value={editPhone} 
+                    onChange={e => { setEditPhone(e.target.value); setFormErrors(p => ({...p, phone: undefined})) }} 
+                    placeholder="08..." 
+                    className={cn("pl-9 rounded-xl h-11 focus:ring-[#059669]", formErrors.phone ? "border-red-500 focus:border-red-500 focus:ring-red-500/20" : "border-slate-200 focus:border-[#059669]")}
+                  />
+                </div>
+                {formErrors.phone && <p className="text-[10px] font-bold text-red-500 mt-1">{formErrors.phone}</p>}
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className={cn("text-[10px] font-bold uppercase tracking-widest mb-1.5 block", formErrors.province ? "text-red-500" : "text-slate-500")}>Provinsi</Label>
+                  <div className="relative">
+                    <MapPin className={cn("absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 z-10", formErrors.province ? "text-red-400" : "text-slate-400")} />
+                    <Select
+                      value={editProvince}
+                      onValueChange={(val) => {
+                        setEditProvince(val);
+                        setEditCity('');
+                        setFormErrors(p => ({...p, province: undefined, city: undefined}));
+                        if (!val) { setCities([]); return; }
+                        const p = provinces.find(x => x.name === val);
+                        if (p) fetchCities(p.id);
+                      }}
+                      disabled={loadingProvinces}
+                    >
+                      <SelectTrigger className={cn("w-full pl-9 pr-3 h-11 rounded-xl text-sm outline-none", formErrors.province ? "border-red-500 ring-1 ring-red-500/20" : "border-slate-200 focus:border-[#059669] focus:ring-1 focus:ring-[#059669]")}>
+                        <SelectValue placeholder="Pilih Provinsi" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {provinces.map(p => (
+                          <SelectItem key={p.id} value={p.name}>{p.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {formErrors.province && <p className="text-[10px] font-bold text-red-500 mt-1">{formErrors.province}</p>}
+                </div>
+                <div>
+                  <Label className={cn("text-[10px] font-bold uppercase tracking-widest mb-1.5 block", formErrors.city ? "text-red-500" : "text-slate-500")}>Kota/Kabupaten</Label>
+                  <div className="relative">
+                    <MapPin className={cn("absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 z-10", formErrors.city ? "text-red-400" : "text-slate-400")} />
+                    <Select
+                      value={editCity}
+                      onValueChange={val => { setEditCity(val); setFormErrors(p => ({...p, city: undefined})); }}
+                      disabled={!editProvince || loadingCities || cities.length === 0}
+                    >
+                      <SelectTrigger className={cn("w-full pl-9 pr-3 h-11 rounded-xl text-sm outline-none disabled:opacity-50", formErrors.city ? "border-red-500 ring-1 ring-red-500/20" : "border-slate-200 focus:border-[#059669] focus:ring-1 focus:ring-[#059669]")}>
+                        <SelectValue placeholder="Pilih Kota/Kab" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {cities.map(c => (
+                          <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {formErrors.city && <p className="text-[10px] font-bold text-red-500 mt-1">{formErrors.city}</p>}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-6 pt-2">
+              <button 
+                onClick={() => setShowProfileModal(false)}
+                className="flex-1 py-3.5 text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors"
+              >
+                Batal
+              </button>
+              <button 
+                disabled={savingProfile || !editName.trim() || !editProvince || !editCity}
+                onClick={handleUpdateProfile}
+                className="flex-1 py-3.5 text-xs font-black text-white bg-[#059669] hover:bg-[#007b55] rounded-xl transition-colors disabled:opacity-50 flex justify-center"
+              >
+                {savingProfile ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Simpan Profil'}
               </button>
             </div>
           </div>
