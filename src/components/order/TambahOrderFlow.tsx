@@ -36,7 +36,7 @@ interface Expense {
   amount: number;
 }
 
-export function TambahOrderFlow({ customers, submitting, onSubmit, onCancel, onEditCustomer, initialSelectedCustomerId }: TambahOrderFlowProps) {
+export function TambahOrderFlow({ customers, currentStock, submitting, onSubmit, onCancel, onEditCustomer, initialSelectedCustomerId }: TambahOrderFlowProps) {
   const { products, loading: productsLoading } = useProducts();
   const [step, setStep] = useState<Step>('info');
   
@@ -289,7 +289,17 @@ export function TambahOrderFlow({ customers, submitting, onSubmit, onCancel, onE
             <div className="animate-in fade-in duration-300">
               <div className="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm space-y-2.5">
                 {/* Hint */}
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1 pb-1">Pilih Produk & Jumlah</p>
+                <div className="flex items-center justify-between px-1 pb-1">
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Pilih Produk & Jumlah</p>
+                  <div className={cn(
+                    "px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wider",
+                    currentStock === 0 ? "bg-red-50 text-red-600" :
+                    totalQty > currentStock ? "bg-red-50 text-red-600" :
+                    "bg-emerald-50 text-emerald-600"
+                  )}>
+                    Stok: {currentStock} botol
+                  </div>
+                </div>
                 {items.map((item, idx) => (
                   <div key={idx} className={cn("p-4 rounded-2xl border transition-all", item.quantity > 0 ? "border-emerald-200 bg-emerald-50/30" : "border-slate-50 bg-slate-50/50")}>
                     <div className="flex items-center justify-between gap-4">
@@ -396,6 +406,23 @@ export function TambahOrderFlow({ customers, submitting, onSubmit, onCancel, onE
             </div>
           </div>
 
+          {/* Peringatan stok */}
+          {totalQty > currentStock && (
+            <div className="px-4 max-w-md mx-auto mt-3">
+              <div className="bg-red-50 border border-red-200 rounded-2xl p-4 flex items-start gap-3 animate-in fade-in">
+                <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center shrink-0 mt-0.5">
+                  <span className="text-red-600 font-black text-sm">!</span>
+                </div>
+                <div>
+                  <p className="text-sm font-black text-red-800">Stok Tidak Mencukupi</p>
+                  <p className="text-xs font-bold text-red-600 mt-1">
+                    Pesanan {totalQty} botol, stok tersedia {currentStock} botol. Kurangi jumlah produk atau restok dulu.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Sticky Bottom Bar Step 3 */}
           <div className="sticky bottom-0 bg-white/95 backdrop-blur-sm border-t border-slate-100 px-4 py-3">
             <div className="max-w-md mx-auto">
@@ -427,10 +454,11 @@ export function TambahOrderFlow({ customers, submitting, onSubmit, onCancel, onE
                     const ok = await onSubmit(payload);
                     if (ok) setStep('success');
                   }}
-                  disabled={submitting}
+                  disabled={submitting || totalQty > currentStock}
                   className="flex-1 h-12 bg-emerald-600 text-white rounded-xl font-black text-sm shadow-md hover:bg-emerald-700 active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-50"
                 >
-                  {submitting ? <Loader2 className="h-5 w-5 animate-spin" /> : '✓ SIMPAN ORDER'}
+                  {submitting ? <Loader2 className="h-5 w-5 animate-spin" /> : 
+                   totalQty > currentStock ? '⚠ STOK TIDAK CUKUP' : '✓ SIMPAN ORDER'}
                 </button>
               </div>
             </div>

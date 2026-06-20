@@ -113,7 +113,7 @@ export function OrdersPage({ openAddForm = false, onAddFormClose }: OrdersPagePr
     deleteOrderExpense,
     fetchOrderItems,
   } = useOrders();
-  const { currentStock } = useStock();
+  const { currentStock, reduceStock, restoreStock } = useStock();
   const { customers, addOrUpdateCustomer, refetch: refetchCustomers } = useCustomers();
   const { mitraLevel, customBuyPrice } = useProfile();
   const { getTotalExpenses, getExpensesByDateRange } = useGeneralExpenses();
@@ -213,7 +213,16 @@ export function OrdersPage({ openAddForm = false, onAddFormClose }: OrdersPagePr
     setSubmitting(true);
     const totalPrice = data.items.reduce((sum, item) => sum + item.subtotal, 0);
     try {
-      await addOrder({ ...data, mitraLevel, customBuyPrice });
+      // Cek stok sebelum order
+      if (totalQuantity > currentStock) {
+        throw new Error(`Stok tidak mencukupi. Butuh ${totalQuantity} botol, tersedia ${currentStock} botol.`);
+      }
+
+      const newOrder = await addOrder({ ...data, mitraLevel, customBuyPrice });
+      // Kurangi stok setelah order berhasil
+      if (newOrder?.id) {
+        await reduceStock(totalQuantity, newOrder.id);
+      }
       // Remove setShowAddModal(false) and setOrderResult() here so TambahOrderFlow shows its own success UI
       addOrUpdateCustomer({
         customerName: data.customerName,
@@ -244,8 +253,14 @@ export function OrdersPage({ openAddForm = false, onAddFormClose }: OrdersPagePr
 
   const handleDeleteOrder = async (orderId: string) => {
     try {
+      // Cari order untuk dapatin quantity (buat restore stok)
+      const deletedOrder = orders.find(o => o.id === orderId);
       await deleteOrder(orderId);
-      toast.success('Pesanan ditolak dan dihapus');
+      // Kembalikan stok setelah order dihapus
+      if (deletedOrder) {
+        await restoreStock(deletedOrder.quantity, orderId);
+      }
+      toast.success('Pesanan ditolak dan dihapus, stok dikembalikan');
     } catch { toast.error('Gagal menghapus pesanan'); }
   };
 

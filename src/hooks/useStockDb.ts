@@ -241,12 +241,43 @@ export function useStock() {
     await fetchStock();
   };
 
+  const restoreStock = async (quantity: number, orderId?: string) => {
+    if (!user) throw new Error('User not authenticated');
+
+    const insertData: any = {
+      user_id: user.id,
+      type: 'in',
+      quantity,
+      order_id: orderId || null,
+      notes: 'Restok otomatis (order dibatalkan)'
+    };
+
+    // Add stock entry (type='in' = restore)
+    const { error: entryError } = await supabase
+      .from('stock_entries')
+      .insert(insertData);
+
+    if (entryError) throw entryError;
+
+    // Update current stock
+    const newStock = currentStock + quantity;
+    const { error: updateError } = await supabase
+      .from('user_stock')
+      .update({ current_stock: newStock })
+      .eq('user_id', user.id);
+
+    if (updateError) throw updateError;
+
+    await fetchStock();
+  };
+
   return {
     currentStock,
     stockEntries,
     loading,
     addStock,
     reduceStock,
+    restoreStock,
     updateStockEntry,
     deleteStockEntry,
     isLowStock,
