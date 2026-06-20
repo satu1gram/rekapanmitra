@@ -1,12 +1,15 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { useIndonesianRegions } from '@/hooks/useIndonesianRegions';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import {
   Mail, Lock, User, Loader2, LogIn, UserPlus, ShieldCheck,
-  Eye, EyeOff, KeyRound, ArrowLeft, MailCheck, RefreshCw, Phone
+  Eye, EyeOff, KeyRound, ArrowLeft, MailCheck, RefreshCw, Phone, MapPin
 } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { cn } from '@/lib/utils';
 
 // Design System
 const DS = {
@@ -34,6 +37,12 @@ export function AuthPage() {
   const [showConfirmPass, setShowConfirmPass] = useState(false);
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
+  const [city, setCity] = useState('');
+  const [province, setProvince] = useState('');
+  
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+  
+  const { provinces, loadingProvinces, cities, loadingCities, fetchCities, setCities } = useIndonesianRegions();
 
   const { user, loading: authLoading } = useAuth();
 
@@ -53,10 +62,22 @@ export function AuthPage() {
         if (error) toast.error('Email atau password salah.');
         else { toast.success('Berhasil masuk!'); navigate(from, { replace: true }); }
       } else if (mode === 'register') {
-        if (!name.trim()) { toast.error('Nama wajib diisi'); setLoading(false); return; }
-        if (!phone.trim()) { toast.error('Nomor HP wajib diisi'); setLoading(false); return; }
-        if (password !== confirmPassword) { toast.error('Kata sandi tidak cocok'); setLoading(false); return; }
-        const { error } = await signUp(email, password, name, phone);
+        const errors: Record<string, string> = {};
+        if (!name.trim()) errors.name = 'Nama wajib diisi';
+        if (!phone.trim()) errors.phone = 'Nomor HP wajib diisi';
+        if (!province.trim()) errors.province = 'Provinsi wajib dipilih';
+        if (!city.trim()) errors.city = 'Kota/Kab wajib dipilih';
+        if (password !== confirmPassword) errors.confirmPassword = 'Kata sandi tidak cocok';
+        
+        if (Object.keys(errors).length > 0) {
+          setFormErrors(errors);
+          setLoading(false);
+          return;
+        }
+        
+        setFormErrors({});
+        const locationStr = `${city.trim()}, ${province.trim()}`;
+        const { error } = await signUp(email, password, name, phone, locationStr);
         if (error) {
           const msg = error.message?.toLowerCase() ?? '';
           if (
@@ -211,34 +232,100 @@ export function AuthPage() {
                 {mode === 'register' && (
                   <>
                     <div className="space-y-1">
-                      <label htmlFor="name" className="flex items-center gap-1.5 text-xs font-bold" style={{ color: DS.navy }}>
-                        <User className="h-3.5 w-3.5" style={{ color: DS.gray }} /> Nama Lengkap
+                      <label htmlFor="name" className={cn("flex items-center gap-1.5 text-xs font-bold", formErrors.name ? "text-red-500" : "text-slate-800")} style={!formErrors.name ? { color: DS.navy } : {}}>
+                        <User className="h-3.5 w-3.5" style={!formErrors.name ? { color: DS.gray } : {}} /> Nama Lengkap
                       </label>
                       <input
-                        id="name" type="text" placeholder="Nama Anda" value={name}
-                        onChange={e => setName(e.target.value)} required disabled={loading}
-                        className={inputBase}
-                        style={{ '--tw-ring-color': DS.primary } as any}
-                        onFocus={e => e.target.style.borderColor = DS.primary}
-                        onBlur={e => e.target.style.borderColor = '#E2E8F0'}
+                        id="name" type="text" placeholder="Budi Santoso" value={name}
+                        onChange={e => { setName(e.target.value); setFormErrors(p => ({...p, name: ''})) }} required disabled={loading}
+                        className={cn(inputBase, formErrors.name && "border-red-500 focus:border-red-500 focus:ring-red-500/20")}
+                        style={!formErrors.name ? { '--tw-ring-color': DS.primary } as any : undefined}
+                        onFocus={e => !formErrors.name && (e.target.style.borderColor = DS.primary)}
+                        onBlur={e => !formErrors.name && (e.target.style.borderColor = '#E2E8F0')}
                         autoComplete="name"
                       />
+                      {formErrors.name && <p className="text-[10px] font-bold text-red-500 mt-1">{formErrors.name}</p>}
                     </div>
                     
                     {/* Nomor HP */}
                     <div className="space-y-1">
-                      <label htmlFor="phone" className="flex items-center gap-1.5 text-xs font-bold" style={{ color: DS.navy }}>
-                        <Phone className="h-3.5 w-3.5" style={{ color: DS.gray }} /> Nomor HP
+                      <label htmlFor="phone" className={cn("flex items-center gap-1.5 text-xs font-bold", formErrors.phone ? "text-red-500" : "text-slate-800")} style={!formErrors.phone ? { color: DS.navy } : {}}>
+                        <Phone className="h-3.5 w-3.5" style={!formErrors.phone ? { color: DS.gray } : {}} /> Nomor HP
                       </label>
                       <input
                         id="phone" type="tel" placeholder="08..." value={phone}
-                        onChange={e => setPhone(e.target.value)} required disabled={loading}
-                        className={inputBase}
-                        style={{ '--tw-ring-color': DS.primary } as any}
-                        onFocus={e => e.target.style.borderColor = DS.primary}
-                        onBlur={e => e.target.style.borderColor = '#E2E8F0'}
+                        onChange={e => { setPhone(e.target.value); setFormErrors(p => ({...p, phone: ''})) }} required disabled={loading}
+                        className={cn(inputBase, formErrors.phone && "border-red-500 focus:border-red-500 focus:ring-red-500/20")}
+                        style={!formErrors.phone ? { '--tw-ring-color': DS.primary } as any : undefined}
+                        onFocus={e => !formErrors.phone && (e.target.style.borderColor = DS.primary)}
+                        onBlur={e => !formErrors.phone && (e.target.style.borderColor = '#E2E8F0')}
                         autoComplete="tel"
                       />
+                      {formErrors.phone && <p className="text-[10px] font-bold text-red-500 mt-1">{formErrors.phone}</p>}
+                    </div>
+                    
+                    {/* Kota/Kabupaten & Provinsi */}
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <label htmlFor="province" className={cn("flex items-center gap-1.5 text-xs font-bold", formErrors.province ? "text-red-500" : "text-slate-800")} style={!formErrors.province ? { color: DS.navy } : {}}>
+                          <MapPin className="h-3.5 w-3.5" style={!formErrors.province ? { color: DS.gray } : {}} /> Provinsi
+                        </label>
+                        <Select
+                          value={province}
+                          onValueChange={(val) => {
+                            setProvince(val);
+                            setCity(''); // reset city
+                            setFormErrors(p => ({...p, province: '', city: ''}));
+                            if (!val) {
+                              setCities([]);
+                              return;
+                            }
+                            const p = provinces.find(x => x.name === val);
+                            if (p) fetchCities(p.id);
+                          }}
+                          disabled={loading || loadingProvinces}
+                        >
+                          <SelectTrigger 
+                            className={cn(
+                              "w-full h-11 px-4 rounded-xl border bg-slate-50 transition-all font-medium text-sm outline-none",
+                              formErrors.province ? "border-red-500 ring-1 ring-red-500/20" : "border-slate-200 focus:border-[#059669] focus:bg-white focus:ring-1 focus:ring-[#059669]"
+                            )}
+                          >
+                            <SelectValue placeholder="Pilih Provinsi" />
+                          </SelectTrigger>
+                          <SelectContent className="z-[200]">
+                            {provinces.map(p => (
+                              <SelectItem key={p.id} value={p.name}>{p.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        {formErrors.province && <p className="text-[10px] font-bold text-red-500 mt-1">{formErrors.province}</p>}
+                      </div>
+                      <div className="space-y-1">
+                        <label htmlFor="city" className={cn("flex items-center gap-1.5 text-xs font-bold", formErrors.city ? "text-red-500" : "text-slate-800")} style={!formErrors.city ? { color: DS.navy } : {}}>
+                          Kota/Kabupaten
+                        </label>
+                        <Select
+                          value={city}
+                          onValueChange={val => { setCity(val); setFormErrors(p => ({...p, city: ''})); }}
+                          disabled={loading || !province || loadingCities || cities.length === 0}
+                        >
+                          <SelectTrigger 
+                            className={cn(
+                              "w-full h-11 px-4 rounded-xl border bg-slate-50 transition-all font-medium text-sm outline-none disabled:opacity-50",
+                              formErrors.city ? "border-red-500 ring-1 ring-red-500/20" : "border-slate-200 focus:border-[#059669] focus:bg-white focus:ring-1 focus:ring-[#059669]"
+                            )}
+                          >
+                            <SelectValue placeholder="Pilih Kota/Kab" />
+                          </SelectTrigger>
+                          <SelectContent className="z-[200]">
+                            {cities.map(c => (
+                              <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        {formErrors.city && <p className="text-[10px] font-bold text-red-500 mt-1">{formErrors.city}</p>}
+                      </div>
                     </div>
                   </>
                 )}
@@ -360,6 +447,9 @@ export function AuthPage() {
                         setMode(mode === 'login' ? 'register' : 'login'); 
                         setName(''); 
                         setPhone(''); 
+                        setCity('');
+                        setProvince('');
+                        setFormErrors({});
                         setConfirmPassword(''); 
                       }}
                       disabled={loading}
