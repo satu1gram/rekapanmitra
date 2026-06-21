@@ -61,17 +61,22 @@ export function InitialStockStep({
                         <p className="text-xs mt-1" style={{ color: DS.gray }}>Abi stok dulu nanti setelah setup.</p>
                     </div>
                 ) : (
-                    availableProducts.map(prod => {
-                        const qty = initialStockProducts[prod.id] || 0;
+                    availableProducts.reduce<{category: string; name: string}[]>((acc, p) => {
+                        if (!acc.find(a => a.category === p.category)) {
+                            acc.push({ category: p.category, name: p.category });
+                        }
+                        return acc;
+                    }, []).map((cat) => {
+                        const qty = initialStockProducts[cat.category] || 0;
                         return (
-                            <div key={prod.id} className="flex items-center gap-3 bg-white rounded-2xl p-2.5 shadow-sm border" style={{ borderColor: '#E2E8F0' }}>
+                            <div key={cat.category} className="flex items-center gap-3 bg-white rounded-2xl p-2.5 shadow-sm border" style={{ borderColor: '#E2E8F0' }}>
                                 <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-bold" style={{ color: DS.navy }}>{prod.name}</p>
-                                    <p className="text-[10px] font-medium uppercase" style={{ color: DS.gray }}>{prod.category}</p>
+                                    <p className="text-sm font-bold" style={{ color: DS.navy }}>{cat.name}</p>
+                                    <p className="text-[10px] font-medium uppercase" style={{ color: DS.gray }}>{cat.category}</p>
                                 </div>
                                 <div className="flex items-center gap-2 shrink-0">
                                     <button
-                                        onClick={() => adjustProduct(prod.id, -1)}
+                                        onClick={() => adjustProduct(cat.category, -1)}
                                         disabled={qty <= 0}
                                         className="w-8 h-8 rounded-xl bg-white border-2 flex items-center justify-center active:scale-95 transition-all disabled:opacity-30"
                                         style={{ borderColor: '#E2E8F0' }}
@@ -80,7 +85,7 @@ export function InitialStockStep({
                                     </button>
                                     <span className="w-8 text-center text-base font-black tabular-nums" style={{ color: DS.navy }}>{qty}</span>
                                     <button
-                                        onClick={() => adjustProduct(prod.id, 1)}
+                                        onClick={() => adjustProduct(cat.category, 1)}
                                         className="w-8 h-8 rounded-xl bg-white border-2 flex items-center justify-center active:scale-95 transition-all"
                                         style={{ borderColor: '#E2E8F0' }}
                                     >

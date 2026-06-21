@@ -353,7 +353,7 @@ export type Database = {
           id: string
           notes: string | null
           order_id: string | null
-          product_id: string | null
+          product_name: string | null
           quantity: number
           tier: string | null
           total_buy_price: number | null
@@ -367,7 +367,7 @@ export type Database = {
           id?: string
           notes?: string | null
           order_id?: string | null
-          product_id?: string | null
+          product_name?: string | null
           quantity: number
           tier?: string | null
           total_buy_price?: number | null
@@ -381,7 +381,7 @@ export type Database = {
           id?: string
           notes?: string | null
           order_id?: string | null
-          product_id?: string | null
+          product_name?: string | null
           quantity?: number
           tier?: string | null
           total_buy_price?: number | null
@@ -483,6 +483,33 @@ export type Database = {
           id?: string
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      user_product_stock: {
+        Row: {
+          id: string
+          user_id: string
+          product_name: string
+          current_stock: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          product_name: string
+          current_stock?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          product_name?: string
+          current_stock?: number
+          created_at?: string
+          updated_at?: string
         }
         Relationships: []
       }

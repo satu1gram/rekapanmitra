@@ -43,7 +43,7 @@ const MONTHS_FULL = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Ju
 const TROPHIES = ['🥇', '🥈', '🥉'];
 
 export function StockPage() {
-  const { currentStock, stockEntries, loading, addStock, updateStockEntry, deleteStockEntry, isLowStock } = useStock();
+  const { currentStock, stockEntries, loading, addStock, updateStockEntry, deleteStockEntry, isLowStock, productStocks } = useStock();
   const { uploadTransferProof } = useFileUpload();
   const { mitraLevel } = useProfile();
   const { orders } = useOrders();
@@ -175,13 +175,12 @@ export function StockPage() {
   const handleRestok = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Build list of products with quantity > 0
+    // Build list of products with quantity > 0 — grouped by category
     const items = Object.entries(productQtys)
       .filter(([_, qty]) => qty > 0)
-      .map(([productId, qty]) => ({
-        productId,
+      .map(([productName, qty]) => ({
+        productName,
         qty,
-        product: availableProducts.find(p => p.id === productId),
       }));
 
     const totalQty = items.reduce((s, i) => s + i.qty, 0);
@@ -199,11 +198,11 @@ export function StockPage() {
           buyPricePerBottle: buyPrice,
           transferProofUrl: transferProofUrl || undefined,
           notes: items.length > 1
-            ? items.map(i => `${i.qty}x ${i.product?.name || 'Produk'}`).join(', ')
+            ? items.map(i => `${i.qty}x ${i.productName}`).join(', ')
             : (notes.trim() || undefined),
           createdAt: stockDate ? new Date(stockDate).toISOString() : undefined,
-          productId: firstItem.productId,
-        }, editingEntry.quantity);
+          productName: firstItem.productName,
+        }, editingEntry.quantity, (editingEntry as any).product_name || undefined);
         toast.success('Restok berhasil diupdate!');
       } else {
         // Create mode — one entry per product
@@ -215,7 +214,7 @@ export function StockPage() {
             transferProofUrl: transferProofUrl || undefined,
             notes: notes.trim() || undefined,
             createdAt: stockDate ? new Date(stockDate).toISOString() : undefined,
-            productId: item.productId,
+            productName: item.productName,
           });
         }
         toast.success(`Restok ${items.length} produk (${totalQty} botol) berhasil dicatat!`);
@@ -248,7 +247,7 @@ export function StockPage() {
 
   const handleDelete = async (entry: StockEntry) => {
     try {
-      await deleteStockEntry(entry.id, entry.quantity, entry.type);
+      await deleteStockEntry(entry.id, entry.quantity, entry.type, entry.product_name || undefined);
       toast.success('Riwayat stok berhasil dihapus');
     } catch {
       toast.error('Gagal menghapus');
@@ -263,9 +262,9 @@ export function StockPage() {
     setTransferProofUrl(entry.transfer_proof_url);
     setTransferProofPreview(entry.transfer_proof_url);
     if (entry.created_at) setStockDate(new Date(entry.created_at).toISOString().split('T')[0]);
-    // Pre-fill product quantity if entry has a product_id
-    if (entry.product_id) {
-      setProductQtys({ [entry.product_id]: entry.quantity });
+    // Pre-fill product quantity if entry has a product_name
+    if (entry.product_name) {
+      setProductQtys({ [entry.product_name]: entry.quantity });
     } else {
       setProductQtys({});
     }
@@ -315,7 +314,7 @@ export function StockPage() {
             {editingEntry ? 'Edit Restok' : 'Restok dari Distributor'}
           </h3>
 
-          {/* Products Selection */}
+          {/* Products Selection — grouped by category */}
           <div>
             <label className="block text-sm font-bold text-gray-800 mb-2">Pilih Produk & Jumlah</label>
             <div className="space-y-2.5 max-h-[320px] overflow-y-auto pr-1">
@@ -325,30 +324,39 @@ export function StockPage() {
                 </div>
               ) : availableProducts.length === 0 ? (
                 <p className="text-sm text-gray-500 text-center py-4">Belum ada produk aktif. Hubungi admin untuk menambah produk.</p>
-              ) : availableProducts.map((prod) => {
-                const qty = productQtys[prod.id] || 0;
-                return (
-                  <div key={prod.id} className="flex items-center gap-3 bg-white border border-gray-200 rounded-xl p-2.5">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-bold text-gray-900 truncate">{prod.name}</p>
-                      <p className="text-[10px] font-medium text-gray-500 uppercase tracking-wider">{prod.category} · {prod.quantity_per_package} {prod.package_type}</p>
+              ) : (() => {
+                // Group by category
+                const grouped: Record<string, { name: string; category: string }> = {};
+                for (const p of availableProducts) {
+                  if (!grouped[p.category]) {
+                    grouped[p.category] = { name: p.category, category: p.category };
+                  }
+                }
+                const categories = Object.keys(grouped).sort();
+                return categories.map((cat) => {
+                  const qty = productQtys[cat] || 0;
+                  return (
+                    <div key={cat} className="flex items-center gap-3 bg-white border border-gray-200 rounded-xl p-2.5">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-bold text-gray-900 truncate">{cat}</p>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <button type="button"
+                          className="w-8 h-8 rounded-lg bg-white border border-gray-200 flex items-center justify-center text-gray-500 hover:text-emerald-600 hover:border-emerald-500 active:bg-gray-50 transition-all"
+                          onClick={() => setProductQtys(p => ({ ...p, [cat]: Math.max(0, qty - 1) }))} disabled={qty <= 0}>
+                          <Minus className="h-4 w-4" />
+                        </button>
+                        <span className="w-8 text-center text-base font-bold text-gray-900 tabular-nums">{qty}</span>
+                        <button type="button"
+                          className="w-8 h-8 rounded-lg bg-white border border-gray-200 flex items-center justify-center text-emerald-600 hover:bg-emerald-50 hover:border-emerald-500 active:bg-emerald-100 transition-all"
+                          onClick={() => setProductQtys(p => ({ ...p, [cat]: qty + 1 }))}>
+                          <Plus className="h-4 w-4" />
+                        </button>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <button type="button"
-                        className="w-8 h-8 rounded-lg bg-white border border-gray-200 flex items-center justify-center text-gray-500 hover:text-emerald-600 hover:border-emerald-500 active:bg-gray-50 transition-all"
-                        onClick={() => setProductQtys(p => ({ ...p, [prod.id]: Math.max(0, qty - 1) }))} disabled={qty <= 0}>
-                        <Minus className="h-4 w-4" />
-                      </button>
-                      <span className="w-8 text-center text-base font-bold text-gray-900 tabular-nums">{qty}</span>
-                      <button type="button"
-                        className="w-8 h-8 rounded-lg bg-white border border-gray-200 flex items-center justify-center text-emerald-600 hover:bg-emerald-50 hover:border-emerald-500 active:bg-emerald-100 transition-all"
-                        onClick={() => setProductQtys(p => ({ ...p, [prod.id]: qty + 1 }))}>
-                        <Plus className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
+                  );
+                });
+              })()}
             </div>
           </div>
 
@@ -685,6 +693,28 @@ export function StockPage() {
           </div>
         </div>
 
+        {/* Stok Per Produk */}
+        <div className="space-y-2">
+          <h2 className="text-sm font-black text-slate-800 px-1 uppercase tracking-wider">Stok Per Produk</h2>
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 divide-y divide-slate-100 overflow-hidden">
+            {productStocks.length === 0 ? (
+              <div className="px-4 py-5 text-center">
+                <p className="text-xs font-bold text-slate-400">Belum ada data stok</p>
+              </div>
+            ) : (
+              productStocks.map((ps) => (
+                <div key={ps.productName} className="flex items-center justify-between px-4 py-3">
+                  <p className="text-sm font-bold text-slate-900">{ps.productName}</p>
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-lg font-black text-emerald-600 tabular-nums">{ps.currentStock}</span>
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">btl</span>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
         {/* Daily Grouping List */}
         <div>
           <div className="flex items-center justify-between mb-3 px-1">
@@ -758,12 +788,10 @@ export function StockPage() {
 
                         const orderRef = entry.order_id ? orders.find(o => o.id === entry.order_id) : null;
                         
-                        // Find product name if entry has product_id
-                        const prod = entry.product_id ? availableProducts.find(p => p.id === entry.product_id) : null;
                         let displayTitle = '';
                         let badgeText = '';
                         if (entry.notes === 'Stok awal') { displayTitle = 'Stok Awal'; badgeText = 'AWAL'; }
-                        else if (isIn && prod) { displayTitle = prod.name; badgeText = 'RESTOK'; }
+                        else if (isIn && entry.product_name) { displayTitle = entry.product_name; badgeText = 'RESTOK'; }
                         else if (isIn) { displayTitle = 'Restok Barang'; badgeText = 'RESTOK'; }
                         else if (!isIn && orderRef) { displayTitle = `Ke: ${orderRef.customer_name}`; badgeText = 'ORDER'; }
                         else { displayTitle = 'Barang Keluar'; badgeText = 'KELUAR'; }

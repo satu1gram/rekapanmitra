@@ -92,7 +92,7 @@ export function useOnboarding() {
 
             if (totalInitQty > 0) {
                 // Create one stock entry per product
-                for (const [productId, qty] of productEntries) {
+                for (const [productName, qty] of productEntries) {
                     const { error: stockEntryError } = await supabase.from('stock_entries').insert({
                         user_id: user.id,
                         type: 'in',
@@ -101,9 +101,40 @@ export function useOnboarding() {
                         buy_price_per_bottle: effectiveBuyPrice,
                         total_buy_price: qty * effectiveBuyPrice,
                         notes: 'Stok awal',
-                        product_id: productId,
+                        product_name: productName,
                     } as any);
                     if (stockEntryError) throw stockEntryError;
+                }
+
+                // Batch insert into user_product_stock
+                for (const [productName, qty] of productEntries) {
+                    const { error: upsertError } = await supabase.rpc('fn_upsert_product_stock' as any, {
+                        p_user_id: user.id,
+                        p_product_name: productName,
+                        p_quantity: qty,
+                    } as any);
+                    if (upsertError) {
+                        // Fallback: try direct insert/update
+                        const { data: existing } = await supabase
+                            .from('user_product_stock')
+                            .select('id')
+                            .eq('user_id', user.id)
+                            .eq('product_name', productName)
+                            .maybeSingle();
+
+                        if (existing) {
+                            const { error: updateError } = await supabase
+                                .from('user_product_stock')
+                                .update({ current_stock: qty })
+                                .eq('id', existing.id);
+                            if (updateError) throw updateError;
+                        } else {
+                            const { error: insertError } = await supabase
+                                .from('user_product_stock')
+                                .insert({ user_id: user.id, product_name: productName, current_stock: qty });
+                            if (insertError) throw insertError;
+                        }
+                    }
                 }
 
                 const { data: existing } = await supabase
