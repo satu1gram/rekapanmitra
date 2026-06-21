@@ -100,6 +100,7 @@ export function OnboardingWizard() {
         customLevelName: '',
         customBuyPrice: 0,
         initialStock: 0,
+        initialStockProducts: {},
         storeName: '',
         slug: '',
         paymentInfo: [],
@@ -184,8 +185,8 @@ export function OnboardingWizard() {
                         <InitialStockStep
                             mitraLevel={data.mitraLevel as MitraLevel}
                             customBuyPrice={data.customBuyPrice}
-                            initialStock={data.initialStock}
-                            onChange={qty => updateField('initialStock', qty)}
+                            initialStockProducts={data.initialStockProducts}
+                            onChange={products => updateField('initialStockProducts', products)}
                             onNext={next} onBack={back}
                         />
                     )}

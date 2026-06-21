@@ -1,6 +1,8 @@
+import { useState } from 'react';
 import { MITRA_LEVELS, MitraLevel } from '@/types';
-import { Package, ChevronRight, Minus, Plus } from 'lucide-react';
-import { Input } from '@/components/ui/input';
+import { useProducts } from '@/hooks/useProducts';
+import { Package, ChevronRight, Minus, Plus, Loader2 } from 'lucide-react';
+import { formatCurrency } from '@/lib/formatters';
 
 const DS = {
     primary: '#059669',
@@ -11,24 +13,31 @@ const DS = {
 interface InitialStockStepProps {
     mitraLevel: MitraLevel;
     customBuyPrice?: number;
-    initialStock: number;
-    onChange: (qty: number) => void;
+    initialStockProducts: Record<string, number>;
+    onChange: (products: Record<string, number>) => void;
     onNext: () => void;
     onBack: () => void;
 }
 
-function formatRp(value: number): string {
-    return 'Rp ' + value.toLocaleString('id-ID');
-}
-
-export function InitialStockStep({ mitraLevel, customBuyPrice, initialStock, onChange, onNext, onBack }: InitialStockStepProps) {
+export function InitialStockStep({
+    mitraLevel, customBuyPrice,
+    initialStockProducts, onChange,
+    onNext, onBack
+}: InitialStockStepProps) {
+    const { products: availableProducts, loading: productsLoading } = useProducts();
     const buyPrice = mitraLevel === 'custom'
         ? (customBuyPrice ?? 0)
         : MITRA_LEVELS[mitraLevel].buyPricePerBottle;
-    const totalValue = initialStock * buyPrice;
 
-    const adjust = (delta: number) => {
-        onChange(Math.max(0, initialStock + delta));
+    const totalQty = Object.values(initialStockProducts).reduce((s, q) => s + q, 0);
+    const totalValue = totalQty * buyPrice;
+
+    const adjustProduct = (productId: string, delta: number) => {
+        const current = initialStockProducts[productId] || 0;
+        onChange({
+            ...initialStockProducts,
+            [productId]: Math.max(0, current + delta),
+        });
     };
 
     return (
@@ -36,75 +45,71 @@ export function InitialStockStep({ mitraLevel, customBuyPrice, initialStock, onC
             <div>
                 <h2 className="text-xl font-extrabold" style={{ color: DS.navy }}>Stok Awal Anda</h2>
                 <p className="text-sm font-medium mt-1" style={{ color: DS.gray }}>
-                    Berapa botol stok yang Anda punya sekarang? Hitung semua yang ada di tangan, belum terjual.
+                    Hitung stok masing-masing produk yang Anda punya sekarang.
                 </p>
             </div>
 
-            {/* Stepper card */}
-            <div className="rounded-3xl p-6 flex flex-col items-center gap-5" style={{ background: '#F8FAFC', border: '1px solid #E2E8F0' }}>
-                <div className="w-16 h-16 rounded-2xl bg-white shadow-md flex items-center justify-center">
-                    <Package className="h-8 w-8" style={{ color: DS.primary }} strokeWidth={1.5} />
-                </div>
-
-                {/* Stepper */}
-                <div className="flex items-center gap-3 w-full justify-center">
-                    <button
-                        onClick={() => adjust(-10)}
-                        className="w-11 h-11 rounded-xl bg-white border-2 border-slate-200 flex items-center justify-center font-black active:scale-95 transition-all"
-                        style={{ color: DS.navy }}
-                    >
-                        <span className="text-xs font-black">-10</span>
-                    </button>
-                    <button
-                        onClick={() => adjust(-1)}
-                        className="w-11 h-11 rounded-xl bg-white border-2 border-slate-200 flex items-center justify-center active:scale-95 transition-all"
-                    >
-                        <Minus className="h-4 w-4" style={{ color: DS.navy }} />
-                    </button>
-
-                    <Input
-                        className="w-24 h-14 text-center text-2xl font-black rounded-2xl border-2"
-                        style={{ borderColor: DS.primary }}
-                        type="number"
-                        min={0}
-                        value={initialStock}
-                        onChange={e => onChange(Math.max(0, parseInt(e.target.value) || 0))}
-                    />
-
-                    <button
-                        onClick={() => adjust(1)}
-                        className="w-11 h-11 rounded-xl bg-white border-2 border-slate-200 flex items-center justify-center active:scale-95 transition-all"
-                    >
-                        <Plus className="h-4 w-4" style={{ color: DS.navy }} />
-                    </button>
-                    <button
-                        onClick={() => adjust(10)}
-                        className="w-11 h-11 rounded-xl bg-white border-2 border-slate-200 flex items-center justify-center font-black active:scale-95 transition-all"
-                        style={{ color: DS.navy }}
-                    >
-                        <span className="text-xs font-black">+10</span>
-                    </button>
-                </div>
-
-                <p className="text-sm font-semibold" style={{ color: DS.gray }}>botol</p>
+            {/* Product list */}
+            <div className="rounded-3xl p-4 space-y-2.5" style={{ background: '#F8FAFC', border: '1px solid #E2E8F0' }}>
+                {productsLoading ? (
+                    <div className="flex items-center justify-center py-6">
+                        <Loader2 className="h-5 w-5 animate-spin" style={{ color: DS.primary }} />
+                    </div>
+                ) : availableProducts.length === 0 ? (
+                    <div className="text-center py-6">
+                        <p className="text-sm font-semibold" style={{ color: DS.gray }}>Belum ada produk aktif.</p>
+                        <p className="text-xs mt-1" style={{ color: DS.gray }}>Abi stok dulu nanti setelah setup.</p>
+                    </div>
+                ) : (
+                    availableProducts.map(prod => {
+                        const qty = initialStockProducts[prod.id] || 0;
+                        return (
+                            <div key={prod.id} className="flex items-center gap-3 bg-white rounded-2xl p-2.5 shadow-sm border" style={{ borderColor: '#E2E8F0' }}>
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-bold" style={{ color: DS.navy }}>{prod.name}</p>
+                                    <p className="text-[10px] font-medium uppercase" style={{ color: DS.gray }}>{prod.category}</p>
+                                </div>
+                                <div className="flex items-center gap-2 shrink-0">
+                                    <button
+                                        onClick={() => adjustProduct(prod.id, -1)}
+                                        disabled={qty <= 0}
+                                        className="w-8 h-8 rounded-xl bg-white border-2 flex items-center justify-center active:scale-95 transition-all disabled:opacity-30"
+                                        style={{ borderColor: '#E2E8F0' }}
+                                    >
+                                        <Minus className="h-3.5 w-3.5" style={{ color: DS.navy }} />
+                                    </button>
+                                    <span className="w-8 text-center text-base font-black tabular-nums" style={{ color: DS.navy }}>{qty}</span>
+                                    <button
+                                        onClick={() => adjustProduct(prod.id, 1)}
+                                        className="w-8 h-8 rounded-xl bg-white border-2 flex items-center justify-center active:scale-95 transition-all"
+                                        style={{ borderColor: '#E2E8F0' }}
+                                    >
+                                        <Plus className="h-3.5 w-3.5" style={{ color: DS.primary }} />
+                                    </button>
+                                </div>
+                            </div>
+                        );
+                    })
+                )}
             </div>
 
-            {/* Info nilai stok */}
-            {initialStock > 0 ? (
+            {/* Total summary */}
+            {totalQty > 0 ? (
                 <div className="rounded-2xl p-4 text-center space-y-0.5" style={{ background: '#ECFDF5', border: '1px solid #A7F3D0' }}>
-                    <p className="text-xs font-bold" style={{ color: DS.gray }}>Total Nilai Stok Anda</p>
-                    <p className="text-xl font-extrabold" style={{ color: DS.primary }}>{formatRp(totalValue)}</p>
+                    <p className="text-xs font-bold" style={{ color: DS.gray }}>Total Stok</p>
+                    <p className="text-2xl font-extrabold" style={{ color: DS.primary }}>{totalQty} botol</p>
                     <p className="text-[11px] font-medium" style={{ color: DS.gray }}>
-                        {initialStock} botol × {formatRp(buyPrice)}/botol (harga modal level Anda)
+                        {formatCurrency(totalValue)} — {formatCurrency(buyPrice)}/botol
                     </p>
                 </div>
             ) : (
-                <p className="text-center text-xs font-medium rounded-2xl py-3 px-4" style={{ color: DS.gray, background: '#F8FAFC', border: '1px solid #E2E8F0' }}>
-                    Stok 0 tidak apa-apa — Anda bisa isi stok nanti di menu <strong style={{ color: DS.navy }}>Produk → Stok</strong>
+                <p className="text-center text-xs font-medium rounded-2xl py-3 px-4"
+                    style={{ color: DS.gray, background: '#F8FAFC', border: '1px solid #E2E8F0' }}>
+                    Biarkan kosong jika belum punya stok — bisa diisi nanti di menu <strong style={{ color: DS.navy }}>Stok</strong>
                 </p>
             )}
 
-            {/* Navigasi */}
+            {/* Navigation */}
             <div className="flex gap-3 pt-1">
                 <button
                     onClick={onBack}

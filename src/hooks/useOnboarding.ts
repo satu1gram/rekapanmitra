@@ -19,8 +19,9 @@ export interface OnboardingData {
     mitraLevel: MitraLevel;
     customLevelName: string;   // hanya untuk mitraLevel === 'custom'
     customBuyPrice: number;    // hanya untuk mitraLevel === 'custom'
-    // Step 3 (Stok Awal)
-    initialStock: number;
+    // Step 3 (Stok Awal) — per produk
+    initialStockProducts: Record<string, number>;
+    initialStock: number; // deprecated, keep for backward compat
     // Step 4 (Toko Publik)
     storeName: string;
     slug: string;
@@ -84,18 +85,26 @@ export function useOnboarding() {
                 .eq('user_id', user.id);
             if (profileError) throw profileError;
 
-            // 2. Save initial stock if > 0
-            if (data.initialStock > 0) {
-                const { error: stockEntryError } = await supabase.from('stock_entries').insert({
-                    user_id: user.id,
-                    type: 'in',
-                    quantity: data.initialStock,
-                    tier: data.mitraLevel === 'custom' ? 'reseller' : data.mitraLevel as any,
-                    buy_price_per_bottle: effectiveBuyPrice,
-                    total_buy_price: data.initialStock * effectiveBuyPrice,
-                    notes: 'Stok awal (setup onboarding)',
-                } as any);
-                if (stockEntryError) throw stockEntryError;
+            // 2. Save initial stock if > 0 (per product)
+            const productEntries = Object.entries(data.initialStockProducts || {})
+                .filter(([_, qty]) => qty > 0);
+            const totalInitQty = productEntries.reduce((s, [_, q]) => s + q, 0);
+
+            if (totalInitQty > 0) {
+                // Create one stock entry per product
+                for (const [productId, qty] of productEntries) {
+                    const { error: stockEntryError } = await supabase.from('stock_entries').insert({
+                        user_id: user.id,
+                        type: 'in',
+                        quantity: qty,
+                        tier: data.mitraLevel === 'custom' ? 'reseller' : data.mitraLevel as any,
+                        buy_price_per_bottle: effectiveBuyPrice,
+                        total_buy_price: qty * effectiveBuyPrice,
+                        notes: 'Stok awal',
+                        product_id: productId,
+                    } as any);
+                    if (stockEntryError) throw stockEntryError;
+                }
 
                 const { data: existing } = await supabase
                     .from('user_stock')
@@ -106,13 +115,13 @@ export function useOnboarding() {
                 if (existing) {
                     const { error: updateStockError } = await supabase
                         .from('user_stock')
-                        .update({ current_stock: data.initialStock })
+                        .update({ current_stock: totalInitQty })
                         .eq('user_id', user.id);
                     if (updateStockError) throw updateStockError;
                 } else {
                     const { error: insertStockError } = await supabase
                         .from('user_stock')
-                        .insert({ user_id: user.id, current_stock: data.initialStock });
+                        .insert({ user_id: user.id, current_stock: totalInitQty });
                     if (insertStockError) throw insertStockError;
                 }
             }
