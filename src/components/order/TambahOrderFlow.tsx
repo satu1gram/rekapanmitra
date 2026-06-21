@@ -3,6 +3,8 @@ import { X, ArrowLeft, CheckCircle2, User, Plus, Minus, ChevronRight, UserPlus, 
 import { cn } from '@/lib/utils';
 import { formatCurrency } from '@/lib/formatters';
 import { useProducts } from '@/hooks/useProducts';
+import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
 import { TierType } from '@/types';
 import { recalcPricing } from '@/lib/pricing';
 import type { Tables } from '@/integrations/supabase/types';
@@ -38,7 +40,30 @@ interface Expense {
 
 export function TambahOrderFlow({ customers, currentStock, submitting, onSubmit, onCancel, onEditCustomer, initialSelectedCustomerId }: TambahOrderFlowProps) {
   const { products, loading: productsLoading } = useProducts();
+  const { user } = useAuth();
+  const [productStocks, setProductStocks] = useState<Record<string, number>>({});
+  const [stocksLoading, setStocksLoading] = useState(true);
   const [step, setStep] = useState<Step>('info');
+
+  // Fetch product stocks
+  useEffect(() => {
+    if (!user) {
+      setStocksLoading(false);
+      return;
+    }
+    supabase
+      .from('user_product_stock')
+      .select('product_name, current_stock')
+      .eq('user_id', user.id)
+      .then(({ data, error }) => {
+        if (!error && data) {
+          const stockMap: Record<string, number> = {};
+          data.forEach((s: any) => { stockMap[s.product_name] = s.current_stock; });
+          setProductStocks(stockMap);
+        }
+        setStocksLoading(false);
+      });
+  }, [user]);
   
   const isDemo = typeof window !== 'undefined' && window.location.search.includes('demo=true');
   
@@ -304,7 +329,21 @@ export function TambahOrderFlow({ customers, currentStock, submitting, onSubmit,
                   <div key={idx} className={cn("p-4 rounded-2xl border transition-all", item.quantity > 0 ? "border-emerald-200 bg-emerald-50/30" : "border-slate-50 bg-slate-50/50")}>
                     <div className="flex items-center justify-between gap-4">
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-black text-slate-800 truncate">{item.productName}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-black text-slate-800 truncate">{item.productName}</p>
+                          {!stocksLoading && productStocks[item.productName] !== undefined && (
+                            <span className={cn(
+                              "shrink-0 text-[9px] font-black px-1.5 py-0.5 rounded-md",
+                              productStocks[item.productName] === 0
+                                ? "bg-red-50 text-red-500"
+                                : (productStocks[item.productName] ?? 0) < 3
+                                  ? "bg-amber-50 text-amber-600"
+                                  : "bg-emerald-50 text-emerald-600"
+                            )}>
+                              {productStocks[item.productName]}
+                            </span>
+                          )}
+                        </div>
                         <p className="text-[11px] font-black text-emerald-600 mt-0.5">{formatCurrency(item.pricePerBottle)}</p>
                       </div>
                       <div className="flex items-center gap-1.5 bg-white rounded-xl p-1 border border-slate-200 shadow-sm">
