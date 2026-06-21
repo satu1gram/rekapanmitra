@@ -353,6 +353,7 @@ export type Database = {
           id: string
           notes: string | null
           order_id: string | null
+          product_id: string | null
           quantity: number
           tier: string | null
           total_buy_price: number | null
@@ -366,6 +367,7 @@ export type Database = {
           id?: string
           notes?: string | null
           order_id?: string | null
+          product_id?: string | null
           quantity: number
           tier?: string | null
           total_buy_price?: number | null
@@ -379,6 +381,7 @@ export type Database = {
           id?: string
           notes?: string | null
           order_id?: string | null
+          product_id?: string | null
           quantity?: number
           tier?: string | null
           total_buy_price?: number | null

@@ -92,6 +92,7 @@ export function useStock() {
     notes?: string;
     createdAt?: string;
     isInitialStock?: boolean;
+    productId?: string;
   }) => {
     if (!user) throw new Error('User not authenticated');
 
@@ -103,7 +104,8 @@ export function useStock() {
       buy_price_per_bottle: data.buyPricePerBottle ?? null,
       total_buy_price: data.buyPricePerBottle ? data.quantity * data.buyPricePerBottle : null,
       transfer_proof_url: data.transferProofUrl || null,
-      notes: data.notes || (data.isInitialStock ? 'Stok awal' : null)
+      notes: data.notes || (data.isInitialStock ? 'Stok awal' : null),
+      product_id: data.productId || null
     };
 
     if (data.createdAt) {
@@ -179,6 +181,7 @@ export function useStock() {
     transferProofUrl?: string;
     notes?: string;
     createdAt?: string;
+    productId?: string;
   }, oldQuantity: number) => {
     if (!user) throw new Error('User not authenticated');
 
@@ -188,7 +191,8 @@ export function useStock() {
       buy_price_per_bottle: data.buyPricePerBottle,
       total_buy_price: data.quantity * data.buyPricePerBottle,
       transfer_proof_url: data.transferProofUrl || null,
-      notes: data.notes || null
+      notes: data.notes || null,
+      product_id: data.productId || null
     };
 
     if (data.createdAt) {
@@ -203,9 +207,18 @@ export function useStock() {
 
     if (entryError) throw entryError;
 
-    // Update current stock (adjust for difference)
+    // Fetch latest user_stock from DB first to avoid stale state
+    const { data: latestStock, error: stockFetchError } = await supabase
+      .from('user_stock')
+      .select('current_stock')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    if (stockFetchError) throw stockFetchError;
+
+    const baseStock = latestStock?.current_stock ?? currentStock;
     const diff = data.quantity - oldQuantity;
-    const newStock = currentStock + diff;
+    const newStock = baseStock + diff;
 
     const { error: updateError } = await supabase
       .from('user_stock')

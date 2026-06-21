@@ -17,6 +17,8 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import type { Tables } from '@/integrations/supabase/types';
 import { useOrders } from '@/hooks/useOrdersDb';
+import { useProducts } from '@/hooks/useProducts';
+import type { Product } from '@/hooks/useProducts';
 import { StockPerformancePage } from './StockPerformancePage';
 
 const DAY_NAMES_ID = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
@@ -45,6 +47,7 @@ export function StockPage() {
   const { uploadTransferProof } = useFileUpload();
   const { mitraLevel } = useProfile();
   const { orders } = useOrders();
+  const { products: availableProducts, loading: productsLoading } = useProducts();
 
   const mitraInfo = MITRA_LEVELS[mitraLevel];
 
@@ -54,6 +57,7 @@ export function StockPage() {
   const [quantity, setQuantity] = useState(1);
   const [buyPrice, setBuyPrice] = useState(mitraInfo.buyPricePerBottle);
   const [notes, setNotes] = useState('');
+  const [productQtys, setProductQtys] = useState<Record<string, number>>({});
   const getLocalYYYYMMDD = (d: Date) => {
     const y = d.getFullYear();
     const m = String(d.getMonth() + 1).padStart(2, '0');
@@ -145,6 +149,7 @@ export function StockPage() {
     setTransferProofUrl(null);
     setTransferProofPreview(null);
     setEditingEntry(null);
+    setProductQtys({});
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
@@ -169,25 +174,51 @@ export function StockPage() {
 
   const handleRestok = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (quantity < 1) { toast.error('Jumlah minimal 1 botol'); return; }
+
+    // Build list of products with quantity > 0
+    const items = Object.entries(productQtys)
+      .filter(([_, qty]) => qty > 0)
+      .map(([productId, qty]) => ({
+        productId,
+        qty,
+        product: availableProducts.find(p => p.id === productId),
+      }));
+
+    const totalQty = items.reduce((s, i) => s + i.qty, 0);
+
+    if (totalQty < 1) { toast.error('Isi minimal 1 produk dengan jumlah > 0'); return; }
+
     setSubmitting(true);
     try {
       if (editingEntry) {
+        // Edit mode — update the single entry
+        const firstItem = items[0];
         await updateStockEntry(editingEntry.id, {
-          quantity, tier: mitraLevel as TierType, buyPricePerBottle: buyPrice,
+          quantity: firstItem.qty,
+          tier: mitraLevel as TierType,
+          buyPricePerBottle: buyPrice,
           transferProofUrl: transferProofUrl || undefined,
-          notes: notes.trim() || undefined,
-          createdAt: stockDate ? new Date(stockDate).toISOString() : undefined
+          notes: items.length > 1
+            ? items.map(i => `${i.qty}x ${i.product?.name || 'Produk'}`).join(', ')
+            : (notes.trim() || undefined),
+          createdAt: stockDate ? new Date(stockDate).toISOString() : undefined,
+          productId: firstItem.productId,
         }, editingEntry.quantity);
         toast.success('Restok berhasil diupdate!');
       } else {
-        await addStock({
-          quantity, tier: mitraLevel as TierType, buyPricePerBottle: buyPrice,
-          transferProofUrl: transferProofUrl || undefined,
-          notes: notes.trim() || undefined,
-          createdAt: stockDate ? new Date(stockDate).toISOString() : undefined,
-        });
-        toast.success(`Berhasil menambah ${quantity} botol ke stok!`);
+        // Create mode — one entry per product
+        for (const item of items) {
+          await addStock({
+            quantity: item.qty,
+            tier: mitraLevel as TierType,
+            buyPricePerBottle: buyPrice,
+            transferProofUrl: transferProofUrl || undefined,
+            notes: notes.trim() || undefined,
+            createdAt: stockDate ? new Date(stockDate).toISOString() : undefined,
+            productId: item.productId,
+          });
+        }
+        toast.success(`Restok ${items.length} produk (${totalQty} botol) berhasil dicatat!`);
       }
       resetForm();
       setView('main');
@@ -232,6 +263,12 @@ export function StockPage() {
     setTransferProofUrl(entry.transfer_proof_url);
     setTransferProofPreview(entry.transfer_proof_url);
     if (entry.created_at) setStockDate(new Date(entry.created_at).toISOString().split('T')[0]);
+    // Pre-fill product quantity if entry has a product_id
+    if (entry.product_id) {
+      setProductQtys({ [entry.product_id]: entry.quantity });
+    } else {
+      setProductQtys({});
+    }
     setView('restok');
   };
 
@@ -278,50 +315,61 @@ export function StockPage() {
             {editingEntry ? 'Edit Restok' : 'Restok dari Distributor'}
           </h3>
 
-          {/* Quantity */}
+          {/* Products Selection */}
           <div>
-            <label className="block text-sm font-bold text-gray-800 mb-2">Jumlah Botol</label>
-            <div className="flex items-center gap-3">
-              <button type="button"
-                className="w-12 h-12 rounded-xl bg-white border border-gray-200 flex items-center justify-center text-gray-500 hover:text-emerald-600 hover:border-emerald-500 active:bg-gray-50 transition-all shadow-sm"
-                onClick={() => setQuantity(Math.max(1, quantity - 1))} disabled={quantity <= 1}>
-                <Minus className="h-5 w-5" />
-              </button>
-              <div className="flex-1 h-12 bg-white border border-gray-200 rounded-xl flex items-center justify-center shadow-inner">
-                <input
-                  type="number" inputMode="numeric" min={1} value={quantity}
-                  onChange={e => setQuantity(parseInt(e.target.value.replace(/^0+/, '')) || 1)}
-                  className="w-full h-full bg-transparent text-center text-xl font-bold text-gray-900 border-none focus:ring-0 p-0"
-                />
-              </div>
-              <button type="button"
-                className="w-12 h-12 rounded-xl bg-white border border-gray-200 flex items-center justify-center text-emerald-600 hover:bg-emerald-50 hover:border-emerald-500 active:bg-emerald-100 transition-all shadow-sm"
-                onClick={() => setQuantity(quantity + 1)}>
-                <Plus className="h-5 w-5" />
-              </button>
-            </div>
-          </div>
-
-          {/* Buy price */}
-          <div>
-            <label className="block text-sm font-bold text-gray-800 mb-2">Harga Beli per Botol</label>
-            <div className="bg-gray-50 rounded-xl p-3 border border-gray-200">
-              <p className="text-lg font-bold text-gray-900">{formatCurrency(buyPrice)}</p>
-              <p className="text-xs font-medium text-gray-600 flex items-center gap-1 mt-0.5">
-                <Check className="h-3.5 w-3.5 text-emerald-600" />
-                Level: {mitraInfo.label}
-              </p>
+            <label className="block text-sm font-bold text-gray-800 mb-2">Pilih Produk & Jumlah</label>
+            <div className="space-y-2.5 max-h-[320px] overflow-y-auto pr-1">
+              {productsLoading ? (
+                <div className="flex items-center justify-center py-6">
+                  <Loader2 className="h-5 w-5 animate-spin text-emerald-600" />
+                </div>
+              ) : availableProducts.length === 0 ? (
+                <p className="text-sm text-gray-500 text-center py-4">Belum ada produk aktif. Hubungi admin untuk menambah produk.</p>
+              ) : availableProducts.map((prod) => {
+                const qty = productQtys[prod.id] || 0;
+                return (
+                  <div key={prod.id} className="flex items-center gap-3 bg-white border border-gray-200 rounded-xl p-2.5">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-bold text-gray-900 truncate">{prod.name}</p>
+                      <p className="text-[10px] font-medium text-gray-500 uppercase tracking-wider">{prod.category} · {prod.quantity_per_package} {prod.package_type}</p>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button type="button"
+                        className="w-8 h-8 rounded-lg bg-white border border-gray-200 flex items-center justify-center text-gray-500 hover:text-emerald-600 hover:border-emerald-500 active:bg-gray-50 transition-all"
+                        onClick={() => setProductQtys(p => ({ ...p, [prod.id]: Math.max(0, qty - 1) }))} disabled={qty <= 0}>
+                        <Minus className="h-4 w-4" />
+                      </button>
+                      <span className="w-8 text-center text-base font-bold text-gray-900 tabular-nums">{qty}</span>
+                      <button type="button"
+                        className="w-8 h-8 rounded-lg bg-white border border-gray-200 flex items-center justify-center text-emerald-600 hover:bg-emerald-50 hover:border-emerald-500 active:bg-emerald-100 transition-all"
+                        onClick={() => setProductQtys(p => ({ ...p, [prod.id]: qty + 1 }))}>
+                        <Plus className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
 
           {/* Total summary */}
-          <div className="bg-gray-100 rounded-xl p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border border-gray-200">
-            <div>
-              <p className="text-xs font-bold text-gray-600 uppercase tracking-wide">Total Pembelian</p>
-              <p className="text-xs text-gray-500 font-medium">{quantity} botol × {formatCurrency(buyPrice)}</p>
-            </div>
-            <span className="text-xl font-extrabold text-emerald-600">{formatCurrency(quantity * buyPrice)}</span>
-          </div>
+          {(() => {
+            const items = Object.entries(productQtys).filter(([_, qty]) => qty > 0);
+            const totalQty = items.reduce((s, [_, q]) => s + q, 0);
+            if (totalQty === 0) return null;
+            return (
+              <div className="bg-emerald-50 rounded-xl p-3.5 border border-emerald-200">
+                <div className="flex justify-between items-center mb-1">
+                  <span className="text-xs font-bold text-gray-600 uppercase tracking-wide">Total</span>
+                  <span className="text-base font-extrabold text-emerald-700">{totalQty} botol</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-gray-500 font-medium">{items.length} produk</span>
+                  <span className="text-sm font-bold text-emerald-600">{formatCurrency(totalQty * buyPrice)}</span>
+                </div>
+              </div>
+            );
+          })()}
 
           {/* Date */}
           <div className="mt-4">
@@ -403,7 +451,7 @@ export function StockPage() {
             className="w-full bg-primary text-primary-foreground py-3.5 rounded-xl font-bold text-base shadow-md hover:bg-primary/90 active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-60"
           >
             {submitting ? <Loader2 className="h-5 w-5 animate-spin" /> : <Plus className="h-5 w-5" />}
-            {editingEntry ? 'Simpan Perubahan' : 'Tambah ke Stok'}
+            {editingEntry ? 'Simpan Perubahan' : 'Catat Restok'}
           </button>
         </form>
       </div>
@@ -710,9 +758,12 @@ export function StockPage() {
 
                         const orderRef = entry.order_id ? orders.find(o => o.id === entry.order_id) : null;
                         
+                        // Find product name if entry has product_id
+                        const prod = entry.product_id ? availableProducts.find(p => p.id === entry.product_id) : null;
                         let displayTitle = '';
                         let badgeText = '';
                         if (entry.notes === 'Stok awal') { displayTitle = 'Stok Awal'; badgeText = 'AWAL'; }
+                        else if (isIn && prod) { displayTitle = prod.name; badgeText = 'RESTOK'; }
                         else if (isIn) { displayTitle = 'Restok Barang'; badgeText = 'RESTOK'; }
                         else if (!isIn && orderRef) { displayTitle = `Ke: ${orderRef.customer_name}`; badgeText = 'ORDER'; }
                         else { displayTitle = 'Barang Keluar'; badgeText = 'KELUAR'; }
