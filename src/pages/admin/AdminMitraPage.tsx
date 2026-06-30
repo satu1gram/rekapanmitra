@@ -1,10 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Search, Filter, MoreVertical, MapPin, Phone, ShieldCheck, Box, UserX } from "lucide-react";
+import { Search, Filter, MoreVertical, MapPin, Phone, ShieldCheck, Box, UserX, Clock } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { PRICE_TABLE } from "@/lib/pricing";
-import { formatCurrency } from "@/lib/formatters";
+import { formatCurrency, formatDateTime, formatRelativeTime } from "@/lib/formatters";
 
 export default function AdminMitraPage() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -35,11 +35,38 @@ export default function AdminMitraPage() {
           .select('user_id, current_stock')
           .in('user_id', userIds);
 
+        // Fetch last transaction per mitra
+        const { data: orders } = await supabase
+          .from('orders')
+          .select('user_id, created_at, total_price')
+          .in('user_id', userIds)
+          .order('created_at', { ascending: false });
+
+        // Group: latest order per user_id
+        const lastOrderMap = new Map<string, { created_at: string; total_price: number }>();
+        const orderCountMap = new Map<string, number>();
+        if (orders) {
+          for (const order of orders) {
+            const uid = order.user_id;
+            if (!lastOrderMap.has(uid)) {
+              lastOrderMap.set(uid, {
+                created_at: order.created_at,
+                total_price: order.total_price,
+              });
+            }
+            orderCountMap.set(uid, (orderCountMap.get(uid) || 0) + 1);
+          }
+        }
+
         return data.map(profile => {
           const stock = stocks?.find(s => s.user_id === profile.user_id);
+          const lastOrder = lastOrderMap.get(profile.user_id);
           return {
             ...profile,
-            user_stock: stock ? [stock] : []
+            user_stock: stock ? [stock] : [],
+            last_transaction: lastOrder?.created_at || null,
+            last_transaction_amount: lastOrder?.total_price || null,
+            total_orders: orderCountMap.get(profile.user_id) || 0,
           };
         });
       }
@@ -105,6 +132,7 @@ export default function AdminMitraPage() {
                 <th className="px-4 py-3 text-[10px] font-black text-slate-500 uppercase tracking-wider">Mitra Details</th>
                 <th className="px-4 py-3 text-[10px] font-black text-slate-500 uppercase tracking-wider">Level & Area</th>
                 <th className="px-4 py-3 text-[10px] font-black text-slate-500 uppercase tracking-wider">Inventory</th>
+                <th className="px-4 py-3 text-[10px] font-black text-slate-500 uppercase tracking-wider">Transaksi Terakhir</th>
                 <th className="px-4 py-3 text-[10px] font-black text-slate-500 uppercase tracking-wider">Joined Date</th>
                 <th className="px-4 py-3 text-[10px] font-black text-slate-500 uppercase tracking-wider text-right">Actions</th>
               </tr>
@@ -116,13 +144,14 @@ export default function AdminMitraPage() {
                     <td className="px-4 py-3"><div className="h-8 bg-slate-100 rounded-lg w-40"></div></td>
                     <td className="px-4 py-3"><div className="h-5 bg-slate-100 rounded-md w-20"></div></td>
                     <td className="px-4 py-3"><div className="h-5 bg-slate-100 rounded-md w-12"></div></td>
+                    <td className="px-4 py-3"><div className="h-5 bg-slate-100 rounded-md w-24"></div></td>
                     <td className="px-4 py-3"><div className="h-5 bg-slate-100 rounded-md w-20"></div></td>
                     <td className="px-4 py-3"><div className="h-6 bg-slate-100 rounded-lg w-6 ml-auto"></div></td>
                   </tr>
                 ))
               ) : filteredMitras?.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-4 py-10 text-center">
+                  <td colSpan={6} className="px-4 py-10 text-center">
                     <div className="flex flex-col items-center justify-center text-slate-400">
                       <UserX size={32} className="mb-2 text-slate-300" />
                       <p className="text-sm font-bold text-slate-600">Tidak ada mitra ditemukan</p>
@@ -182,6 +211,24 @@ export default function AdminMitraPage() {
                           <p className="text-[9px] font-bold text-slate-400 uppercase mt-0.5">Pcs</p>
                         </div>
                       </div>
+                    </td>
+                    <td className="px-4 py-2.5">
+                      {(mitra as any).last_transaction ? (
+                        <div className="flex flex-col gap-0.5">
+                          <div className="flex items-center gap-1 text-xs font-bold text-slate-900">
+                            {formatRelativeTime((mitra as any).last_transaction)}
+                          </div>
+                          <div className="flex items-center gap-1 text-[10px] font-medium text-slate-400">
+                            <Clock size={10} />
+                            {formatDateTime((mitra as any).last_transaction)}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1.5 text-slate-400">
+                          <Clock size={12} />
+                          <span className="text-[10px] font-medium">Belum ada</span>
+                        </div>
+                      )}
                     </td>
                     <td className="px-4 py-2.5">
                       <div className="flex items-center gap-1.5 text-xs font-medium text-slate-600">
