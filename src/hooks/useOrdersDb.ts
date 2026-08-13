@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { TierType, TIER_PRICING, MitraLevel, MITRA_LEVELS, OrderStatus, OrderItem } from '@/types';
 import type { Tables } from '@/integrations/supabase/types';
+import { calculateOrderStockReversal } from '@/lib/orderDeletion';
 
 type Order = Tables<'orders'>;
 
@@ -340,6 +341,48 @@ export function useOrders() {
 
   const deleteOrder = useCallback(async (orderId: string) => {
     if (!user) throw new Error('User not authenticated');
+
+    const { data: stockEntries, error: stockEntriesError } = await supabase
+      .from('stock_entries')
+      .select('id, order_id, type, quantity')
+      .eq('user_id', user.id)
+      .eq('order_id', orderId);
+
+    if (stockEntriesError) throw stockEntriesError;
+
+    const { totalQuantity, entryIds } = calculateOrderStockReversal(stockEntries || []);
+
+    if (totalQuantity > 0) {
+      const { data: userStock, error: userStockError } = await supabase
+        .from('user_stock')
+        .select('current_stock')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (userStockError && userStockError.code !== 'PGRST116') {
+        throw userStockError;
+      }
+
+      if (userStock) {
+        const nextStock = Number(userStock.current_stock ?? 0) + totalQuantity;
+        const { error: updateStockError } = await supabase
+          .from('user_stock')
+          .update({ current_stock: nextStock })
+          .eq('user_id', user.id);
+
+        if (updateStockError) throw updateStockError;
+      }
+    }
+
+    if (entryIds.length > 0) {
+      const { error: deleteStockEntriesError } = await supabase
+        .from('stock_entries')
+        .delete()
+        .in('id', entryIds);
+
+      if (deleteStockEntriesError) throw deleteStockEntriesError;
+    }
+
     const { error } = await supabase
       .from('orders')
       .delete()
