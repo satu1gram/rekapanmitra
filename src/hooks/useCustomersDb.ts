@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { TierType } from '@/types';
 import type { Tables } from '@/integrations/supabase/types';
+import { normalizeCustomerName, normalizePhone, resolveCustomerMatch } from '@/lib/customerDedup';
 
 type Customer = Tables<'customers'>;
 
@@ -91,17 +92,21 @@ export function useCustomers() {
   }) => {
     if (!user) throw new Error('User not authenticated');
 
-    // Check if customer exists (only if phone is provided)
-    const existing = orderData.customerPhone 
-      ? customers.find(c => c.phone === orderData.customerPhone)
-      : null;
+    const existing = resolveCustomerMatch(customers, {
+      customerName: orderData.customerName,
+      customerPhone: orderData.customerPhone
+    });
 
     if (existing) {
       const newTier = getUpgradedTier(existing.tier as TierType, orderData.tier);
+      const nextName = orderData.customerName?.trim() || existing.name;
+      const nextPhone = normalizePhone(orderData.customerPhone) || existing.phone;
+
       const { error } = await supabase
         .from('customers')
         .update({
-          name: orderData.customerName,
+          name: nextName,
+          phone: nextPhone || null,
           total_orders: existing.total_orders + 1,
           total_spent: existing.total_spent + orderData.totalPrice,
           tier: newTier,
@@ -114,55 +119,48 @@ export function useCustomers() {
       if (error) throw error;
       await fetchCustomers();
       return existing.id;
-    } else {
-      const { data, error } = await supabase
-        .from('customers')
-        .insert({
-          user_id: user.id,
-          name: orderData.customerName,
-          phone: orderData.customerPhone || null,
-          address: orderData.customerAddress || null,
-          province: orderData.province || null,
-          city: orderData.city || null,
-          tier: orderData.tier,
-          total_orders: 1,
-          total_spent: orderData.totalPrice
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-      await fetchCustomers();
-      return data.id;
     }
+
+    const { data, error } = await supabase
+      .from('customers')
+      .insert({
+        user_id: user.id,
+        name: orderData.customerName,
+        phone: normalizePhone(orderData.customerPhone) || null,
+        address: orderData.customerAddress || null,
+        province: orderData.province || null,
+        city: orderData.city || null,
+        tier: orderData.tier,
+        total_orders: 1,
+        total_spent: orderData.totalPrice
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+    await fetchCustomers();
+    return data.id;
   };
 
   const getCustomerByPhone = (phone: string) => {
-    return customers.find(c => c.phone === phone);
+    const normalized = normalizePhone(phone);
+    return customers.find(c => normalizePhone(c.phone) === normalized);
   };
 
-  // Normalisasi nama: hapus prefix sapaan, lowercase, trim
-  const normalizeName = (name: string) => {
-    return name
-      .toLowerCase()
-      .replace(/^(bu|pak|bpk|ibu|mbak|mas|kak|si|om|tante)\s+/i, '')
-      .trim();
-  };
+  const normalizeName = (name: string) => normalizeCustomerName(name);
 
-  // Cari customer by nama (exact case-insensitive)
   const getCustomerByName = (name: string) => {
     const normalized = normalizeName(name);
     return customers.find(c => normalizeName(c.name) === normalized);
   };
 
-  // Cari customer by nama (fuzzy - salah satu mengandung yang lain)
   const findCustomerFuzzy = (name: string) => {
     const normalized = normalizeName(name);
-    if (!normalized) return undefined;
-    // Harus minimal 3 karakter untuk fuzzy match (cegah false positive)
-    if (normalized.length < 3) return undefined;
+    if (!normalized || normalized.length < 3) return undefined;
+
     return customers.find(c => {
       const cNorm = normalizeName(c.name);
+      if (!cNorm) return false;
       return cNorm.includes(normalized) || normalized.includes(cNorm);
     });
   };
