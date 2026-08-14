@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { TierType } from '@/types';
 import { useIndonesianRegions } from '@/hooks/useIndonesianRegions';
+import { normalizeCustomerName, normalizePhone } from '@/lib/customerDedup';
 import type { Tables } from '@/integrations/supabase/types';
 
 type Customer = Tables<'customers'>;
@@ -54,9 +55,22 @@ export function EditCustomerPage({ customer, onBack, onSaved }: EditCustomerPage
   const { provinces, loadingProvinces, cities, loadingCities, fetchCities, setCities } = useIndonesianRegions();
   const { orders } = useOrders();
 
-  const customerOrders = orders.filter(o => o.customer_id === customer.id);
-  const totalSpent = customerOrders.reduce((sum, o) => sum + o.total_price, 0);
-  const totalBottles = customerOrders.reduce((sum, o) => sum + o.quantity, 0);
+  const customerPhoneKey = normalizePhone(customer.phone);
+  const customerNameKey = normalizeCustomerName(customer.name);
+
+  const customerOrders = orders.filter((o) => {
+    const orderPhoneKey = normalizePhone(o.customer_phone);
+    const orderNameKey = normalizeCustomerName(o.customer_name);
+
+    return (
+      o.customer_id === customer.id ||
+      (!!customerPhoneKey && !!orderPhoneKey && customerPhoneKey === orderPhoneKey) ||
+      (!!customerNameKey && !!orderNameKey && customerNameKey === orderNameKey)
+    );
+  });
+
+  const totalSpent = customerOrders.reduce((sum, o) => sum + Number(o.total_price || 0), 0);
+  const totalBottles = customerOrders.reduce((sum, o) => sum + Number(o.quantity || 0), 0);
 
   const now = new Date();
   const currentMonthOrders = customerOrders.filter(o => {

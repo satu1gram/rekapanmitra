@@ -284,35 +284,35 @@ export function Dashboard({ onNavigate }: DashboardProps) {
 
             {/* Omset + Terjual — 2 column grid */}
             <div className="grid grid-cols-2 gap-2">
-              <div className="bg-white rounded-2xl p-3 border border-slate-100 shadow-sm flex flex-col justify-center">
-                <div className="flex items-center gap-1.5 mb-2">
-                  <div className="w-5 h-5 rounded-md bg-blue-50 flex items-center justify-center shrink-0">
-                    <ShoppingCart className="h-2.5 w-2.5 text-blue-600" />
+              <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm flex flex-col justify-center min-h-[136px]">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
+                    <ShoppingCart className="h-3.5 w-3.5 text-blue-600" />
                   </div>
-                  <span className="text-[9px] font-black text-slate-400 uppercase tracking-tighter">Omset</span>
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.12em]">Omset</span>
                 </div>
-                <div className="flex items-baseline gap-1">
-                  <span className="text-sm font-bold text-slate-400">Rp</span>
-                  <span className="text-2xl font-black text-slate-900 tracking-tighter leading-none">{formatCurrency(monthRevenue).replace('Rp', '').trim()}</span>
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-base font-bold text-slate-400">Rp</span>
+                  <span className="text-[2rem] font-black text-slate-900 tracking-tighter leading-none">{formatCurrency(monthRevenue).replace('Rp', '').trim()}</span>
                 </div>
               </div>
 
-              <div className="bg-white rounded-2xl p-3 border border-slate-100 shadow-sm">
-                <div className="flex items-center gap-1.5 mb-2">
-                  <div className="w-5 h-5 rounded-md bg-orange-50 flex items-center justify-center shrink-0">
-                    <Package className="h-2.5 w-2.5 text-orange-600" />
+              <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm min-h-[136px]">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-7 h-7 rounded-lg bg-orange-50 flex items-center justify-center shrink-0">
+                    <Package className="h-3.5 w-3.5 text-orange-600" />
                   </div>
-                  <span className="text-[9px] font-black text-slate-400 uppercase tracking-tighter">Terjual</span>
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.12em]">Terjual</span>
                 </div>
-                <div className="flex items-baseline gap-1">
-                  <span className="text-2xl font-black text-slate-900 tracking-tighter leading-none">{monthQty}</span>
-                  <span className="text-[10px] font-bold text-slate-400">pcs</span>
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-[2rem] font-black text-slate-900 tracking-tighter leading-none">{monthQty}</span>
+                  <span className="text-[11px] font-bold text-slate-400">pcs</span>
                 </div>
-                <div className="flex items-center gap-1 mt-1.5">
-                  <div className="flex-1 h-1 bg-slate-100 rounded-full overflow-hidden">
+                <div className="flex items-center gap-1.5 mt-3">
+                  <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
                     <div className="h-full bg-orange-400 rounded-full transition-all duration-700" style={{ width: `${qtyPct}%` }} />
                   </div>
-                  <span className="text-[8px] font-bold text-slate-400">{qtyPct}%</span>
+                  <span className="text-[9px] font-bold text-slate-400">{qtyPct}%</span>
                 </div>
               </div>
             </div>
@@ -321,23 +321,23 @@ export function Dashboard({ onNavigate }: DashboardProps) {
             <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
               <button
                 onClick={() => onNavigate('stock')}
-                className="w-full flex items-center justify-between px-3 py-3 active:bg-slate-50 transition-colors border-b border-slate-50"
+                className="w-full flex items-center justify-between px-4 py-4 active:bg-slate-50 transition-colors border-b border-slate-50"
               >
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-xl bg-emerald-50 flex items-center justify-center shrink-0">
-                    <PackagePlus className="h-4 w-4 text-emerald-600" />
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-emerald-50 flex items-center justify-center shrink-0">
+                    <PackagePlus className="h-4.5 w-4.5 text-emerald-600" />
                   </div>
                   <div className="text-left">
-                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-tighter leading-none">Restok Bulan Ini</p>
-                    <div className="flex items-baseline gap-1 mt-0.5">
-                      <span className="text-2xl font-black text-slate-900 tracking-tighter leading-none">{monthRestockQty}</span>
-                      <span className="text-[10px] font-bold text-slate-400">btl</span>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.12em] leading-none">Restok Bulan Ini</p>
+                    <div className="flex items-baseline gap-1.5 mt-1">
+                      <span className="text-[2rem] font-black text-slate-900 tracking-tighter leading-none">{monthRestockQty}</span>
+                      <span className="text-[11px] font-bold text-slate-400">btl</span>
                     </div>
                   </div>
                 </div>
-                <div className="flex flex-col items-end gap-1">
-                  <span className="text-[9px] font-black text-emerald-600">{stockPct}%</span>
-                  <div className="w-16 h-1 bg-slate-100 rounded-full overflow-hidden">
+                <div className="flex flex-col items-end gap-2">
+                  <span className="text-[10px] font-black text-emerald-600">{stockPct}%</span>
+                  <div className="w-20 h-1.5 bg-slate-100 rounded-full overflow-hidden">
                     <div className="h-full bg-emerald-400 rounded-full transition-all duration-700" style={{ width: `${stockPct}%` }} />
                   </div>
                   <ChevronRight className="h-3.5 w-3.5 text-slate-300" />
@@ -346,22 +346,22 @@ export function Dashboard({ onNavigate }: DashboardProps) {
 
               <button
                 onClick={() => setView('customer-growth')}
-                className="w-full flex items-center justify-between px-3 py-3 active:bg-slate-50 transition-colors"
+                className="w-full flex items-center justify-between px-4 py-4 active:bg-slate-50 transition-colors"
               >
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-xl bg-purple-50 flex items-center justify-center shrink-0">
-                    <Users className="h-4 w-4 text-purple-600" />
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-purple-50 flex items-center justify-center shrink-0">
+                    <Users className="h-4.5 w-4.5 text-purple-600" />
                   </div>
                   <div className="text-left">
-                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-tighter leading-none">Pelanggan Aktif</p>
-                    <div className="flex items-baseline gap-1 mt-0.5">
-                      <span className="text-2xl font-black text-slate-900 tracking-tighter leading-none">{activeTotal}</span>
-                      <span className="text-[10px] font-bold text-slate-400">org</span>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.12em] leading-none">Pelanggan Aktif</p>
+                    <div className="flex items-baseline gap-1.5 mt-1">
+                      <span className="text-[2rem] font-black text-slate-900 tracking-tighter leading-none">{activeTotal}</span>
+                      <span className="text-[11px] font-bold text-slate-400">org</span>
                     </div>
                   </div>
                 </div>
-                <div className="flex flex-col items-end gap-1.5">
-                  <div className="flex gap-2 text-[9px] font-bold">
+                <div className="flex flex-col items-end gap-2">
+                  <div className="flex gap-2 text-[10px] font-bold">
                     <span className="text-emerald-600">{activeMitra} Mitra</span>
                     <span className="text-slate-400">{activeKonsumen} Kons</span>
                   </div>
