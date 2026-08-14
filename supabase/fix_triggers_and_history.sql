@@ -11,9 +11,6 @@
 -- ============================================================================
 -- 1. ENSURE TIMESTAMP UPDATE TRIGGERS
 -- ============================================================================
-
-RAISE NOTICE '====== 1. CHECKING TIMESTAMP TRIGGERS ======';
-
 -- Check existing triggers
 SELECT 
   trigger_name,
@@ -70,7 +67,7 @@ CREATE TRIGGER update_user_stock_updated_at
   FOR EACH ROW 
   EXECUTE FUNCTION public.update_updated_at_column();
 
-RAISE NOTICE 'Timestamp triggers recreated!';
+-- Timestamp triggers are now active
 
 -- ============================================================================
 -- 4. CREATE/ENSURE CUSTOMER UPDATE TRIGGER
@@ -138,7 +135,7 @@ CREATE TRIGGER update_customer_on_order_delete
   FOR EACH ROW
   EXECUTE FUNCTION public.update_customer_stats();
 
-RAISE NOTICE 'Customer update triggers created!';
+-- Customer stats triggers are now active
 
 -- ============================================================================
 -- 5. CREATE/ENSURE STOCK TRACKING TRIGGER
@@ -199,13 +196,11 @@ CREATE TRIGGER update_user_stock_on_entry_delete
   FOR EACH ROW
   EXECUTE FUNCTION public.update_user_stock_on_entry();
 
-RAISE NOTICE 'Stock tracking triggers created!';
+-- Stock tracking triggers are now active
 
 -- ============================================================================
 -- 6. VERIFY ALL TRIGGERS ARE ACTIVE
 -- ============================================================================
-
-RAISE NOTICE '====== VERIFYING ALL TRIGGERS ======';
 
 SELECT 
   trigger_name,
@@ -220,9 +215,6 @@ ORDER BY event_object_table, trigger_name;
 -- ============================================================================
 -- 7. RECALCULATE ALL STATISTICS BASED ON TRIGGERS
 -- ============================================================================
-
-RAISE NOTICE '====== RECALCULATING ALL STATISTICS ======';
-
 -- Manually recalculate customer stats untuk konsistensi awal
 WITH order_stats AS (
   SELECT 
@@ -256,13 +248,11 @@ SET
 FROM stock_calc
 WHERE user_stock.user_id = stock_calc.user_id;
 
-RAISE NOTICE 'All statistics recalculated!';
+-- All statistics have been recalculated and are now consistent
 
 -- ============================================================================
 -- 8. FINAL VERIFICATION
 -- ============================================================================
-
-RAISE NOTICE '====== FINAL STATISTICS CHECK ======';
 
 SELECT 
   'Customers dengan stats' AS category,
@@ -278,4 +268,4 @@ SELECT
 FROM orders
 WHERE customer_id IS NULL;
 
-RAISE NOTICE 'Fix script completed! All triggers and statistics are now in sync.';
+-- Fix script completed! Review results above.

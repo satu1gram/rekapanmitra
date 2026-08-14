@@ -7,13 +7,15 @@
  * 3. Integrity orders dan stock entries
  * 4. Missing atau orphaned records
  * 5. Status history dan audit trail
+ * 
+ * Jalankan script ini di SQL Editor Supabase. 
+ * Review hasil setiap section untuk diagnosis.
  */
 
 -- ============================================================================
 -- 1. CUSTOMER STATISTICS AUDIT
 -- ============================================================================
-
-RAISE NOTICE '====== 1. CUSTOMER STATISTICS AUDIT ======';
+-- Cek apakah customer statistics cocok dengan actual orders
 
 -- Cek apakah customer statistics cocok dengan actual orders
 WITH calculated_stats AS (
@@ -53,9 +55,6 @@ ORDER BY c.user_id, c.created_at;
 -- ============================================================================
 -- 2. CUSTOMER TIER AUDIT
 -- ============================================================================
-
-RAISE NOTICE '====== 2. CUSTOMER TIER AUDIT ======';
-
 -- Identifikasi customer yang tier-nya mungkin tidak optimal
 -- Tier seharusnya: satuan < reseller < agen < agen_plus < sap
 WITH order_analysis AS (
@@ -93,9 +92,6 @@ ORDER BY c.user_id, c.created_at;
 -- ============================================================================
 -- 3. ORDERS INTEGRITY CHECK
 -- ============================================================================
-
-RAISE NOTICE '====== 3. ORDERS INTEGRITY CHECK ======';
-
 -- Cek orders yang orphaned (tidak punya customer_id)
 SELECT 
   COUNT(*) AS orphaned_orders_count
@@ -119,9 +115,6 @@ ORDER BY created_at DESC;
 -- ============================================================================
 -- 4. STOCK ENTRIES INTEGRITY CHECK
 -- ============================================================================
-
-RAISE NOTICE '====== 4. STOCK ENTRIES INTEGRITY CHECK ======';
-
 -- Cek apakah user_stock statistics cocok dengan actual entries
 WITH stock_calc AS (
   SELECT 
@@ -146,9 +139,6 @@ ORDER BY us.user_id;
 -- ============================================================================
 -- 5. MISSING CUSTOMER_ID IN ORDERS
 -- ============================================================================
-
-RAISE NOTICE '====== 5. MISSING CUSTOMER_ID RESOLUTION ======';
-
 -- Identify orders yang bisa dilinkkan ke existing customers
 SELECT 
   o.id AS order_id,
@@ -175,9 +165,6 @@ ORDER BY o.user_id, o.created_at;
 -- ============================================================================
 -- 6. CUSTOMER DUPLICATE CHECK
 -- ============================================================================
-
-RAISE NOTICE '====== 6. DUPLICATE CUSTOMER CHECK ======';
-
 -- Cek apakah masih ada customer yang sama
 CREATE OR REPLACE FUNCTION normalize_phone_check(phone TEXT)
 RETURNS TEXT AS $$
@@ -201,8 +188,6 @@ ORDER BY user_id;
 -- ============================================================================
 -- 7. SUMMARY STATISTICS
 -- ============================================================================
-
-RAISE NOTICE '====== 7. SUMMARY STATISTICS ======';
 
 SELECT 
   'Total Users' AS metric,
@@ -242,4 +227,4 @@ UNION ALL
 SELECT 'Order Status - Selesai' AS metric, 
   (SELECT COUNT(*)::TEXT FROM orders WHERE status = 'selesai');
 
-RAISE NOTICE 'Verification selesai! Review hasil query di atas.';
+-- Verification selesai! Review hasil query di atas untuk diagnostic info.

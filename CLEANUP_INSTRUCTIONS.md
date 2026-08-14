@@ -2,6 +2,8 @@
 
 Saya sudah membuat 4 script lengkap untuk membersihkan dan memperbaiki database duplikat customer. Berikut panduan implementasinya.
 
+> **✅ UPDATE (Aug 14, 2026):** Fixed syntax error dengan menghapus RAISE NOTICE dari plain SQL statements. Script sekarang siap dijalankan di Supabase SQL Editor tanpa error.
+
 ## 📋 File-file yang Telah Dibuat
 
 ### 1. **supabase/verify_statistics.sql**

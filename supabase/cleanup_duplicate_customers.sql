@@ -159,5 +159,4 @@ ORDER BY user_id, normalized_name;
 -- DROP FUNCTION IF EXISTS normalize_phone(TEXT);
 -- DROP FUNCTION IF EXISTS normalize_name(TEXT);
 
--- Report: Duplikat customers yang sudah di-merge
-RAISE NOTICE 'Cleanup selesai! Cek hasil di atas untuk verifikasi.';
+-- Cleanup selesai! Cek hasil di atas untuk verifikasi data yang sudah di-merge.
