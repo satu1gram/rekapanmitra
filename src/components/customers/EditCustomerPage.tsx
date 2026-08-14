@@ -11,6 +11,7 @@ import { useIndonesianRegions } from '@/hooks/useIndonesianRegions';
 import type { Tables } from '@/integrations/supabase/types';
 
 type Customer = Tables<'customers'>;
+type Order = Tables<'orders'>;
 
 interface EditCustomerPageProps {
   customer: Customer;
