@@ -1,14 +1,14 @@
 // supabase/functions/parse-order/index.ts
 // Edge Function: proxy aman untuk AI order/restok parsing
 // Dilengkapi anti-prompt-injection + dual intent schema
+//
+// KEAMANAN (K2 / IO-13):
+// - verify_jwt = true (supabase/config.toml): gateway menolak request tanpa JWT valid → 401
+// - Hanya sesi user in-app (role=authenticated) yang dilayani; anon key ditolak
+// - CORS dibatasi ke origin app via env ALLOWED_ORIGINS
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version",
-};
+import { authenticateUser, jsonResponse, logEvent, resolveCorsHeaders } from "../_shared/security.ts";
 
 interface LearningPattern {
   input: string;
@@ -103,25 +103,29 @@ interface ParseRequest {
 }
 
 serve(async (req) => {
+  const corsHeaders = resolveCorsHeaders(req);
+
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   if (req.method !== "POST") {
-    return new Response(JSON.stringify({ error: "Method not allowed" }), {
-      status: 405,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return jsonResponse({ error: "Method not allowed" }, 405, corsHeaders);
   }
+
+  // ─── AUTH: hanya user in-app dengan sesi Supabase sah ───
+  const auth = authenticateUser(req);
+  if (!auth.ok) {
+    logEvent("warn", "auth_rejected", { fn: "parse-order", reason: auth.reason });
+    return jsonResponse({ error: "Unauthorized: sesi login diperlukan" }, 401, corsHeaders);
+  }
+  logEvent("info", "request_accepted", { fn: "parse-order", user_id: auth.userId });
 
   try {
     const { text, learningPatterns = [] }: ParseRequest = await req.json();
 
     if (!text?.trim()) {
-      return new Response(JSON.stringify({ error: "Teks tidak boleh kosong" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonResponse({ error: "Teks tidak boleh kosong" }, 400, corsHeaders);
     }
 
     const apiKey = Deno.env.get("OPENAI_API_KEY");
@@ -153,11 +157,12 @@ serve(async (req) => {
 
     if (!response.ok) {
       const errText = await response.text();
-      console.error("AI API error:", response.status, errText);
+      logEvent("error", "ai_api_error", { fn: "parse-order", status: response.status, body: errText.slice(0, 500) });
       if (response.status === 429) {
-        return new Response(
-          JSON.stringify({ error: "Terlalu banyak permintaan, coba beberapa detik lagi." }),
-          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        return jsonResponse(
+          { error: "Terlalu banyak permintaan, coba beberapa detik lagi." },
+          429,
+          corsHeaders,
         );
       }
       throw new Error(`AI API error ${response.status}: ${errText}`);
@@ -178,10 +183,15 @@ serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
-    console.error("parse-order error:", e);
-    return new Response(
-      JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    logEvent("error", "parse_order_failed", {
+      fn: "parse-order",
+      user_id: auth.userId,
+      error: e instanceof Error ? e.message : String(e),
+    });
+    return jsonResponse(
+      { error: e instanceof Error ? e.message : "Unknown error" },
+      500,
+      corsHeaders,
     );
   }
 });
