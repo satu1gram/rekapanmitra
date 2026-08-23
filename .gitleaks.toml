@@ -1,0 +1,17 @@
+# Konfigurasi gitleaks — secret scanning untuk repo ini.
+# Jalankan manual:   gitleaks detect --source . --redact
+# Otomatis per commit: lihat .pre-commit-config.yaml dan docs/secret-scanning.md
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Placeholder & contoh yang jelas bukan secret"
+regexes = [
+  # nilai contoh/placeholder, bukan kredensial nyata
+  '''(?i)your[-_][a-z0-9_-]+''',
+  '''<[^>]{1,64}>''',
+  '''\b(?:xxx+|CHANGE_?ME|PLACEHOLDER)\b''',
+  # referensi variabel environment, bukan nilai
+  '''\$\{?[A-Z_][A-Z0-9_]*\}?''',
+]
