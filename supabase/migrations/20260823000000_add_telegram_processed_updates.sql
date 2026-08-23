@@ -12,11 +12,11 @@ CREATE TABLE IF NOT EXISTS public.telegram_processed_updates (
 
 ALTER TABLE public.telegram_processed_updates ENABLE ROW LEVEL SECURITY;
 
--- Hanya service role (edge function) yang mengakses tabel ini.
-CREATE POLICY "Service role full access processed updates"
-ON public.telegram_processed_updates
-USING (true)
-WITH CHECK (true);
+-- Sengaja TANPA policy (IO-23): RLS aktif tanpa satu pun policy = deny-all
+-- untuk semua role lain (anon/authenticated), sehingga anon key publik tidak
+-- bisa INSERT/SELECT/UPDATE/DELETE di tabel ini. Edge function mengakses
+-- tabel via service_role yang melewati RLS, jadi jalur idempotensi tetap jalan.
+-- JANGAN tambahkan policy permisif di sini.
 
 CREATE INDEX IF NOT EXISTS idx_telegram_updates_processed_at
 ON public.telegram_processed_updates(processed_at);
