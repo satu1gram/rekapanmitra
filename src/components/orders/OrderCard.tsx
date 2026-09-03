@@ -73,7 +73,7 @@ export function OrderCard({
 
   const totalOrderExpenses = orderExpenses.reduce((sum, expense) => sum + expense.amount, 0);
   const netProfit = Number(order.margin);
-  const grossProfit = netProfit + totalOrderExpenses;
+  const grossProfit = Number(order.total_price) - Number(order.buy_price || 0);
 
   useEffect(() => {
     if (expanded) {

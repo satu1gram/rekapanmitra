@@ -140,6 +140,7 @@ export function OrdersPage({ openAddForm = false, onAddFormClose }: OrdersPagePr
 
   const totalRevenue = filteredOrders.reduce((sum, o) => sum + Number(o.total_price), 0);
   const totalProfit = filteredOrders.reduce((sum, o) => sum + Number(o.margin), 0);
+  const grossProfit = filteredOrders.reduce((sum, o) => sum + Number(o.total_price) - Number(o.buy_price || 0), 0);
   const totalQty = filteredOrders.reduce((sum, o) => sum + o.quantity, 0);
 
   const startObj = new Date(startDate); startObj.setHours(0, 0, 0, 0);
@@ -148,7 +149,7 @@ export function OrdersPage({ openAddForm = false, onAddFormClose }: OrdersPagePr
   const incomeTotal = getTotalIncome(getIncomeByDateRange(startObj, endObj));
   const netProfit = includeCosts
     ? totalProfit - expensesTotal + incomeTotal
-    : totalProfit;
+    : grossProfit;
 
   const leaderboardData = useMemo(() => {
     const acc = new Map<string, { total_qty: number, total_price: number, name: string, tier: string, id: string | null }>();
