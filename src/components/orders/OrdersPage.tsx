@@ -9,6 +9,7 @@ import { useOrders } from '@/hooks/useOrdersDb';
 import { useStock } from '@/hooks/useStockDb';
 import { useCustomers } from '@/hooks/useCustomersDb';
 import { useProfile } from '@/hooks/useProfile';
+import { useProducts } from '@/hooks/useProducts';
 import { useGeneralExpenses } from '@/hooks/useGeneralExpenses';
 import { useGeneralIncome } from '@/hooks/useGeneralIncome';
 import { TierType, OrderItem, MITRA_LEVELS, OrderStatus } from '@/types';
@@ -38,6 +39,7 @@ import { OrderResultPage, OrderResult } from './OrderResultPage';
 import { EditCustomerPage } from '../customers/EditCustomerPage';
 import { formatCurrency } from '@/lib/formatters';
 import { cn } from '@/lib/utils';
+import { getCanonicalProductLabel } from '@/lib/productNames';
 
 type Order = Tables<'orders'>;
 
@@ -116,6 +118,7 @@ export function OrdersPage({ openAddForm = false, onAddFormClose }: OrdersPagePr
   const { currentStock } = useStock();
   const { customers, addOrUpdateCustomer, refetch: refetchCustomers } = useCustomers();
   const { mitraLevel, customBuyPrice } = useProfile();
+  const { products } = useProducts();
   const { getTotalExpenses, getExpensesByDateRange } = useGeneralExpenses();
   const { getTotalIncome, getIncomeByDateRange } = useGeneralIncome();
 
@@ -356,12 +359,23 @@ export function OrdersPage({ openAddForm = false, onAddFormClose }: OrdersPagePr
         onClose={() => setShowBotModal(false)}
         onConfirmOrder={async (parsed: ParsedOrder, pricingInfo?: { items: any[], tier: string }) => {
           // Gunakan hasil perhitungan pricingInfo jika ada, kalau tidak fallback ke parsed raw
-          const items = pricingInfo?.items || parsed.items.map(item => ({
+          const rawItems = pricingInfo?.items || parsed.items.map(item => ({
             productName: item.nama,
             quantity: item.qty,
             pricePerBottle: 250000, // harga default satuan — form summary bisa koreksi
             subtotal: item.qty * 250000,
           }));
+          const items = rawItems.map(item => {
+            const canonicalName = getCanonicalProductLabel(item.productName);
+            const normalizedName = canonicalName.toLowerCase().trim();
+            const product = products.find(p =>
+              p.name.toLowerCase().trim() === normalizedName ||
+              p.category.toLowerCase().trim() === normalizedName
+            );
+            return product
+              ? { ...item, productName: product.category, productId: product.id }
+              : { ...item, productName: canonicalName };
+          });
           // Gunakan tanggal dari chat jika tersedia, fallback ke hari ini
           const createdAt = parsed.tanggal
             ? new Date(parsed.tanggal + 'T00:00:00').toISOString()

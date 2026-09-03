@@ -73,8 +73,8 @@ export function Dashboard({ onNavigate }: DashboardProps) {
 
   const monthRevenue = monthOrders.reduce((sum, o) => sum + Number(o.total_price), 0);
   const monthProfit = monthOrders.reduce((sum, o) => sum + Number(o.margin), 0);
-  const monthExpensesTotal = getTotalExpenses(getMonthExpenses());
-  const monthIncomeTotal = getTotalIncome(getMonthIncome());
+  const monthExpensesTotal = getTotalExpenses(getMonthExpenses(thisYear, thisMonth));
+  const monthIncomeTotal = getTotalIncome(getMonthIncome(thisYear, thisMonth));
   const monthNetProfit = monthProfit - monthExpensesTotal + monthIncomeTotal;
   const displayedProfit = includeBiaya ? monthNetProfit : monthProfit;
   const monthQty = monthOrders.reduce((sum, o) => sum + o.quantity, 0);
@@ -255,8 +255,8 @@ export function Dashboard({ onNavigate }: DashboardProps) {
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Keuntungan</span>
                   <div className="flex items-center gap-1.5">
-                    <button onClick={() => setIncludeBiaya(false)} className={cn("text-[9px] font-black px-2 py-0.5 rounded-md transition-colors", !includeBiaya ? "bg-emerald-500 text-white" : "bg-white/5 text-slate-500")}>Bersih</button>
-                    <button onClick={() => setIncludeBiaya(true)} className={cn("text-[9px] font-black px-2 py-0.5 rounded-md transition-colors", includeBiaya ? "bg-emerald-500 text-white" : "bg-white/5 text-slate-500")}>Kotor</button>
+                    <button onClick={() => setIncludeBiaya(false)} className={cn("text-[9px] font-black px-2 py-0.5 rounded-md transition-colors", !includeBiaya ? "bg-emerald-500 text-white" : "bg-white/5 text-slate-500")}>Eksl. Biaya</button>
+                    <button onClick={() => setIncludeBiaya(true)} className={cn("text-[9px] font-black px-2 py-0.5 rounded-md transition-colors", includeBiaya ? "bg-emerald-500 text-white" : "bg-white/5 text-slate-500")}>Inkl. Biaya</button>
                   </div>
                 </div>
                 <div className="flex items-baseline gap-1.5 mb-2">

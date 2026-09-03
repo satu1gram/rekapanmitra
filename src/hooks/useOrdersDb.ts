@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
+import { getCanonicalProductLabel } from '@/lib/productNames';
 import { TierType, TIER_PRICING, MitraLevel, MITRA_LEVELS, OrderStatus, OrderItem } from '@/types';
 import type { Tables } from '@/integrations/supabase/types';
 import { calculateOrderStockReversal } from '@/lib/orderDeletion';
@@ -144,9 +145,15 @@ export function useOrders() {
       return [];
     }
 
+    const productIds = (data || []).map((item: any) => item.product_id).filter(Boolean);
+    const { data: products } = productIds.length > 0
+      ? await supabase.from('master_products' as any).select('id, category').in('id', productIds)
+      : { data: [] };
+    const productCategories = new Map((products || []).map((product: any) => [product.id, product.category]));
+
     return (data || []).map((item: any) => ({
       id: item.id,
-      productName: item.product_name,
+      productName: getCanonicalProductLabel(productCategories.get(item.product_id) || item.product_name),
       productId: item.product_id,
       quantity: item.quantity,
       pricePerBottle: Number(item.price_per_bottle),

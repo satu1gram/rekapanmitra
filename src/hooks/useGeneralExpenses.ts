@@ -124,17 +124,33 @@ export function useGeneralExpenses() {
   }, [fetchExpenses]);
 
   const getExpensesByDateRange = useCallback((startDate: Date, endDate: Date) => {
+    const toDateKey = (date: Date) => {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
+
+    const startDateKey = toDateKey(startDate);
+    const endDateKey = toDateKey(endDate);
     return expenses.filter(expense => {
-      const expenseDate = new Date(expense.expenseDate);
-      return expenseDate >= startDate && expenseDate <= endDate;
+      const expenseDateKey = expense.expenseDate.slice(0, 10);
+      return expenseDateKey >= startDateKey && expenseDateKey <= endDateKey;
     });
   }, [expenses]);
 
-  const getTodayExpenses = useCallback(() => {
-    const today = new Date().toISOString().split('T')[0];
-    return expenses.filter(e => e.expenseDate === today);
-  }, [expenses]);
+  const getMonthExpenses = useCallback((year?: number, month?: number) => {
+    if (year !== undefined && month !== undefined) {
+      return getExpensesByDateRange(
+        new Date(year, month, 1),
+        new Date(year, month + 1, 0, 23, 59, 59, 999)
+      );
+    }
 
+    const now = new Date();
+    const monthAgo = new Date(now);
+    monthAgo.setMonth(monthAgo.getMonth() - 1);
+    return getExpensesByDateRange(monthAgo, now);
   const getMonthExpenses = useCallback(() => {
     const now = new Date();
     const monthAgo = new Date(now);

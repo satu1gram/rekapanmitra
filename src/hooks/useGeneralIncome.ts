@@ -124,9 +124,18 @@ export function useGeneralIncome() {
   }, [fetchIncome]);
 
   const getIncomeByDateRange = useCallback((startDate: Date, endDate: Date) => {
+    const toDateKey = (date: Date) => {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
+
+    const startDateKey = toDateKey(startDate);
+    const endDateKey = toDateKey(endDate);
     return income.filter(i => {
-      const d = new Date(i.incomeDate);
-      return d >= startDate && d <= endDate;
+      const incomeDateKey = i.incomeDate.slice(0, 10);
+      return incomeDateKey >= startDateKey && incomeDateKey <= endDateKey;
     });
   }, [income]);
 
@@ -135,7 +144,14 @@ export function useGeneralIncome() {
     return income.filter(i => i.incomeDate === today);
   }, [income]);
 
-  const getMonthIncome = useCallback(() => {
+  const getMonthIncome = useCallback((year?: number, month?: number) => {
+    if (year !== undefined && month !== undefined) {
+      return getIncomeByDateRange(
+        new Date(year, month, 1),
+        new Date(year, month + 1, 0, 23, 59, 59, 999)
+      );
+    }
+
     const now = new Date();
     const monthAgo = new Date(now);
     monthAgo.setMonth(monthAgo.getMonth() - 1);
