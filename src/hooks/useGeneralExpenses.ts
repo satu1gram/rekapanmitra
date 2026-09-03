@@ -139,6 +139,16 @@ export function useGeneralExpenses() {
     });
   }, [expenses]);
 
+  const getTodayExpenses = useCallback(() => {
+    const today = new Date();
+    const todayKey = [
+      today.getFullYear(),
+      String(today.getMonth() + 1).padStart(2, '0'),
+      String(today.getDate()).padStart(2, '0'),
+    ].join('-');
+    return expenses.filter(expense => expense.expenseDate.slice(0, 10) === todayKey);
+  }, [expenses]);
+
   const getMonthExpenses = useCallback((year?: number, month?: number) => {
     if (year !== undefined && month !== undefined) {
       return getExpensesByDateRange(
