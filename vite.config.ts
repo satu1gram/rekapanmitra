@@ -31,7 +31,7 @@ export default defineConfig(({ mode }) => ({
       brotliSize: true,
     }),
     VitePWA({
-      registerType: "prompt",
+      registerType: "autoUpdate",
       includeAssets: ["favicon.ico", "robots.txt", "apple-touch-icon.png"],
       manifest: {
         name: "Rekapan Mitra",
@@ -62,6 +62,9 @@ export default defineConfig(({ mode }) => ({
         ],
       },
       workbox: {
+        cleanupOutdatedCaches: true,
+        clientsClaim: true,
+        skipWaiting: true,
         navigateFallback: '/index.html',
         navigateFallbackDenylist: [/^\/api\//, /\.[^/?]+$/],
         globPatterns: ["**/*.{js,css,html,ico,png,svg,webp,woff2}"],
