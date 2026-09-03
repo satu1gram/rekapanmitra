@@ -74,9 +74,11 @@ export function Dashboard({ onNavigate }: DashboardProps) {
   const monthRevenue = monthOrders.reduce((sum, o) => sum + Number(o.total_price), 0);
   const monthProfit = monthOrders.reduce((sum, o) => sum + Number(o.margin), 0);
   const monthGrossProfit = monthOrders.reduce((sum, o) => sum + Number(o.total_price) - Number(o.buy_price || 0), 0);
+  const monthOrderExpenses = Math.max(0, monthGrossProfit - monthProfit);
   const monthExpensesTotal = getTotalExpenses(getMonthExpenses(thisYear, thisMonth));
   const monthIncomeTotal = getTotalIncome(getMonthIncome(thisYear, thisMonth));
-  const monthNetProfit = monthProfit - monthExpensesTotal + monthIncomeTotal;
+  const monthTotalCosts = monthOrderExpenses + monthExpensesTotal;
+  const monthNetProfit = monthGrossProfit - monthTotalCosts + monthIncomeTotal;
   const displayedProfit = includeBiaya ? monthNetProfit : monthGrossProfit;
   const monthQty = monthOrders.reduce((sum, o) => sum + o.quantity, 0);
 

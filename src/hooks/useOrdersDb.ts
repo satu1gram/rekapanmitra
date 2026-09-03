@@ -147,13 +147,17 @@ export function useOrders() {
 
     const productIds = (data || []).map((item: any) => item.product_id).filter(Boolean);
     const { data: products } = productIds.length > 0
-      ? await supabase.from('master_products' as any).select('id, category').in('id', productIds)
+      ? await supabase.from('master_products' as any).select('id, name, category').in('id', productIds)
       : { data: [] };
-    const productCategories = new Map((products || []).map((product: any) => [product.id, product.category]));
+    const productLabels = new Map((products || []).map((product: any) => [product.id, { name: product.name, category: product.category }]));
 
     return (data || []).map((item: any) => ({
       id: item.id,
-      productName: getCanonicalProductLabel(productCategories.get(item.product_id) || item.product_name),
+      productName: getCanonicalProductLabel(
+        item.product_name && !/^(BP|BELGIE|STEFFI|BRO|BRE|NORWAY)$/i.test(item.product_name.trim())
+          ? item.product_name
+          : productLabels.get(item.product_id)?.name || productLabels.get(item.product_id)?.category || item.product_name
+      ),
       productId: item.product_id,
       quantity: item.quantity,
       pricePerBottle: Number(item.price_per_bottle),
