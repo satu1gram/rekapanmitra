@@ -141,14 +141,16 @@ export function OrdersPage({ openAddForm = false, onAddFormClose }: OrdersPagePr
   const totalRevenue = filteredOrders.reduce((sum, o) => sum + Number(o.total_price), 0);
   const totalProfit = filteredOrders.reduce((sum, o) => sum + Number(o.margin), 0);
   const grossProfit = filteredOrders.reduce((sum, o) => sum + Number(o.total_price) - Number(o.buy_price || 0), 0);
+  const orderExpensesTotal = Math.max(0, grossProfit - totalProfit);
   const totalQty = filteredOrders.reduce((sum, o) => sum + o.quantity, 0);
 
   const startObj = new Date(startDate); startObj.setHours(0, 0, 0, 0);
   const endObj = new Date(endDate); endObj.setHours(23, 59, 59, 999);
   const expensesTotal = getTotalExpenses(getExpensesByDateRange(startObj, endObj));
+  const totalCosts = expensesTotal + orderExpensesTotal;
   const incomeTotal = getTotalIncome(getIncomeByDateRange(startObj, endObj));
   const netProfit = includeCosts
-    ? totalProfit - expensesTotal + incomeTotal
+    ? grossProfit - totalCosts + incomeTotal
     : grossProfit;
 
   const leaderboardData = useMemo(() => {
@@ -374,7 +376,7 @@ export function OrdersPage({ openAddForm = false, onAddFormClose }: OrdersPagePr
               p.category.toLowerCase().trim() === normalizedName
             );
             return product
-              ? { ...item, productName: product.category, productId: product.id }
+              ? { ...item, productName: product.name, productId: product.id }
               : { ...item, productName: canonicalName };
           });
           // Gunakan tanggal dari chat jika tersedia, fallback ke hari ini
@@ -665,9 +667,9 @@ export function OrdersPage({ openAddForm = false, onAddFormClose }: OrdersPagePr
                   </div>
                 )}
               </div>
-              {includeCosts && expensesTotal > 0 && (
+              {includeCosts && totalCosts > 0 && (
                 <p className="text-[10px] text-slate-400 mt-1 relative z-10">
-                  Margin: {formatCurrency(totalProfit)} · Biaya: -{formatCurrency(expensesTotal)}
+                  Profit Kotor: {formatCurrency(grossProfit)} · Biaya: -{formatCurrency(totalCosts)}
                   {incomeTotal > 0 && ` · Lain: +${formatCurrency(incomeTotal)}`}
                 </p>
               )}
