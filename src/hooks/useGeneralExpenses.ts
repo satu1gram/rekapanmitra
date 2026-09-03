@@ -151,11 +151,6 @@ export function useGeneralExpenses() {
     const monthAgo = new Date(now);
     monthAgo.setMonth(monthAgo.getMonth() - 1);
     return getExpensesByDateRange(monthAgo, now);
-  const getMonthExpenses = useCallback(() => {
-    const now = new Date();
-    const monthAgo = new Date(now);
-    monthAgo.setMonth(monthAgo.getMonth() - 1);
-    return getExpensesByDateRange(monthAgo, now);
   }, [getExpensesByDateRange]);
 
   const getTotalExpenses = useCallback((expenseList: GeneralExpense[]) => {

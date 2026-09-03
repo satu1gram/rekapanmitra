@@ -71,6 +71,10 @@ export function OrderCard({
   const [expenseAmount, setExpenseAmount] = useState<number>(0);
   const [submitting, setSubmitting] = useState(false);
 
+  const totalOrderExpenses = orderExpenses.reduce((sum, expense) => sum + expense.amount, 0);
+  const netProfit = Number(order.margin);
+  const grossProfit = netProfit + totalOrderExpenses;
+
   useEffect(() => {
     if (expanded) {
       setLoadingDetails(true);
@@ -180,10 +184,16 @@ export function OrderCard({
                 </div>
               )}
 
-              {/* Margin */}
-              <div className="bg-emerald-50 rounded-xl border border-emerald-100 px-4 py-3 flex justify-between items-center">
-                <span className="text-emerald-700 font-bold text-sm">Margin / Profit</span>
-                <span className="text-emerald-700 font-black text-base">{formatCurrency(Number(order.margin))}</span>
+              {/* Profit breakdown */}
+              <div className="bg-emerald-50 rounded-xl border border-emerald-100 px-4 py-3 space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-emerald-700 font-bold text-sm">Profit Kotor</span>
+                  <span className="text-emerald-700 font-black text-base">{formatCurrency(grossProfit)}</span>
+                </div>
+                <div className="flex justify-between items-center pt-2 border-t border-emerald-100">
+                  <span className="text-emerald-700/80 font-semibold text-sm">Profit Bersih</span>
+                  <span className="text-emerald-700 font-black text-base">{formatCurrency(netProfit)}</span>
+                </div>
               </div>
 
               {/* Transfer proof */}
@@ -198,7 +208,7 @@ export function OrderCard({
               <div className="bg-white rounded-xl border border-slate-100 p-4 space-y-3">
                 <div className="flex justify-between items-center">
                   <p className="text-xs font-black text-slate-500 uppercase tracking-wider">Pengeluaran Tambahan</p>
-                  <p className="text-xs text-slate-400">{formatCurrency(orderExpenses.reduce((s, e) => s + e.amount, 0))}</p>
+                  <p className="text-xs text-slate-400">{formatCurrency(totalOrderExpenses)}</p>
                 </div>
                 {orderExpenses.length === 0 ? (
                   <p className="text-xs text-slate-400 italic text-center py-1">Belum ada pengeluaran</p>
