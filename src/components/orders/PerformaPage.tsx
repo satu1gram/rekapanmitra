@@ -3,8 +3,9 @@ import { useOrders } from '@/hooks/useOrdersDb';
 import { useGeneralExpenses } from '@/hooks/useGeneralExpenses';
 import { useGeneralIncome } from '@/hooks/useGeneralIncome';
 import { formatCurrency } from '@/lib/formatters';
-import { ArrowLeft, TrendingUp, Download, Loader2 } from 'lucide-react';
+import { ArrowLeft, TrendingUp, Download } from 'lucide-react';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
@@ -83,16 +84,22 @@ export function PerformaPage({ onBack }: PerformaPageProps) {
       .slice(0, 3);
   }, [monthlyData, metric]);
 
+  const otherMonths = useMemo(() => {
+    const topMonthIndexes = new Set(top3.map(item => item.idx));
+    return [...monthlyData]
+      .map((month, idx) => ({ idx, value: metric === 'profit' ? month.profit : metric === 'omset' ? month.revenue : month.qty }))
+      .filter(month => month.value > 0 && !topMonthIndexes.has(month.idx))
+      .sort((a, b) => b.value - a.value);
+  }, [monthlyData, metric, top3]);
+
   const availableYears = useMemo(() => {
     const years = new Set(orders.map(o => new Date(o.created_at).getFullYear()));
     years.add(now.getFullYear());
     return Array.from(years).sort((a, b) => a - b);
   }, [orders]);
 
-  // Make sure at least 3 years shown
   const displayYears = useMemo(() => {
-    const base = Array.from(new Set([...availableYears, now.getFullYear(), now.getFullYear() + 1])).sort((a, b) => a - b);
-    return base.slice(0, Math.max(3, base.length));
+    return Array.from(new Set([...availableYears, now.getFullYear()])).sort((a, b) => a - b);
   }, [availableYears]);
 
   const metricLabel = metric === 'profit' ? 'Keuntungan' : metric === 'omset' ? 'Omset' : 'Produk Terjual';
@@ -134,22 +141,33 @@ export function PerformaPage({ onBack }: PerformaPageProps) {
         <div className="flex flex-col gap-2">
           {/* Year selector & Metric tabs combined/tightened */}
           <div className="flex items-center gap-2">
-            <div className="flex-[0.4] flex items-center gap-1 bg-slate-100 p-0.5 rounded-lg border border-slate-200">
-              {displayYears.map(year => (
-                <button
-                  key={year}
-                  onClick={() => setSelectedYear(year)}
-                  className={cn(
-                    "flex-1 py-1 px-1 rounded-md font-black text-[10px] transition-all",
-                    selectedYear === year
-                      ? "bg-blue-600 text-white shadow-sm"
-                      : "text-slate-400 hover:text-slate-600"
-                  )}
-                >
-                  {year}
-                </button>
-              ))}
-            </div>
+            {displayYears.length <= 4 ? (
+              <div className="flex-[0.4] flex items-center gap-1 bg-slate-100 p-0.5 rounded-lg border border-slate-200">
+                {displayYears.map(year => (
+                  <button
+                    key={year}
+                    onClick={() => setSelectedYear(year)}
+                    className={cn(
+                      "flex-1 py-1 px-1 rounded-md font-black text-[10px] transition-all",
+                      selectedYear === year
+                        ? "bg-blue-600 text-white shadow-sm"
+                        : "text-slate-400 hover:text-slate-600"
+                    )}
+                  >
+                    {year}
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <Select value={String(selectedYear)} onValueChange={year => setSelectedYear(Number(year))}>
+                <SelectTrigger className="flex-[0.4] h-7 rounded-lg border-slate-200 bg-slate-100 px-2 text-[10px] font-black">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {displayYears.map(year => <SelectItem key={year} value={String(year)}>{year}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            )}
 
             <div className="flex-[0.6] bg-slate-100 p-0.5 rounded-lg flex gap-0.5 border border-slate-200">
               {(['profit', 'omset', 'qty'] as MetricType[]).map(m => (
@@ -282,6 +300,28 @@ export function PerformaPage({ onBack }: PerformaPageProps) {
                 );
               })}
             </div>
+            {otherMonths.length > 0 && (
+              <div className="mt-5">
+                <div className="flex items-center justify-between mb-2 px-1">
+                  <h3 className="text-sm font-black text-slate-700">Bulan lainnya</h3>
+                  <span className="text-[10px] font-bold text-slate-400">Peringkat {top3.length + 1}-{top3.length + otherMonths.length}</span>
+                </div>
+                <div className="bg-white rounded-2xl shadow-sm border border-slate-100 divide-y divide-slate-100">
+                  {otherMonths.map((item, index) => (
+                    <div key={item.idx} className="flex items-center gap-3 px-4 py-3">
+                      <span className="w-6 text-center text-xs font-black text-slate-400">{index + top3.length + 1}</span>
+                      <span className="flex-1 text-sm font-bold text-slate-700">{MONTHS_FULL[item.idx]}</span>
+                      <span className={cn(
+                        "text-sm font-black",
+                        metricColor === 'emerald' ? 'text-emerald-600' : metricColor === 'blue' ? 'text-blue-700' : 'text-indigo-700'
+                      )}>
+                        {metric === 'qty' ? `${item.value.toLocaleString('id-ID')} Pcs` : formatCurrency(item.value)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </section>
         )}
       </main>
