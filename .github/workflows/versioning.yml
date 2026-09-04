@@ -1,0 +1,37 @@
+name: Versioning Check
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  versioning:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Check version and changelog
+        shell: bash
+        run: |
+          set -euo pipefail
+          version=$(node -p "require('./package.json').version")
+          grep -q "## \[$version\]" CHANGELOG.md
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            git fetch origin main --quiet
+            commits=$(git log --format=%s "origin/main..HEAD")
+          else
+            commits=$(git log -1 --format=%s)
+          fi
+          while IFS= read -r commit; do
+            [[ -z "$commit" ]] && continue
+            [[ "$commit" =~ ^(feat|fix|perf|refactor|docs|test|build|ci)(\([^)]+\))?!?: .+ ]] || {
+              echo "Invalid Conventional Commit: $commit"
+              exit 1
+            }
+          done <<< "$commits"

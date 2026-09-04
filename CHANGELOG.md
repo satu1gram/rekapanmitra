@@ -4,6 +4,17 @@ Semua perubahan penting pada proyek **Rekapan Mitra** akan dicatat di sini.
 
 ---
 
+## [2.7.0] - 2026-09-04
+### ✨ Added
+- Tombol cek pembaruan PWA yang selalu tersedia dan menampilkan versi aktif.
+- Notifikasi update PWA dengan tombol **Update Sekarang**.
+- Sumber versi aplikasi tunggal dari `package.json`.
+
+### 📋 Release Type
+- **Minor**: menambah fitur baru tanpa memutus alur atau API yang sudah ada.
+
+---
+
 ## [2.1.0] - 2026-05-03
 ### ✨ Added
 - **Smart Telegram Parser**: Bot sekarang mendukung input teks bebas (*Full Text Parser*) untuk deteksi otomatis nama pelanggan, produk, kuantitas, dan biaya tambahan (ongkir).

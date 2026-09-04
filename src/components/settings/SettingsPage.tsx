@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { StoreSettingsCard } from '@/components/settings/StoreSettingsCard';
+import { APP_VERSION } from '@/lib/appVersion';
 
 // Urutan level dari terendah ke tertinggi (sesuai types/index.ts)
 const LEVEL_ORDER: MitraLevel[] = ['reseller', 'agen', 'agen_plus', 'sap', 'se', 'custom'];
@@ -233,7 +234,7 @@ export function SettingsPage() {
 
         {/* ─── FOOTER ─── */}
         <footer className="text-center py-6 opacity-60">
-          <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-1.5">Version 2.6.0</p>
+          <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-1.5">Version {APP_VERSION}</p>
           <p className="text-[10px] font-bold text-slate-400">Dikembangkan oleh <span className="text-[#059669]">Satu Lab Indonesia</span></p>
         </footer>
 

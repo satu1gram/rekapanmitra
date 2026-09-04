@@ -1,7 +1,9 @@
 import { useRegisterSW } from "virtual:pwa-register/react";
 import { toast } from "sonner";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
+import { RefreshCw } from "lucide-react";
+import { APP_VERSION } from "@/lib/appVersion";
 
 export function PWAUpdatePrompt() {
   const {
@@ -14,6 +16,27 @@ export function PWAUpdatePrompt() {
       }
     },
   });
+  const [checking, setChecking] = useState(false);
+
+  const checkForUpdate = async () => {
+    setChecking(true);
+    try {
+      const registration = await navigator.serviceWorker.getRegistration();
+      if (!registration) {
+        toast.info(`Versi ${APP_VERSION} sedang digunakan.`);
+        return;
+      }
+
+      await registration.update();
+      if (!registration.waiting) {
+        toast.success(`Aplikasi sudah versi terbaru (${APP_VERSION}).`);
+      }
+    } catch {
+      toast.error("Tidak dapat memeriksa pembaruan. Coba lagi nanti.");
+    } finally {
+      setChecking(false);
+    }
+  };
 
   useEffect(() => {
     if (!needRefresh) return;
@@ -24,7 +47,7 @@ export function PWAUpdatePrompt() {
       )}>
         <div className="flex-1 flex flex-col gap-0.5 text-center sm:text-left">
           <p className="font-extrabold text-sm tracking-tight leading-tight">Versi baru tersedia!</p>
-          <p className="text-[11px] font-medium text-emerald-50/90 leading-tight">Optimasi performa & fitur terbaru siap digunakan.</p>
+          <p className="text-[11px] font-medium text-emerald-50/90 leading-tight">Versi aktif: {APP_VERSION}. Tekan update untuk memuat versi terbaru.</p>
         </div>
         <button
           onClick={() => {
@@ -42,5 +65,16 @@ export function PWAUpdatePrompt() {
     });
   }, [needRefresh, updateServiceWorker]);
 
-  return null;
+  return (
+    <button
+      type="button"
+      onClick={checkForUpdate}
+      disabled={checking}
+      title="Periksa pembaruan aplikasi"
+      className="fixed bottom-4 right-4 z-[140] flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-2 text-[10px] font-black text-slate-600 shadow-lg transition-all hover:border-emerald-200 hover:text-emerald-700 active:scale-95 disabled:cursor-wait disabled:opacity-60"
+    >
+      <RefreshCw className={cn("h-3.5 w-3.5", checking && "animate-spin")} />
+      {checking ? "Memeriksa..." : `Update ${APP_VERSION}`}
+    </button>
+  );
 }

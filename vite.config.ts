@@ -1,13 +1,19 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
+import { readFileSync } from "fs";
 import { componentTagger } from "lovable-tagger";
 import { VitePWA } from "vite-plugin-pwa";
 import compression from "vite-plugin-compression";
 import { visualizer } from "rollup-plugin-visualizer";
 
+const { version: appVersion } = JSON.parse(readFileSync(new URL("./package.json", import.meta.url), "utf8"));
+
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
+  define: {
+    __APP_VERSION__: JSON.stringify(appVersion),
+  },
   server: {
     host: "::",
     port: 8080,
