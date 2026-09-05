@@ -13,9 +13,13 @@ cd /Users/salinovakbar/Downloads/rekapanmitra
 supabase link --project-ref kqoitztjohxjnjoxctoz
 
 # ── LANGKAH 3: Set API key sebagai Supabase secret ────────────────
-# (ganti sk-TFYJu00a24lDqgOhTUwFKQ dengan API key Anda)
-supabase secrets set OPENAI_API_KEY=sk-TFYJu00a24lDqgOhTUwFKQ
+# PENTING: JANGAN pernah menulis nilai API key di file ini.
+# Export dulu di terminal Anda — ambil nilai dari password manager:
+#   export OPENAI_API_KEY="<API key Anda>"
+# Lalu jalankan perintah di bawah (membaca dari environment variable):
+supabase secrets set OPENAI_API_KEY="$OPENAI_API_KEY"
 supabase secrets set OPENAI_BASE_URL=https://ai.sumopod.com/v1
+# Lihat docs/secret-scanning.md untuk aturan penanganan secret.
 
 # Verifikasi secret tersimpan:
 supabase secrets list
