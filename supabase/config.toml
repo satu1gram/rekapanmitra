@@ -1,10 +1,15 @@
 project_id = "kqoitztjohxjnjoxctoz"
 
-[functions.ai-konsultasi]
-verify_jwt = false
-
-[functions.telegram-bot]
-verify_jwt = false
-
+# K2 / IO-13: function AI hanya melayani request dengan JWT sah.
+# Gateway menolak request tanpa Authorization JWT valid → 401.
+# Catatan: JANGAN deploy dengan --no-verify-jwt lagi.
 [functions.parse-order]
+verify_jwt = true
+
+[functions.ai-konsultasi]
+verify_jwt = true
+
+# Webhook Telegram: auth via header X-Telegram-Bot-Api-Secret-Token,
+# divalidasi di dalam function (bukan JWT Supabase).
+[functions.telegram-bot]
 verify_jwt = false

@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { logEvent, secureCompare } from "../_shared/security.ts";
 
 /**
  * CONFIGURATION & ENVIRONMENT VARIABLES
@@ -8,6 +9,9 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const TELEGRAM_BOT_TOKEN = Deno.env.get("TELEGRAM_BOT_TOKEN")!;
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+// Secret webhook (diset Telegram pada header X-Telegram-Bot-Api-Secret-Token).
+// WAJIB di-set; jika kosong, function menolak semua request (fail-closed).
+const TELEGRAM_WEBHOOK_SECRET = Deno.env.get("TELEGRAM_WEBHOOK_SECRET") ?? "";
 const TELEGRAM_API = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}`;
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
@@ -334,12 +338,64 @@ async function updateSession(chatId: string, updates: any) {
 }
 
 /**
+ * IDEMPOTENSI WEBHOOK (K2 / IO-13)
+ * Telegram bisa mengirim ulang update yang sama (retry delivery).
+ * update_id diklaim lebih dulu lewat INSERT primary key:
+ * - insert sukses  → update ini "milik" kita, proses
+ * - konflik        → duplikat/retry, abaikan (return OK tanpa proses)
+ * Klaim dilakukan SEBELUM logika bisnis agar retry tidak pernah
+ * menghasilkan order duplikat (at-most-once processing).
+ */
+async function claimUpdateId(updateId: number): Promise<boolean> {
+  const { error } = await supabase
+    .from("telegram_processed_updates")
+    .insert({ update_id: updateId });
+
+  if (!error) return true;
+
+  // Konflik primary key = sudah pernah diproses
+  if (error.code === "23505") return false;
+
+  // Error lain: jangan diam-diam — log dan gagal tertutup (jangan proses)
+  logEvent("error", "idempotency_check_failed", { fn: "telegram-bot", update_id: updateId, error: error.message });
+  return false;
+}
+
+/**
  * MAIN REQUEST HANDLER
  * Melayani Webhook dari Telegram
+ * (diekspor agar bisa dites; serve() hanya jalan bila file ini entrypoint)
  */
-serve(async (req) => {
+export async function handleTelegramWebhook(req: Request): Promise<Response> {
   try {
+    // ─── 0. AUTH: validasi secret token webhook ───
+    if (!TELEGRAM_WEBHOOK_SECRET) {
+      logEvent("error", "webhook_secret_not_configured", { fn: "telegram-bot" });
+      return new Response("Unauthorized", { status: 401 });
+    }
+    const receivedSecret = req.headers.get("X-Telegram-Bot-Api-Secret-Token");
+    if (!receivedSecret || !secureCompare(receivedSecret, TELEGRAM_WEBHOOK_SECRET)) {
+      logEvent("warn", "webhook_auth_rejected", {
+        fn: "telegram-bot",
+        has_secret_header: receivedSecret !== null,
+      });
+      return new Response("Unauthorized", { status: 401 });
+    }
+
     const update = await req.json();
+    const updateId = typeof update?.update_id === "number" ? update.update_id : null;
+    if (updateId === null) {
+      logEvent("warn", "update_without_update_id", { fn: "telegram-bot" });
+      return new Response("OK");
+    }
+
+    // ─── 1. IDEMPOTENSI: klaim update_id sebelum memproses ───
+    const claimed = await claimUpdateId(updateId);
+    if (!claimed) {
+      logEvent("info", "duplicate_update_skipped", { fn: "telegram-bot", update_id: updateId });
+      return new Response("OK");
+    }
+
     const message = update.message;
     const callbackQuery = update.callback_query;
     const chatId = (message?.chat?.id || callbackQuery?.message?.chat?.id)?.toString();
@@ -354,7 +410,12 @@ serve(async (req) => {
       .eq("is_active", true)
       .maybeSingle();
 
-    if (!conn && !message?.text?.startsWith("/daftar")) return new Response("OK");
+    if (!conn) {
+      // Chat belum terhubung ke toko mana pun (termasuk percobaan /daftar):
+      // tidak ada tenant context — jangan proses lebih lanjut.
+      logEvent("warn", "unknown_chat_ignored", { fn: "telegram-bot", chat_id: chatId });
+      return new Response("OK");
+    }
 
     // ─── 1. MODE FULL TEXT (PARSER) ───
     if (message?.text && message.text.includes('\n')) {
@@ -367,6 +428,8 @@ serve(async (req) => {
         await showSummary(chatId, parsedData);
         return new Response("OK");
       }
+      // Gagal parsing full-text → jatuh ke alur interaktif, tapi tercatat.
+      logEvent("warn", "fulltext_parse_failed", { fn: "telegram-bot", chat_id: chatId });
     }
 
     // Ambil Status Sesi Terakhir
@@ -392,6 +455,11 @@ serve(async (req) => {
       } else if (d.startsWith("prod_")) {
         const pId = d.replace("prod_", "");
         const { data: p } = await supabase.from("master_products").select("name").eq("id", pId).single();
+        if (!p) {
+          logEvent("warn", "product_not_found", { fn: "telegram-bot", product_id: pId });
+          await sendMessage(chatId, "⚠️ Produk tidak ditemukan. Silakan pilih ulang.");
+          return new Response("OK");
+        }
         await updateSession(chatId, {
           current_step: "inputting_qty",
           session_data: { ...sessionData, last_product_id: pId }
@@ -403,6 +471,11 @@ serve(async (req) => {
       } else if (d.startsWith("cust_")) {
         const cId = d.replace("cust_", "");
         const { data: c } = await supabase.from("customers").select("id, name, type, tier").eq("id", cId).single();
+        if (!c) {
+          logEvent("warn", "customer_not_found", { fn: "telegram-bot", customer_id: cId });
+          await sendMessage(chatId, "⚠️ Pelanggan tidak ditemukan. Silakan cari ulang.");
+          return new Response("OK");
+        }
         const { data: profile } = await supabase.from("profiles").select("mitra_level").eq("user_id", conn.tenant_id).single();
         const { data: customLevels } = await supabase.from("user_mitra_levels").select("level_code, buy_price_per_bottle").eq("user_id", conn.tenant_id);
 
@@ -434,8 +507,13 @@ serve(async (req) => {
           await sendMessage(chatId, "⚠️ Mohon masukkan angka jumlah yang benar.");
         } else {
           const { data: p } = await supabase.from("master_products").select("name").eq("id", sessionData.last_product_id).single();
+          if (!p || !sessionData.last_product_id) {
+            logEvent("warn", "session_product_missing", { fn: "telegram-bot", chat_id: chatId });
+            await sendMessage(chatId, "⚠️ Sesi tidak valid. Silakan pilih produk ulang.");
+            return new Response("OK");
+          }
           const items = [...sessionData.items, {
-            product_id: sessionData.last_product_id!,
+            product_id: sessionData.last_product_id,
             product_name: p.name.replace(" Satuan", ""),
             quantity: q,
             price: 250000,
@@ -466,10 +544,20 @@ serve(async (req) => {
 
     return new Response("OK");
   } catch (err) {
-    console.error(err);
+    // Error tidak lagi ditelan diam-diam: log terstruktur untuk monitoring.
+    // Tetap balas 200 karena update_id sudah diklaim — retry Telegram akan
+    // di-skip idempotensi, jadi 500 hanya memicu redelivery sia-sia.
+    logEvent("error", "update_processing_failed", {
+      fn: "telegram-bot",
+      error: err instanceof Error ? err.stack || err.message : String(err),
+    });
     return new Response("OK");
   }
-});
+}
+
+if (import.meta.main) {
+  serve(handleTelegramWebhook);
+}
 
 /**
  * TAMPILKAN DAFTAR PRODUK (GRID 3 KOLOM)
@@ -541,6 +629,12 @@ async function showSummary(chatId: string, sessionData: SessionData) {
  */
 async function submitOrder(chatId: string, sessionData: SessionData, tenantId: string) {
   const { data: store } = await supabase.from("store_settings").select("slug").eq("user_id", tenantId).single();
+  if (!store?.slug) {
+    logEvent("error", "store_settings_missing", { fn: "telegram-bot", tenant_id: tenantId });
+    await sendMessage(chatId, `❌ Gagal menyimpan order. Pengaturan toko tidak ditemukan.`);
+    await updateSession(chatId, { current_step: "idle", session_data: { items: [] } });
+    return;
+  }
 
   // Format Tanggal: "15 April 2026" -> "2026-04-15"
   let formattedDate = undefined;
@@ -580,7 +674,11 @@ async function submitOrder(chatId: string, sessionData: SessionData, tenantId: s
   const { data: res, error } = await (supabase as any).rpc("submit_public_order", { payload });
 
   if (error || !res?.success) {
-    console.error("RPC Error:", error || res?.error);
+    logEvent("error", "submit_order_failed", {
+      fn: "telegram-bot",
+      chat_id: chatId,
+      error: error?.message || res?.error || "unknown_rpc_error",
+    });
     await sendMessage(chatId, `❌ Gagal menyimpan order. Terjadi kesalahan teknis.`);
   } else {
     const orderId = res.order_id;
@@ -596,7 +694,7 @@ async function submitOrder(chatId: string, sessionData: SessionData, tenantId: s
           amount: e.amount
         });
         if (!expErr) totalExpenses += e.amount;
-        else console.error("Expense Error:", expErr);
+        else logEvent("error", "expense_insert_failed", { fn: "telegram-bot", order_id: orderId, error: expErr.message });
       }
 
       // Update Margin di tabel Orders (dikurangi pengeluaran tambahan)

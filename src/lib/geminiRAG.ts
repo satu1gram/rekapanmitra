@@ -337,12 +337,20 @@ export async function generateAIAdvice(selectedComplaints: string[], complaintTe
         catch { localStorage.removeItem(cacheKey); }
     }
 
-    // 2. Call via Supabase Edge Function (CORS-safe proxy)
+    // 2. Auth check: edge function kini hanya melayani sesi user in-app (K2/IO-13).
+    // Pengunjung tanpa login langsung dapat rekomendasi statis — tanpa membakar kuota AI.
+    const { data: { session } } = await supabase.auth.getSession();
+    const accessToken = session?.access_token;
+    if (!accessToken) {
+        console.info('[AI] ℹ️ Belum login — pakai rekomendasi statis');
+        return getDynamicFallback(userInput);
+    }
+
+    // 3. Call via Supabase Edge Function (CORS-safe proxy)
     try {
         console.info('[AI] 🔄 Calling ai-konsultasi edge function...');
 
-        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-        const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://kqoitztjohxjnjoxctoz.supabase.co';
 
         const response = await fetch(
             `${supabaseUrl}/functions/v1/ai-konsultasi`,
@@ -350,8 +358,7 @@ export async function generateAIAdvice(selectedComplaints: string[], complaintTe
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${supabaseKey}`,
-                    'apikey': supabaseKey,
+                    'Authorization': `Bearer ${accessToken}`,
                 },
                 body: JSON.stringify({ userInput })
             }

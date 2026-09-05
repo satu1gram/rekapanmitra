@@ -1,10 +1,11 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { authenticateUser, jsonResponse, logEvent, resolveCorsHeaders } from "../_shared/security.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+// KEAMANAN (K2 / IO-13):
+// - verify_jwt = true (supabase/config.toml): gateway menolak request tanpa JWT valid → 401
+// - Hanya sesi user in-app (role=authenticated) yang dilayani; anon key ditolak
+//   (client publik /ai-advisor tanpa login memakai fallback statis di sisi frontend)
+// - CORS dibatasi ke origin app via env ALLOWED_ORIGINS
 
 const SYSTEM_PROMPT = `Kamu adalah konsultan kesehatan senior yang hangat dan empatik dari BP Group.
 
@@ -50,18 +51,25 @@ PENTING: Jawab HANYA dalam format JSON valid berikut, tanpa markdown atau teks t
 }`;
 
 serve(async (req) => {
+  const corsHeaders = resolveCorsHeaders(req);
+
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
+
+  // ─── AUTH: hanya user in-app dengan sesi Supabase sah ───
+  const auth = authenticateUser(req);
+  if (!auth.ok) {
+    logEvent("warn", "auth_rejected", { fn: "ai-konsultasi", reason: auth.reason });
+    return jsonResponse({ error: "Unauthorized: sesi login diperlukan" }, 401, corsHeaders);
+  }
+  logEvent("info", "request_accepted", { fn: "ai-konsultasi", user_id: auth.userId });
 
   try {
     const { userInput } = await req.json();
 
     if (!userInput?.trim()) {
-      return new Response(
-        JSON.stringify({ error: "Input kosong" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return jsonResponse({ error: "Input kosong" }, 400, corsHeaders);
     }
 
     const GROQ_API_KEY = Deno.env.get("GROQ_API_KEY");
@@ -89,13 +97,10 @@ serve(async (req) => {
 
     if (!response.ok) {
       const errText = await response.text();
-      console.error("Groq API error:", response.status, errText);
+      logEvent("error", "groq_api_error", { fn: "ai-konsultasi", status: response.status, body: errText.slice(0, 500) });
 
       if (response.status === 429) {
-        return new Response(
-          JSON.stringify({ error: "Terlalu banyak permintaan, coba lagi nanti." }),
-          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        return jsonResponse({ error: "Terlalu banyak permintaan, coba lagi nanti." }, 429, corsHeaders);
       }
       throw new Error(`Groq API error ${response.status}`);
     }
@@ -120,10 +125,15 @@ serve(async (req) => {
     });
 
   } catch (e) {
-    console.error("ai-konsultasi error:", e);
-    return new Response(
-      JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    logEvent("error", "ai_konsultasi_failed", {
+      fn: "ai-konsultasi",
+      user_id: auth.userId,
+      error: e instanceof Error ? e.message : String(e),
+    });
+    return jsonResponse(
+      { error: e instanceof Error ? e.message : "Unknown error" },
+      500,
+      corsHeaders,
     );
   }
 });
