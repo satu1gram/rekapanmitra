@@ -23,6 +23,7 @@ const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage").then(m 
 
 // Admin Lazy Loads
 const AdminDashboardPage = lazy(() => import("./pages/admin/AdminDashboardPage"));
+const AdminProductsPage = lazy(() => import("./pages/admin/AdminProductsPage"));
 const AdminMitraPage = lazy(() => import("./pages/admin/AdminMitraPage"));
 const AdminLayout = lazy(() => import("./components/admin/AdminLayout").then(m => ({ default: m.AdminLayout })));
 
@@ -121,6 +122,9 @@ const App = () => (
               <Route index element={<Navigate to="dashboard" replace />} />
               <Route path="dashboard" element={
                 <Suspense fallback={<PageLoader variant="dashboard" />}><AdminDashboardPage /></Suspense>
+              } />
+              <Route path="products" element={
+                <Suspense fallback={<PageLoader variant="list" />}><AdminProductsPage /></Suspense>
               } />
               <Route path="mitra" element={
                 <Suspense fallback={<PageLoader variant="list" />}><AdminMitraPage /></Suspense>

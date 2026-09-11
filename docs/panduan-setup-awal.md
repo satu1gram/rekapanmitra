@@ -27,36 +27,15 @@
 
 ---
 
-## Tahap 2 — Tambahkan Produk & Atur Harga
+## Tahap 2 — Pastikan Produk & Harga Tersedia
 
 **Waktu:** ~5 menit | Ini tahap terpenting!
 
-1. Buka menu **Produk**
-2. Ketuk tombol **"+ Tambah Produk"**
-3. Isi detail produk:
+1. Buka menu **Produk** dan pastikan katalog produk tampil.
+2. Jika produk atau harga belum sesuai, hubungi administrator untuk memperbarui katalog pusat melalui portal admin.
+3. Harga produk yang tampil di toko publik berasal dari katalog pusat.
 
-| Field | Keterangan | Contoh |
-|---|---|---|
-| **Nama Produk** | Nama yang akan tampil ke pelanggan | "Paket Minuman A" |
-| **Deskripsi** | Keterangan singkat produk | "Isi 12 botol, rasa original" |
-| **Stok Awal** | Jumlah stok saat ini | 100 |
-
-4. Atur **Harga Bertingkat (Tier Pricing)**:
-
-Sistem menggunakan harga otomatis berdasarkan jumlah pembelian. Contoh pengisian:
-
-| Tier | Min. Qty | Harga/pcs |
-|---|---|---|
-| Tier 1 (eceran) | 1 pcs | Rp 15.000 |
-| Tier 2 (grosir kecil) | 10 pcs | Rp 13.000 |
-| Tier 3 (grosir besar) | 50 pcs | Rp 11.000 |
-
-> 💡 Tambahkan minimal 1 tier. Jika tidak ada harga grosir, cukup isi 1 tier saja.
-
-5. Ketuk **Simpan Produk**
-6. **Ulangi** untuk produk lainnya
-
-> ✅ Produk siap — stok dan harga otomatis terhitung saat ada pesanan masuk.
+> ✅ Produk siap — stok dan harga akan digunakan saat ada pesanan masuk. Pengguna aplikasi mitra belum dapat mengubah katalog pusat secara langsung.
 
 ---
 
@@ -131,8 +110,7 @@ Pastikan semua sudah berjalan dengan membuat 1 pesanan percobaan:
 Tandai setiap item yang sudah selesai:
 
 - [ ] Profil akun dilengkapi (nama & foto)
-- [ ] Minimal 1 produk sudah ditambahkan dengan harga tier
-- [ ] Stok awal produk sudah diisi
+- [ ] Katalog produk sudah tampil dan harganya sudah dikonfirmasi ke admin
 - [ ] Nama toko & slug URL sudah diatur
 - [ ] Nomor rekening/e-wallet sudah disimpan
 - [ ] Link toko sudah dicoba di browser (cek tampilan)
@@ -147,14 +125,13 @@ Tandai setiap item yang sudah selesai:
 |---|---|
 | Slug URL mengandung spasi atau huruf besar | Gunakan huruf kecil dan tanda hubung: `nama-toko` |
 | Lupa isi nomor rekening | Pelanggan tidak bisa tahu kemana transfer — isi dulu sebelum bagikan link! |
-| Harga tier tidak diurutkan | Isi dari kuantitas terkecil ke terbesar |
-| Stok awal tidak diisi | Stok akan tampil 0 — isi stok setelah tambah produk |
+| Harga produk belum sesuai | Hubungi admin untuk memperbarui katalog pusat |
 
 ---
 
-## 🔮 Fitur Onboarding yang Akan Segera Hadir
+## 🔮 Pengembangan Lanjutan
 
-Kami sedang mengembangkan **wizard setup otomatis** yang akan memandu Anda langkah demi langkah saat pertama kali login, mencakup:
+Beberapa pengembangan lanjutan yang masih direncanakan:
 
 - [ ] **Welcome screen** — sambutan dan overview fitur
 - [ ] **Setup wizard step-by-step** — form terintegrasi untuk isi profil, produk, dan toko publik dalam satu alur

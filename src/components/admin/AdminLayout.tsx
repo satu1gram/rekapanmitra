@@ -1,7 +1,7 @@
 import { NavLink, Outlet, Navigate } from 'react-router-dom';
 import { useProfileContext } from '@/contexts/ProfileContext';
 import { LoadingScreen } from '@/components/ui/LoadingScreen';
-import { ShieldCheck, LayoutDashboard, Users, LogOut, Menu, X, ArrowLeft } from 'lucide-react';
+import { ShieldCheck, LayoutDashboard, Users, PackageSearch, LogOut, Menu, X, ArrowLeft } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 
@@ -41,6 +41,7 @@ export const AdminLayout = () => {
 
   const navItems = [
     { name: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard },
+    { name: 'Produk & Harga', path: '/admin/products', icon: PackageSearch },
     { name: 'Mitra List', path: '/admin/mitra', icon: Users },
   ];
 
