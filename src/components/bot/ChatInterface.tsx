@@ -4,7 +4,7 @@
 
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import {
-  Send, Check, Pencil, X, CheckCircle2,
+  Send, Check, Copy, CheckCheck, Pencil, X, CheckCircle2,
   Brain, ShieldAlert, Package2, User2, Bot
 } from 'lucide-react';
 import {
@@ -16,6 +16,7 @@ import { recalcPricing, getActiveTier, isBeautyProduct, PRICE_TABLE, getTierByQt
 import { useCustomers } from '@/hooks/useCustomersDb';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
+import { toast } from 'sonner';
 
 // ─── Types ────────────────────────────────────────────────────────
 export type ChatMode = 'order' | 'restok' | 'demo';
@@ -55,6 +56,37 @@ function uid() {
   return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
+function MessageCopyButton({ text }: { text?: string }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!text?.trim()) return;
+
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      toast.success('Pesan disalin');
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      toast.error('Gagal menyalin pesan');
+    }
+  };
+
+  return (
+    <button
+      type="button"
+      onClick={handleCopy}
+      disabled={!text?.trim()}
+      className="inline-flex items-center justify-center rounded p-0.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 disabled:pointer-events-none disabled:opacity-40"
+      aria-label="Salin pesan"
+      title="Salin pesan"
+    >
+      {copied ? <CheckCheck className="h-3 w-3 text-emerald-500" /> : <Copy className="h-3 w-3" />}
+    </button>
+  );
+}
+
 // ─── Bubble: User ─────────────────────────────────────────────────
 function UserBubble({ msg }: { msg: ChatMessage }) {
   return (
@@ -62,6 +94,7 @@ function UserBubble({ msg }: { msg: ChatMessage }) {
       <div className="bg-[#E1FFC7] text-slate-800 px-3.5 py-2.5 rounded-2xl rounded-tr-sm max-w-[85%] shadow-sm border border-[#D0F0B6]">
         <p className="text-xs leading-relaxed whitespace-pre-line">{msg.text}</p>
         <div className="flex items-center justify-end gap-1 mt-1 text-[9px] text-emerald-700/60 font-medium">
+          <MessageCopyButton text={msg.text} />
           <span>{formatTime(msg.timestamp)}</span>
           <div className="flex -space-x-1">
             <Check className="h-2.5 w-2.5 text-blue-500" />
@@ -89,9 +122,10 @@ function BotTextBubble({ msg }: { msg: ChatMessage }) {
           : 'bg-white border-slate-100 text-slate-800'}
       `}>
         {renderText(msg.text || '')}
-        <span className="block text-right text-[9px] text-slate-400 mt-1 font-medium">
+        <div className="flex items-center justify-end gap-1 mt-1 text-[9px] text-slate-400 font-medium">
+          <MessageCopyButton text={msg.text} />
           {formatTime(msg.timestamp)}
-        </span>
+        </div>
       </div>
     </div>
   );
@@ -107,7 +141,10 @@ function ShieldBubble({ msg }: { msg: ChatMessage }) {
           <span className="text-[10px] font-black uppercase text-red-500 tracking-widest">Diluar Konteks</span>
         </div>
         <p className="text-xs text-red-700 leading-relaxed">{msg.text}</p>
-        <span className="block text-right text-[9px] text-red-400/70 font-medium">{formatTime(msg.timestamp)}</span>
+        <div className="flex items-center justify-end gap-1 text-[9px] text-red-400/70 font-medium">
+          <MessageCopyButton text={msg.text} />
+          {formatTime(msg.timestamp)}
+        </div>
       </div>
     </div>
   );
@@ -236,12 +273,12 @@ function OrderResultCard({ msg, onCorrect, onConfirm, confirming, mitraLevel, on
     baseTier
   );
 
-  let totalHargaJual = pricedItems.reduce((s, i) => s + i.subtotal, 0);
+  const totalHargaJual = pricedItems.reduce((s, i) => s + i.subtotal, 0);
 
   // Hitung Modal dari level mitra
   const myLevelStr = mitraLevel || 'reseller';
   const myTierData = PRICE_TABLE[myLevelStr] || PRICE_TABLE['reseller'];
-  let totalModal = result.items.reduce((s, item) => {
+  const totalModal = result.items.reduce((s, item) => {
     const isBeauty = isBeautyProduct(item.nama);
     const standardBuyPrice = isBeauty ? myTierData.beauty : myTierData.bp;
     const effectiveBuyPrice = mitraLevel === 'custom' && customBuyPrice != null ? customBuyPrice : standardBuyPrice;
@@ -280,6 +317,7 @@ function OrderResultCard({ msg, onCorrect, onConfirm, confirming, mitraLevel, on
         <div className="flex items-center gap-1.5 border-b border-slate-100 pb-2">
           <User2 className="w-3.5 h-3.5 text-emerald-600" />
           <span className="text-[10px] font-black uppercase text-emerald-600 tracking-widest">Order Pelanggan</span>
+          <span className="ml-auto"><MessageCopyButton text={result.raw} /></span>
         </div>
 
         {!showCorrection && (
@@ -370,7 +408,9 @@ function OrderResultCard({ msg, onCorrect, onConfirm, confirming, mitraLevel, on
           <CorrectionForm result={result} onSave={handleSaveCorrection} onCancel={() => setShowCorrection(false)} />
         )}
 
-        <span className="block text-right text-[9px] text-slate-400 font-medium">{formatTime(msg.timestamp)}</span>
+        <div className="flex items-center justify-end gap-1 text-[9px] text-slate-400 font-medium">
+          {formatTime(msg.timestamp)}
+        </div>
       </div>
     </div>
   );
@@ -424,6 +464,7 @@ function RestokResultCard({ msg, onCorrect, onConfirm, confirming, mitraLevel, o
         <div className="flex items-center gap-1.5 border-b border-blue-100 pb-2">
           <Package2 className="w-3.5 h-3.5 text-blue-600" />
           <span className="text-[10px] font-black uppercase text-blue-600 tracking-widest">Restok ke Pusat</span>
+          <span className="ml-auto"><MessageCopyButton text={result.raw} /></span>
         </div>
 
         {!showCorrection && (
@@ -479,7 +520,9 @@ function RestokResultCard({ msg, onCorrect, onConfirm, confirming, mitraLevel, o
           <CorrectionForm result={result} onSave={handleSaveCorrection} onCancel={() => setShowCorrection(false)} />
         )}
 
-        <span className="block text-right text-[9px] text-slate-400 font-medium">{formatTime(msg.timestamp)}</span>
+        <div className="flex items-center justify-end gap-1 text-[9px] text-slate-400 font-medium">
+          {formatTime(msg.timestamp)}
+        </div>
       </div>
     </div>
   );
@@ -533,7 +576,7 @@ export function ChatInterface({ mode, mitraLevel, customBuyPrice, onConfirmOrder
     return newMsg;
   }, []);
 
-  const handleConfirmOrder = useCallback(async (result: ParsedOrder, pricingInfo?: { items: any[], tier: TierType }) => {
+  const handleConfirmOrder = useCallback(async (result: ParsedOrder, pricingInfo?: { items: { productName: string; quantity: number; pricePerBottle: number; subtotal: number }[], tier: TierType }) => {
     if (!onConfirmOrder) return false;
     setConfirming(result.raw);
     try {
@@ -557,7 +600,7 @@ export function ChatInterface({ mode, mitraLevel, customBuyPrice, onConfirmOrder
     } finally {
       setConfirming(null);
     }
-  }, [onConfirmRestok, mitraLevel, scrollToBottom]);
+  }, [onConfirmRestok, mitraLevel, customBuyPrice, scrollToBottom]);
 
   const handleCorrect = useCallback((raw: string, corrected: ParsedOrder | ParsedRestok) => {
     saveLearningPattern({ input: raw, corrected, savedAt: Date.now() } as LearningPattern);
@@ -566,14 +609,15 @@ export function ChatInterface({ mode, mitraLevel, customBuyPrice, onConfirmOrder
   }, [addMsg, scrollToBottom]);
 
   const sendMessage = useCallback(async (text: string) => {
-    if (!text.trim() || isTyping) return;
+    const trimmedText = text.trim();
+    if (!trimmedText || isTyping) return;
 
-    addMsg({ role: 'user', type: 'text', text });
+    addMsg({ role: 'user', type: 'text', text: trimmedText });
     setInputText('');
     scrollToBottom();
 
     // Shortcut konfirmasi & batal
-    const lower = text.toLowerCase().trim();
+    const lower = trimmedText.toLowerCase();
     if (lower === 'ya' || lower === 'y') {
       addMsg({ role: 'bot', type: 'text', text: '✅ Baik! Silakan klik tombol konfirmasi pada kartu di atas.' });
       scrollToBottom(); return;
@@ -588,7 +632,7 @@ export function ChatInterface({ mode, mitraLevel, customBuyPrice, onConfirmOrder
     await new Promise(r => setTimeout(r, 700 + Math.random() * 500));
 
     try {
-      const result = await parseWithAI(text);
+      const result = await parseWithAI(trimmedText);
       setIsTyping(false);
 
       if (result.intent === 'out_of_scope') {
@@ -612,7 +656,7 @@ export function ChatInterface({ mode, mitraLevel, customBuyPrice, onConfirmOrder
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) { 
       e.preventDefault(); 
-      sendMessage(inputText); 
+      void sendMessage(inputText);
     }
   }, [sendMessage, inputText]);
 
@@ -758,7 +802,7 @@ export function ChatInterface({ mode, mitraLevel, customBuyPrice, onConfirmOrder
           />
 
           <button
-            onClick={() => sendMessage(inputText)}
+            onClick={() => void sendMessage(inputText)}
             disabled={!inputText.trim() || isTyping}
             className="absolute bottom-3 right-3 flex h-8 w-8 items-center justify-center rounded-lg bg-slate-900 text-white hover:bg-slate-800 transition-colors disabled:pointer-events-none disabled:opacity-30"
             aria-label="Send message"
