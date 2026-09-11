@@ -4,6 +4,16 @@ Semua perubahan penting pada proyek **Rekapan Mitra** akan dicatat di sini.
 
 ---
 
+## [2.7.1] - 2026-09-11
+### 🔧 Fixed
+- Enter pada input AI kini membuat baris baru; pesan dikirim melalui tombol Send.
+- Menambahkan opsi menyalin pesan chat AI.
+
+### 📋 Release Type
+- **Patch**: perbaikan perilaku input tanpa mengubah alur atau API.
+
+---
+
 ## [2.7.0] - 2026-09-04
 ### ✨ Added
 - Tombol cek pembaruan PWA yang selalu tersedia dan menampilkan versi aktif.

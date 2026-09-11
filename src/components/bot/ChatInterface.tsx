@@ -653,13 +653,6 @@ export function ChatInterface({ mode, mitraLevel, customBuyPrice, onConfirmOrder
   const modeLabel = mode === 'restok' ? '📦 Mode Restok' : '🛒 Mode Order';
   const modeColor = mode === 'restok' ? 'text-blue-500' : 'text-emerald-600';
 
-  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) { 
-      e.preventDefault(); 
-      void sendMessage(inputText);
-    }
-  }, [sendMessage, inputText]);
-
   return (
     <div className="flex flex-col h-full bg-background rounded-b-3xl">
       <style>{`
@@ -796,7 +789,6 @@ export function ChatInterface({ mode, mitraLevel, customBuyPrice, onConfirmOrder
             placeholder={mode === 'restok' ? 'Cth: restok 10 bp green...' : 'Cth: 2 bp green a.n Budi 0812...'}
             value={inputText}
             onChange={e => setInputText(e.target.value)}
-            onKeyDown={handleKeyDown}
             disabled={isTyping}
             className="peer bg-transparent min-h-[80px] resize-none border-none py-3 px-4 shadow-none focus-visible:ring-0 text-sm disabled:opacity-50"
           />
