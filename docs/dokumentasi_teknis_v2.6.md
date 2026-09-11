@@ -31,7 +31,7 @@ Aplikasi ini dapat dipasang di perangkat seperti aplikasi biasa (PWA), bekerja s
 - **Deteksi Otomatis** — Mengenali nama pelanggan, produk, kuantitas, tanggal, dan biaya tambahan (ongkir).
 - **Konfirmasi Interaktif** — Pengguna mengonfirmasi data yang dideteksi sebelum disimpan ke database.
 - **Sinkronisasi Real-time** — Order yang dibuat di bot langsung muncul di Dashboard web.
-- **Konfigurasi AI Model** — Mendukung penggunaan berbagai model OpenAI (atau yang kompatibel) secara dinamis menggunakan *environment variable* `OPENAI_MODEL` (default: `gpt-4o-mini`).
+- **Konfigurasi AI Model** — Order Bot menggunakan model `qwen3.7-flash-2026-07-15` secara tetap agar sesuai dengan akses token proxy yang digunakan.
 
 ---
 

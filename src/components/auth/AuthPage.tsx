@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
+import { APP_VERSION } from '@/lib/appVersion';
 
 // Design System
 const DS = {
@@ -467,7 +468,7 @@ export function AuthPage() {
 
         {/* Footer */}
         <div className="mt-5 text-center space-y-1">
-          <p className="text-xs" style={{ color: DS.gray }}>Versi 2.6.0 • 2026</p>
+          <p className="text-xs" style={{ color: DS.gray }}>Versi {APP_VERSION} • 2026</p>
         </div>
       </main>
     </div>
