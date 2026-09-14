@@ -1,6 +1,6 @@
 import { useRegisterSW } from "virtual:pwa-register/react";
 import { toast } from "sonner";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { RefreshCw } from "lucide-react";
 import { APP_VERSION } from "@/lib/appVersion";
@@ -16,28 +16,6 @@ export function PWAUpdatePrompt() {
       }
     },
   });
-  const [checking, setChecking] = useState(false);
-
-  const checkForUpdate = async () => {
-    setChecking(true);
-    try {
-      const registration = await navigator.serviceWorker.getRegistration();
-      if (!registration) {
-        toast.info(`Versi ${APP_VERSION} sedang digunakan.`);
-        return;
-      }
-
-      await registration.update();
-      if (!registration.waiting) {
-        toast.success(`Aplikasi sudah versi terbaru (${APP_VERSION}).`);
-      }
-    } catch {
-      toast.error("Tidak dapat memeriksa pembaruan. Coba lagi nanti.");
-    } finally {
-      setChecking(false);
-    }
-  };
-
   useEffect(() => {
     if (!needRefresh) return;
 
@@ -65,16 +43,21 @@ export function PWAUpdatePrompt() {
     });
   }, [needRefresh, updateServiceWorker]);
 
+  // Floating button hanya tampil saat update tersedia, dan diletakkan di atas
+  // navbar bawah agar tidak menutupi navigasi.
+  if (!needRefresh) return null;
+
   return (
     <button
       type="button"
-      onClick={checkForUpdate}
-      disabled={checking}
-      title="Periksa pembaruan aplikasi"
-      className="fixed bottom-4 right-4 z-[140] flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-2 text-[10px] font-black text-slate-600 shadow-lg transition-all hover:border-emerald-200 hover:text-emerald-700 active:scale-95 disabled:cursor-wait disabled:opacity-60"
+      onClick={() => {
+        updateServiceWorker(true);
+      }}
+      title="Muat versi terbaru aplikasi"
+      className="fixed bottom-20 right-4 z-[140] flex items-center gap-1.5 rounded-full bg-emerald-600 px-3 py-2 text-[10px] font-black text-white shadow-lg transition-all hover:bg-emerald-700 active:scale-95"
     >
-      <RefreshCw className={cn("h-3.5 w-3.5", checking && "animate-spin")} />
-      {checking ? "Memeriksa..." : `Update ${APP_VERSION}`}
+      <RefreshCw className="h-3.5 w-3.5" />
+      Update {APP_VERSION}
     </button>
   );
 }

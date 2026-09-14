@@ -4,6 +4,16 @@ Semua perubahan penting pada proyek **Rekapan Mitra** akan dicatat di sini.
 
 ---
 
+## [2.8.0] - 2026-09-14
+### 🚀 Added
+- Resolver harga katalog master_products untuk semua kanal: order manual, AI order, Telegram bot, dan toko publik.
+- Validasi harga server-side pada RPC submit_public_order; total dari browser tidak lagi dipercaya.
+- Migration audit log perubahan produk dan katalog harga September 2026.
+
+### 🔧 Fixed
+- Tombol PWA update tidak lagi tampil permanen; hanya muncul saat versi baru tersedia dan diposisikan di atas navbar bawah.
+- Perbaikan sintaks ExpensesPage/IncomePage dan props customBuyPrice pada ChatInterface.
+
 ## [2.7.1] - 2026-09-11
 ### 🔧 Fixed
 - Enter pada input AI kini membuat baris baru; pesan dikirim melalui tombol Send.
