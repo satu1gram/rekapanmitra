@@ -37,6 +37,8 @@ CREATE TABLE IF NOT EXISTS public.master_product_audit_logs (
 
 ALTER TABLE public.master_product_audit_logs ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Admins can view master product audit logs" ON public.master_product_audit_logs;
+
 CREATE POLICY "Admins can view master product audit logs"
 ON public.master_product_audit_logs FOR SELECT
 USING (
