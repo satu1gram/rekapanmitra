@@ -1,7 +1,7 @@
 # 📋 Dokumentasi Teknis — Rekapan Mitra BP
 
 > **Sistem Manajemen Bisnis Digital untuk Mitra & Konsumen**  
-> Versi 2.6 · Terakhir diperbarui: 21 Juni 2026
+> Versi 2.7.1 · Terakhir diperbarui: 11 September 2026
 
 ---
 
@@ -31,7 +31,7 @@ Aplikasi ini dapat dipasang di perangkat seperti aplikasi biasa (PWA), bekerja s
 - **Deteksi Otomatis** — Mengenali nama pelanggan, produk, kuantitas, tanggal, dan biaya tambahan (ongkir).
 - **Konfirmasi Interaktif** — Pengguna mengonfirmasi data yang dideteksi sebelum disimpan ke database.
 - **Sinkronisasi Real-time** — Order yang dibuat di bot langsung muncul di Dashboard web.
-- **Konfigurasi AI Model** — Order Bot menggunakan model `qwen3.7-flash-2026-07-15` secara tetap agar sesuai dengan akses token proxy yang digunakan.
+- **Konfigurasi AI Model** — Order Bot menggunakan model `qwen3.7-flash-2026-07-15`; nama secret server-side yang digunakan adalah `OPENAI_API_KEY`. Nilai key tidak boleh disimpan di Git, frontend, log, screenshot, atau dokumentasi.
 
 ---
 
@@ -71,6 +71,8 @@ Aplikasi ini dapat dipasang di perangkat seperti aplikasi biasa (PWA), bekerja s
 - **Profil Toko** — Atur nama toko, deskripsi, dan logo.
 - **Slug URL Toko** — Buat alamat toko publik yang unik (mitrabp.biz.id/toko/slug).
 - **Informasi Pembayaran** — Simpan nomor rekening/e-wallet untuk ditampilkan ke pelanggan.
+
+> **Catatan katalog & harga:** Saat ini belum ada menu admin harga di aplikasi mitra ini. Katalog pusat dibaca dari tabel `master_products` dan dikelola melalui portal admin terpisah. Kalkulasi harga order internal masih menggunakan fallback tier di `src/lib/pricing.ts`; penyatuan penuh dengan harga `master_products` adalah pekerjaan lanjutan.
 
 ---
 
@@ -114,7 +116,7 @@ Aplikasi ini dapat dipasang di perangkat seperti aplikasi biasa (PWA), bekerja s
 | Tabel | Keterangan |
 |---|---|
 | `profiles` | Profil pengguna & level mitra |
-| `products` | Data produk & tier harga |
+| `master_products` | Katalog pusat, paket produk, dan harga toko publik |
 | `customers` | Data pelanggan & wilayah |
 | `orders` | Transaksi pesanan utama |
 | `order_items` | Detail produk per pesanan |

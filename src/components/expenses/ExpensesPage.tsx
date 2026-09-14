@@ -131,6 +131,7 @@ export function ExpensesPage() {
     return <LoadingScreen variant="list" />;
   }
 
+  return (
     <div className="px-4 pt-4 pb-4 space-y-3">
       {/* Header - Compact Row */}
       <div className="flex items-center justify-between mb-1">

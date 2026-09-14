@@ -166,7 +166,9 @@ Buka menu **Akun** untuk:
 - Mengubah nama dan foto profil
 - Mengubah password
 - Mengatur informasi toko publik
-- Melihat dan mengubah produk beserta harga tier-nya
+- Melihat katalog produk yang tersedia
+
+> **Catatan:** Pengguna belum dapat mengubah produk atau harga langsung dari aplikasi mitra. Perubahan katalog dan harga pusat dilakukan oleh administrator melalui portal admin terpisah.
 
 ---
 

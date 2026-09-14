@@ -52,7 +52,8 @@ function getPricingForTier(tier: string, isBeauty: boolean, customLevels: any[] 
     return custom.buy_price_per_bottle;
   }
 
-  // Map Harga Standar
+  // Map Harga Standar — hanya fallback harga MODAL level mitra,
+  // harga jual selalu dihitung dari katalog master_products.
   const pricingMap: Record<string, { bp: number; beauty: number }> = {
     'satuan': { bp: 250000, beauty: 195000 },
     'reseller': { bp: 217000, beauty: 195000 },
@@ -78,64 +79,122 @@ function getActiveTier(totalQty: number, selectedTier?: string) {
   return activeTier;
 }
 
-function calculatePrice(productName: string, totalQty: number, selectedTier: string, hasBeauty: boolean) {
-  const isBeauty = productName.toUpperCase().includes('BELGIE') || productName.toUpperCase().includes('STEFFI');
-  return Math.round(getPricingForTier(getActiveTier(totalQty, selectedTier), isBeauty));
+/**
+ * Aturan tier disamakan dengan resolver frontend (src/lib/catalogPricing.ts):
+ * tier → package_type, harga unit = harga paket katalog / quantity_per_package.
+ */
+const TIER_PACKAGE: Record<string, string> = {
+  'satuan': 'satuan',
+  'reseller': '3_botol',
+  'agen': '5_botol',
+  'agen_plus': '10_botol',
+  'sap': '40_botol',
+  'se': '200_botol',
+};
+const TIER_ORDER = ['satuan', 'reseller', 'agen', 'agen_plus', 'sap', 'se'];
+
+function normalizeName(v: string): string {
+  return v
+    .toUpperCase()
+    .replace(/^PAKET\s+/, '')
+    .replace(/\s+\d+\s*BOTOL.*$/, '')
+    .replace(/[^A-Z0-9]/g, '');
 }
 
-function applyTierPricing(items: SessionData['items'], selectedTier: string, customLevels: any[], myLevel: string) {
+interface CatalogRow {
+  id: string;
+  name: string;
+  category: string;
+  package_type: string;
+  quantity_per_package: number;
+  price: number;
+  is_active: boolean;
+}
+
+async function fetchActiveCatalog(): Promise<CatalogRow[]> {
+  const { data } = await supabase
+    .from("master_products")
+    .select("id, name, category, package_type, quantity_per_package, price, is_active")
+    .eq("is_active", true);
+  return data || [];
+}
+
+/** Harga unit katalog untuk satu item; null jika katalog tidak mencakup produk/tier. */
+function resolveCatalogUnitPrice(
+  item: SessionData['items'][0],
+  activeTier: string,
+  catalog: CatalogRow[],
+  tierCandidates: string[],
+): number | null {
+  const normName = normalizeName(item.product_name);
+  const base = catalog.find(p => p.id === item.product_id);
+  for (const tier of tierCandidates) {
+    const pkg = TIER_PACKAGE[tier];
+    const row = catalog.find(p => p.is_active && p.package_type === pkg && (
+      (base !== undefined && p.category === base.category) ||
+      normalizeName(p.category) === normName ||
+      normalizeName(p.name) === normName
+    ));
+    if (row && row.quantity_per_package > 0) {
+      return Math.round(row.price / row.quantity_per_package);
+    }
+  }
+  return null;
+}
+
+async function applyTierPricing(items: SessionData['items'], selectedTier: string, customLevels: any[], myLevel: string) {
   const totalQty = items.reduce((sum, i) => sum + i.quantity, 0);
   const activeTier = getActiveTier(totalQty, selectedTier);
-  
-  let bpQty = 0;
-  items.forEach(i => {
-    const isBeauty = i.product_name.toUpperCase().includes('BELGIE') || i.product_name.toUpperCase().includes('STEFFI');
-    if (!isBeauty) bpQty += i.quantity;
-  });
-
-  let bpBundleTotal = 0;
-  if (activeTier === 'reseller') {
-    const bundles = Math.floor(bpQty / 3);
-    const remainder = bpQty % 3;
-    bpBundleTotal = (bundles * 650000) + (remainder * 217000);
-  }
+  const catalog = await fetchActiveCatalog();
+  const tierCandidates = [
+    activeTier,
+    ...TIER_ORDER.slice(0, TIER_ORDER.indexOf(activeTier)).reverse(),
+  ];
 
   let totalModal = 0;
+  let fallbackUsed = false;
   const updatedItems = items.map(i => {
     const isBeauty = i.product_name.toUpperCase().includes('BELGIE') || i.product_name.toUpperCase().includes('STEFFI');
     const buyPrice = getPricingForTier(myLevel, isBeauty, customLevels || []);
     totalModal += (buyPrice * i.quantity);
 
-    let subtotal = 0;
-    if (!isBeauty && activeTier === 'reseller') {
-      if (bpQty > 0) {
-        subtotal = Math.round((i.quantity / bpQty) * bpBundleTotal);
-      }
-    } else {
-      subtotal = Math.round(getPricingForTier(activeTier, isBeauty)) * i.quantity;
+    const catalogPrice = resolveCatalogUnitPrice(i, activeTier, catalog, tierCandidates);
+    if (catalogPrice === null) {
+      // Mode migrasi: produk tidak menemukan baris katalog aktif → fallback legacy + logging.
+      fallbackUsed = true;
+      console.warn(`[telegram-bot] Fallback PRICE_TABLE untuk "${i.product_name}" tier ${activeTier}`);
+      const price = getPricingForTier(activeTier, isBeauty);
+      return { ...i, price, subtotal: price * i.quantity, buy_price: buyPrice };
     }
-
-    return {
-      ...i,
-      price: Math.round(subtotal / i.quantity),
-      subtotal,
-      buy_price: buyPrice
-    };
+    return { ...i, price: catalogPrice, subtotal: catalogPrice * i.quantity, buy_price: buyPrice };
   });
 
-  if (activeTier === 'reseller' && bpQty > 0) {
-    let assigned = 0;
-    let lastBpIndex = -1;
-    for (let i = 0; i < updatedItems.length; i++) {
-      const isB = updatedItems[i].product_name.toUpperCase().includes('BELGIE') || updatedItems[i].product_name.toUpperCase().includes('STEFFI');
-      if (!isB) {
-        assigned += updatedItems[i].subtotal!;
-        lastBpIndex = i;
+  // Fallback legacy bundle reseller (3 botol = 650rb) hanya bila katalog tidak lengkap.
+  if (fallbackUsed && activeTier === 'reseller') {
+    let bpQty = 0;
+    updatedItems.forEach(i => {
+      const isBeauty = i.product_name.toUpperCase().includes('BELGIE') || i.product_name.toUpperCase().includes('STEFFI');
+      if (!isBeauty) bpQty += i.quantity;
+    });
+
+    if (bpQty > 0) {
+      const bundles = Math.floor(bpQty / 3);
+      const remainder = bpQty % 3;
+      const bpBundleTotal = (bundles * 650000) + (remainder * 217000);
+
+      let assigned = 0;
+      let lastBpIndex = -1;
+      for (let i = 0; i < updatedItems.length; i++) {
+        const isB = updatedItems[i].product_name.toUpperCase().includes('BELGIE') || updatedItems[i].product_name.toUpperCase().includes('STEFFI');
+        if (!isB) {
+          assigned += updatedItems[i].subtotal!;
+          lastBpIndex = i;
+        }
       }
-    }
-    if (assigned !== bpBundleTotal && lastBpIndex !== -1) {
-      updatedItems[lastBpIndex].subtotal! += (bpBundleTotal - assigned);
-      updatedItems[lastBpIndex].price = Math.round(updatedItems[lastBpIndex].subtotal! / updatedItems[lastBpIndex].quantity);
+      if (assigned !== bpBundleTotal && lastBpIndex !== -1) {
+        updatedItems[lastBpIndex].subtotal! += (bpBundleTotal - assigned);
+        updatedItems[lastBpIndex].price = Math.round(updatedItems[lastBpIndex].subtotal! / updatedItems[lastBpIndex].quantity);
+      }
     }
   }
 
@@ -155,7 +214,7 @@ async function parseFullText(text: string, tenantId: string): Promise<SessionDat
   // 0. Ambil Level User & Produk
   const { data: profile } = await supabase.from("profiles").select("mitra_level").eq("user_id", tenantId).single();
   const { data: customLevels } = await supabase.from("user_mitra_levels").select("level_code, buy_price_per_bottle").eq("user_id", tenantId);
-  const { data: allProds } = await supabase.from("master_products").select("id, name, category").eq("package_type", "satuan");
+  const { data: allProds } = await supabase.from("master_products").select("id, name, category, price").eq("package_type", "satuan");
 
   const myLevel = profile?.mitra_level || 'satuan';
 
@@ -280,7 +339,7 @@ async function parseFullText(text: string, tenantId: string): Promise<SessionDat
             product_id: matched.id,
             product_name: matched.name.replace(' Satuan', ''),
             quantity: qty,
-            price: 250000,
+            price: matched.price, // Harga katalog satuan; dihitung ulang oleh resolver saat konfirmasi
             buy_price: getPricingForTier(myLevel, isBeauty, customLevels || [])
           });
         }
@@ -300,7 +359,7 @@ async function parseFullText(text: string, tenantId: string): Promise<SessionDat
     const hasBeauty = data.items.some(i => i.product_name.toUpperCase().includes('BELGIE') || i.product_name.toUpperCase().includes('STEFFI'));
 
     // Update Harga Satuan & Total Modal
-    const pricingRes = applyTierPricing(data.items, data.customer_info?.tier || 'satuan', customLevels || [], myLevel);
+    const pricingRes = await applyTierPricing(data.items, data.customer_info?.tier || 'satuan', customLevels || [], myLevel);
     data.items = pricingRes.items;
     data.buy_price = pricingRes.buy_price;
 
@@ -408,7 +467,7 @@ serve(async (req) => {
 
         const myLevel = profile?.mitra_level || 'satuan';
 
-        const pricingRes = applyTierPricing(sessionData.items, c.tier || 'satuan', customLevels || [], myLevel);
+        const pricingRes = await applyTierPricing(sessionData.items, c.tier || 'satuan', customLevels || [], myLevel);
         const final = { ...sessionData, items: pricingRes.items, buy_price: pricingRes.buy_price, customer_info: { id: c.id, name: c.name, type: c.type, tier: c.tier } };
         await updateSession(chatId, { session_data: final });
         await showSummary(chatId, final);
@@ -418,7 +477,7 @@ serve(async (req) => {
 
         const myLevel = profile?.mitra_level || 'satuan';
 
-        const pricingRes = applyTierPricing(sessionData.items, 'satuan', customLevels || [], myLevel);
+        const pricingRes = await applyTierPricing(sessionData.items, 'satuan', customLevels || [], myLevel);
         const final = { ...sessionData, items: pricingRes.items, buy_price: pricingRes.buy_price, customer_info: { name: sessionData.customer_info?.name || "Pelanggan Baru", type: "konsumen" } };
         await updateSession(chatId, { session_data: final });
         await showSummary(chatId, final);
@@ -433,12 +492,12 @@ serve(async (req) => {
         if (isNaN(q)) {
           await sendMessage(chatId, "⚠️ Mohon masukkan angka jumlah yang benar.");
         } else {
-          const { data: p } = await supabase.from("master_products").select("name").eq("id", sessionData.last_product_id).single();
+          const { data: p } = await supabase.from("master_products").select("name, price").eq("id", sessionData.last_product_id).single();
           const items = [...sessionData.items, {
             product_id: sessionData.last_product_id!,
             product_name: p.name.replace(" Satuan", ""),
             quantity: q,
-            price: 250000,
+            price: p.price, // Harga katalog satuan; dihitung ulang oleh resolver saat konfirmasi
             buy_price: 0 // Akan diupdate saat pilih pelanggan
           }];
           await updateSession(chatId, {
