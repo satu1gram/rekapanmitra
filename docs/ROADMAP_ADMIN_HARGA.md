@@ -1,6 +1,7 @@
 # Roadmap Admin Produk & Harga
 
-> Status: Rencana eksekusi
+> Status: Fase 2-6 selesai di sisi kode (resolver katalog, integrasi order manual/AI/Telegram/toko publik).
+> Migration `20260911000000`, `20260912000000`, dan `20260912010000` BELUM diterapkan ke Supabase remote (butuh akses token project).
 > Tanggal: 11 September 2026
 > Pemilik: Engineering / CTO
 
@@ -105,8 +106,8 @@ Test minimum:
 ### Fase 0: Audit dan kontrak data
 
 - [ ] Pastikan semua row `master_products` memiliki kategori, package type, quantity, dan price valid.
-- [ ] Inventarisasikan kolom snapshot harga pada `orders` dan `order_items`.
-- [ ] Putuskan format unik produk + package tier.
+- [x] Inventarisasikan kolom snapshot harga pada `orders` dan `order_items`.
+- [x] Putuskan format unik produk + package tier.
 - [x] Pastikan schema database memiliki migration owner tunggal.
 
 ### Fase 1: Admin Produk
@@ -122,45 +123,45 @@ Test minimum:
 
 ### Fase 2: Price Resolver Bersama
 
-- [ ] Buat resolver berdasarkan catalog `master_products`.
-- [ ] Resolver menentukan tier dari total quantity.
-- [ ] Resolver mengembalikan harga unit, subtotal, product id, dan source tier.
-- [ ] Pertahankan fallback hanya untuk mode migrasi/error, dengan logging.
-- [ ] Tambahkan unit test untuk tier 1, 3, 5, 10, 40, dan 200.
-- [ ] Hapus ketergantungan utama pada `PRICE_TABLE` setelah parity test lolos.
+- [x] Buat resolver berdasarkan catalog `master_products`.
+- [x] Resolver menentukan tier dari total quantity.
+- [x] Resolver mengembalikan harga unit, subtotal, product id, dan source tier.
+- [x] Pertahankan fallback hanya untuk mode migrasi/error, dengan logging.
+- [x] Tambahkan unit test untuk tier 1, 3, 5, 10, 40, dan 200.
+- [x] Hapus ketergantungan utama pada `PRICE_TABLE` setelah parity test lolos.
 
 ### Fase 3: Order Manual
 
-- [ ] Update `TambahOrderFlow` agar memakai catalog resolver.
-- [ ] Update `OrderForm` edit order agar memakai catalog resolver.
-- [ ] Update `OrdersPage` agar menyimpan snapshot harga final.
-- [ ] Pastikan perubahan harga baru tidak mengubah order lama.
-- [ ] Tampilkan error yang jelas bila produk nonaktif atau tidak ditemukan.
+- [x] Update `TambahOrderFlow` agar memakai catalog resolver.
+- [x] Update `OrderForm` edit order agar memakai catalog resolver.
+- [x] Update `OrdersPage` agar menyimpan snapshot harga final.
+- [x] Pastikan perubahan harga baru tidak mengubah order lama.
+- [x] Tampilkan error yang jelas bila produk nonaktif atau tidak ditemukan.
 
 ### Fase 4: AI Order
 
-- [ ] AI hanya melakukan parsing nama produk dan quantity.
-- [ ] Cocokkan hasil parsing ke `master_products`.
-- [ ] Hitung harga setelah parsing menggunakan resolver catalog.
-- [ ] Tampilkan sumber tier dan harga pada kartu konfirmasi.
-- [ ] Jangan menerima harga dari output AI sebagai sumber kebenaran.
-- [ ] Tambahkan test untuk produk ambigu dan produk nonaktif.
+- [x] AI hanya melakukan parsing nama produk dan quantity.
+- [x] Cocokkan hasil parsing ke `master_products`.
+- [x] Hitung harga setelah parsing menggunakan resolver catalog.
+- [x] Tampilkan sumber tier dan harga pada kartu konfirmasi.
+- [x] Jangan menerima harga dari output AI sebagai sumber kebenaran.
+- [x] Tambahkan test untuk produk ambigu dan produk nonaktif.
 
 ### Fase 5: Telegram Bot / Edge Function
 
-- [ ] Hapus pricing map hardcoded dari `telegram-bot`.
-- [ ] Baca catalog aktif dari `master_products`.
-- [ ] Samakan aturan tier dengan frontend.
-- [ ] Simpan snapshot harga pada transaksi bot.
-- [ ] Tambahkan regression test untuk bundle reseller dan multi-produk.
+- [x] Hapus pricing map hardcoded dari `telegram-bot`.
+- [x] Baca catalog aktif dari `master_products`.
+- [x] Samakan aturan tier dengan frontend.
+- [x] Simpan snapshot harga pada transaksi bot.
+- [x] Tambahkan regression test untuk bundle reseller dan multi-produk.
 
 ### Fase 6: Toko Publik
 
-- [ ] Pastikan toko publik memakai resolver yang sama.
-- [ ] Pastikan hanya produk aktif yang ditampilkan.
-- [ ] Validasi ulang harga di server/RPC saat submit order publik.
-- [ ] Jangan percaya total harga yang dikirim browser.
-- [ ] Simpan harga final dari server sebagai snapshot transaksi.
+- [x] Pastikan toko publik memakai resolver yang sama.
+- [x] Pastikan hanya produk aktif yang ditampilkan.
+- [x] Validasi ulang harga di server/RPC saat submit order publik.
+- [x] Jangan percaya total harga yang dikirim browser.
+- [x] Simpan harga final dari server sebagai snapshot transaksi.
 
 ### Fase 7: Release dan rollout
 
@@ -168,7 +169,7 @@ Test minimum:
 - [ ] Uji perubahan harga dengan akun admin test.
 - [ ] Uji order manual, AI, Telegram, dan toko publik.
 - [ ] Bandingkan hasil dengan pricing lama untuk fixture yang sama.
-- [ ] Jalankan test, build, dan security scan.
+- [x] Jalankan test, build, dan security scan.
 - [ ] Release dengan feature flag atau fallback sementara.
 - [ ] Pantau error dan total transaksi setelah rollout.
 - [ ] Hapus fallback hardcoded setelah periode stabil.

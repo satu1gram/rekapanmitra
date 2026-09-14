@@ -4,7 +4,7 @@ import { cn } from '@/lib/utils';
 import { formatCurrency } from '@/lib/formatters';
 import { useProducts } from '@/hooks/useProducts';
 import { TierType, OrderItem } from '@/types';
-import { recalcPricing } from '@/lib/pricing';
+import { resolveCatalogPricing, type CatalogProduct } from '@/lib/catalogPricing';
 import type { Tables } from '@/integrations/supabase/types';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -15,11 +15,21 @@ import { toast } from 'sonner';
 
 type Customer = Tables<'customers'>;
 
+export interface OrderFormSubmitPayload {
+  customerName: string;
+  customerPhone: string;
+  customerAddress?: string;
+  tier: TierType;
+  items: OrderItem[];
+  expenses?: { name: string, amount: number }[];
+  createdAt: string;
+}
+
 interface OrderFormProps {
   customers: Customer[];
   currentStock: number;
   submitting: boolean;
-  onSubmit: (data: any) => Promise<void>;
+  onSubmit: (data: OrderFormSubmitPayload) => Promise<void>;
   onCancel: () => void;
   onEditCustomer?: (customer: Customer) => void;
   initialData?: {
@@ -55,10 +65,28 @@ export function OrderForm({ customers, submitting, onSubmit, onCancel, onEditCus
   const [showCustomerSearch, setShowCustomerSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
-  // ── LOGIKA HARGA: Gunakan shared pricing utility ──────────────────────────
+  // ── LOGIKA HARGA: resolver katalog master_products (fallback legacy hanya migrasi) ──
+  const catalog: CatalogProduct[] = products.map(p => ({
+    id: p.id,
+    name: p.name,
+    category: p.category,
+    package_type: p.package_type,
+    quantity_per_package: p.quantity_per_package,
+    price: p.default_sell_price,
+    is_active: p.is_active,
+  }));
+
   const recalcItems = useCallback((currentItems: OrderItem[], currentTier: TierType) => {
-    return recalcPricing(currentItems, currentTier);
-  }, []);
+    return resolveCatalogPricing(currentItems, currentTier, catalog).priced.map(
+      ({ item, pricePerBottle, subtotal, productId }) => ({
+        ...item,
+        pricePerBottle,
+        subtotal,
+        productId,
+      }),
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [products]);
 
   useEffect(() => {
     if (productsLoading || products.length === 0) return;
@@ -326,7 +354,16 @@ export function OrderForm({ customers, submitting, onSubmit, onCancel, onEditCus
                     <p className="font-black text-slate-400 text-[10px] uppercase tracking-widest mb-1">Total Akhir</p>
                     <p className="text-2xl font-black text-emerald-600">{formatCurrency(grandTotal)}</p>
                   </div>
-                  <button onClick={() => onSubmit({ customerName, customerPhone, customerAddress, tier, items: activeItems, expenses, createdAt: new Date(orderDate).toISOString() })} disabled={submitting} className="h-14 px-8 bg-emerald-600 text-white rounded-2xl font-black shadow-xl">
+                  <button onClick={() => {
+                    const unresolved = activeItems.filter(i => !i.productId);
+                    if (unresolved.length > 0) {
+                      toast.error(
+                        `Produk tidak ditemukan atau nonaktif di katalog: ${unresolved.map(i => i.productName).join(', ')}`,
+                      );
+                      return;
+                    }
+                    onSubmit({ customerName, customerPhone, customerAddress, tier, items: activeItems, expenses, createdAt: new Date(orderDate).toISOString() });
+                  }} disabled={submitting} className="h-14 px-8 bg-emerald-600 text-white rounded-2xl font-black shadow-xl">
                     {submitting ? <Loader2 className="h-5 w-5 animate-spin mx-auto" /> : 'SIMPAN PERUBAHAN'}
                   </button>
                 </div>

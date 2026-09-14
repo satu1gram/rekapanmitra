@@ -12,8 +12,10 @@ import {
   type ParseResult, type ParsedOrder, type ParsedRestok, type LearningPattern,
 } from '@/lib/orderParser';
 import { MITRA_LEVELS, TIER_PRICING, type MitraLevel, type TierType } from '@/types';
-import { recalcPricing, getActiveTier, isBeautyProduct, PRICE_TABLE, getTierByQty } from '@/lib/pricing';
+import { getActiveTier, isBeautyProduct, PRICE_TABLE } from '@/lib/pricing';
+import { resolveCatalogPricing, type CatalogProduct } from '@/lib/catalogPricing';
 import { useCustomers } from '@/hooks/useCustomersDb';
+import { useProducts } from '@/hooks/useProducts';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
 import { toast } from 'sonner';
@@ -221,7 +223,7 @@ function CorrectionForm({ result, onSave, onCancel }: {
 }
 
 // ─── Kartu hasil ORDER ────────────────────────────────────────────
-function OrderResultCard({ msg, onCorrect, onConfirm, confirming, mitraLevel, onSuccess }: {
+function OrderResultCard({ msg, onCorrect, onConfirm, confirming, mitraLevel, customBuyPrice, onSuccess }: {
   msg: ChatMessage;
   onCorrect: (raw: string, corrected: ParsedOrder) => void;
   onConfirm: (result: ParsedOrder, pricingInfo?: { items: { productName: string; quantity: number; pricePerBottle: number; subtotal: number }[], tier: TierType }) => Promise<boolean>;
@@ -235,6 +237,7 @@ function OrderResultCard({ msg, onCorrect, onConfirm, confirming, mitraLevel, on
   const [countdown, setCountdown] = useState<number | null>(null);
   const result = msg.parseResult as ParsedOrder;
   const { customers, getCustomerByName, findCustomerFuzzy } = useCustomers();
+  const { products } = useProducts();
 
   // Lookup customer dengan prioritas:
   // 1. Exact HP match  → pasti sama
@@ -263,15 +266,33 @@ function OrderResultCard({ msg, onCorrect, onConfirm, confirming, mitraLevel, on
   const totalQty = result.items.reduce((sum, item) => sum + item.qty, 0);
 
 
-  // Hitung Harga Jual & Profit dengan shared pricing utility
+  // Hitung Harga Jual: harga TIDAK diambil dari output AI, selalu dihitung ulang
+  // dari katalog master_products (fallback legacy hanya mode migrasi, dengan logging).
   const baseTier = (existingCustomer?.tier as TierType) || 'satuan';
   const activeTier = getActiveTier(baseTier, totalQty);
 
-  // Konversi format item bot ke format pricing utility
-  const pricedItems = recalcPricing(
+  const catalog: CatalogProduct[] = products.map(p => ({
+    id: p.id,
+    name: p.name,
+    category: p.category,
+    package_type: p.package_type,
+    quantity_per_package: p.quantity_per_package,
+    price: p.default_sell_price,
+    is_active: p.is_active,
+  }));
+
+  // Konversi format item bot ke format resolver katalog
+  const pricingResult = resolveCatalogPricing(
     result.items.map(i => ({ productName: i.nama, quantity: i.qty })),
-    baseTier
+    baseTier,
+    catalog,
   );
+  const pricedItems = pricingResult.priced.map(({ item, pricePerBottle, subtotal }) => ({
+    productName: item.productName,
+    quantity: item.quantity,
+    pricePerBottle,
+    subtotal,
+  }));
 
   const totalHargaJual = pricedItems.reduce((s, i) => s + i.subtotal, 0);
 
@@ -346,6 +367,19 @@ function OrderResultCard({ msg, onCorrect, onConfirm, confirming, mitraLevel, on
                 {result.hp && <tr><td className="py-0.5 text-slate-500 font-bold pr-2">No. HP:</td><td className="py-0.5 text-slate-800 font-bold">{result.hp}</td></tr>}
                 {result.items.length > 0 && (
                   <tr>
+                    <td className="py-0.5 text-slate-500 font-bold pr-2">Harga:</td>
+                    <td className="py-0.5 text-slate-800 font-bold">
+                      {TIER_PRICING[activeTier]?.label || activeTier}
+                      {pricingResult.priceSource === 'catalog' ? (
+                        <span className="ml-2 px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 text-[9px] font-bold">✓ Katalog</span>
+                      ) : (
+                        <span className="ml-2 px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 text-[9px] font-bold">⚠ Harga legacy — produk tidak ada di katalog</span>
+                      )}
+                    </td>
+                  </tr>
+                )}
+                {result.items.length > 0 && (
+                  <tr>
                     <td className="py-0.5 text-slate-500 font-bold pr-2 align-top">Item:</td>
                     <td className="py-0.5">
                       {result.items.map((item, i) => (
@@ -417,7 +451,7 @@ function OrderResultCard({ msg, onCorrect, onConfirm, confirming, mitraLevel, on
 }
 
 // ─── Kartu hasil RESTOK ───────────────────────────────────────────
-function RestokResultCard({ msg, onCorrect, onConfirm, confirming, mitraLevel, onSuccess }: {
+function RestokResultCard({ msg, onCorrect, onConfirm, confirming, mitraLevel, customBuyPrice, onSuccess }: {
   msg: ChatMessage;
   onCorrect: (raw: string, corrected: ParsedRestok) => void;
   onConfirm: (result: ParsedRestok) => Promise<boolean>;
