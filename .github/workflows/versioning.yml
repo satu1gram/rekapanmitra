@@ -20,6 +20,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          # Regex disimpan di variabel: escape \( di dalam [[ =~ ]] memicu
+          # syntax error bash jika ditulis inline.
+          conventional_re="^(feat|fix|perf|refactor|docs|test|build|ci)(\([^)]+\))?!?: .+"
           version=$(node -p "require('./package.json').version")
           grep -q "## \[$version\]" CHANGELOG.md
           if [[ "${{ github.event_name }}" == "pull_request" ]]; then
@@ -30,7 +33,7 @@ jobs:
           fi
           while IFS= read -r commit; do
             [[ -z "$commit" ]] && continue
-            [[ "$commit" =~ ^(feat|fix|perf|refactor|docs|test|build|ci)(\([^)]+\))?!?: .+ ]] || {
+            [[ "$commit" =~ $conventional_re ]] || {
               echo "Invalid Conventional Commit: $commit"
               exit 1
             }
