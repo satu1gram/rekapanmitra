@@ -1,9 +1,18 @@
 /**
  * pricing.ts — Single Source of Truth untuk kalkulasi harga
  * Dipakai oleh: TambahOrderFlow, OrderForm (Edit), ChatInterface, telegram-bot
+ *
+ * TODO(REWIRE-K3): logika harga server-side kini bersumber dari SQL
+ * (`get_buy_price` + `apply_server_pricing`, lihat supabase/migrations/
+ * 20260823000000_k3_server_side_pricing.sql). File ini adalah duplikat lama
+ * untuk alur UI dan ditandai untuk di-rewire mengikuti uji emas — jangan
+ * tambahkan duplikasi harga baru di sini.
  */
 
 import { TierType } from '@/types';
+
+/** Harga bundle reseller BP: 3 botol = Rp650rb */
+export const RESELLER_BUNDLE_BP_PRICE = 650000;
 
 export interface PricedItem {
   productName: string;
@@ -68,7 +77,7 @@ export function recalcPricing<T extends { productName: string; quantity: number 
   if (activeTier === 'reseller') {
     const bundles = Math.floor(bpQty / 3);
     const remainder = bpQty % 3;
-    bpBundleTotal = bundles * 650000 + remainder * 217000;
+    bpBundleTotal = bundles * RESELLER_BUNDLE_BP_PRICE + remainder * 217000;
   }
 
   return items.map(item => {
