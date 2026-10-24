@@ -6,6 +6,8 @@
 
 ## Pengembangan Android/iOS & Asisten Mitra
 
+Rancangan gabungan MULA Smart Order dan Rekapan Mitra tersedia di [MULA × BP Product Plan](docs/MULA_BP_PRODUCT_PLAN.md). Preview branch menampilkan simulasi order → review → konfirmasi → laporan, pembelian pemasok, stok SKU, dan progres level bulanan. Aturan usulan ini belum diaktifkan pada backend produksi.
+
 Fondasi mobile menggunakan **React + Capacitor** dengan kode bisnis dan backend yang sama. Asisten tersedia di `/asisten` setelah login; contoh tanpa transaksi asli tersedia di `/demo/asisten`.
 
 Lihat [analisis proses bisnis, implementasi awal, dan langkah rilis mobile](docs/MOBILE_AI_BLUEPRINT.md). Jalankan `npm run mobile:sync` untuk membangun aset mobile dan menyinkronkan proyek Android/iOS. Kompilasi native memerlukan Android SDK atau macOS/Xcode; APK/IPA belum dibuat.

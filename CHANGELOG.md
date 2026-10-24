@@ -6,6 +6,8 @@ Semua perubahan penting pada proyek **Rekapan Mitra** akan dicatat di sini.
 
 ## [2.9.0] - 2026-10-24
 ### Added
+- Elaborasi MULA PRD v3.0 dengan proses bisnis Rekapan Mitra: rencana integrasi, konflik aturan, prioritas, dan acceptance gates.
+- Prototipe MULA empat tab pada entry preview terisolasi: draf/review/konfirmasi/pembatalan, harga/modal/biaya, confirmed-only reporting, pembelian pemasok, ekuivalen dan level bulanan, serta alokasi stok SKU contoh. Tidak mengubah transaksi atau pricebook produksi.
 - Deployment demo melalui branch `preview/mobile-ai` pada environment Preview Cloudflare Pages di repository yang sama; build produksi tetap memakai jalur normal.
 - Fondasi Capacitor Android/iOS dengan build aset lokal dan safe area mobile.
 - Asisten Mitra: ringkasan 1/7/30 hari, estimasi laba, perencanaan restok total, rekap salin, dan akses ke pencatatan AI yang sudah ada.

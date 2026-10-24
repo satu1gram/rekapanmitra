@@ -20,7 +20,7 @@ URL harus diambil dari hasil deployment Cloudflare; adanya branch di Git belum m
 | `main`, branch lain, atau variabel tidak tersedia | Aplikasi web normal di `dist/` |
 | `npm run build:preview` | Demo lokal di `preview-dist/` |
 
-Paket demo hanya memuat entry `preview/main.tsx` dan tampilan Asisten Mitra. Build menolak modul Auth/Supabase. Tidak ada login, backend produksi, API AI, atau service worker. CSP memblokir koneksi jaringan dan submit form. Data sintetis; tombol pencatatan transaksi dinonaktifkan. Pilihan periode, perhitungan restok, dan salin rekap dapat dicoba.
+Paket demo hanya memuat entry `preview/main.tsx` dan prototipe MULA × Rekapan Mitra. Build menolak modul Auth/Supabase. Tidak ada login, backend produksi, API AI, atau service worker. CSP memblokir koneksi jaringan dan submit form. Data sintetis; tombol draf/konfirmasi/pembatalan/penerimaan hanya mengubah state memori sesi browser dan hilang saat reload. Lihat [rancangan gabungan dan cakupan prototipe](MULA_BP_PRODUCT_PLAN.md).
 
 Ini preview tampilan dan perhitungan. Pengujian model AI/transaksi asli memerlukan backend staging dengan akun serta data uji terpisah.
 
