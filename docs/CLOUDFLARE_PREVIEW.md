@@ -6,7 +6,7 @@ Repository: `satu1gram/rekapanmitra`. Branch produksi tetap `main`; perubahan mo
 
 1. Pertahankan **Production branch** yang digunakan saat ini. Jangan menggantinya untuk demo.
 2. Pada pengaturan branch deployment, izinkan **Preview deployments** untuk `preview/mobile-ai`. Jika semua branch nonproduksi sudah diizinkan, pengaturan ini tidak perlu diubah.
-3. Build command: `npm run build` (atau `bun run build` bila itu command yang digunakan sekarang). Output directory: `dist`. Build preview dipilih otomatis melalui variabel bawaan Cloudflare `CF_PAGES_BRANCH`.
+3. Untuk proyek demo `rekapanmitra-mobile-demo`, gunakan build command **`npm run build:cloudflare-preview`**, output directory **`dist`**, dan root directory **kosong** (root repository). Perintah ini selalu membuat demo, tanpa bergantung pada deteksi nama branch. `wrangler.jsonc` juga menetapkan output Pages ke `./dist`.
 4. Pada environment **Preview**, gunakan Node 24.19.0 dan Bun 1.3.14 bila runtime perlu diatur dari dashboard. Node juga dipin melalui `.node-version`. Jangan mengubah konfigurasi environment Production untuk demo.
 5. Deploy/retry branch preview. Buka URL dari deployment dengan environment **Preview**, bukan domain produksi.
 
@@ -32,6 +32,16 @@ CF_PAGES_BRANCH=preview/mobile-ai npm run build
 ```
 
 Periksa `dist/index.html`, `_headers`, dan `_redirects`; tidak ada endpoint/key Supabase produksi atau service worker. Jalankan `npm run build` tanpa variabel tersebut untuk membentuk kembali aplikasi web biasa.
+
+## Perbaikan white screen / MIME `main.tsx`
+
+`preview/index.html` adalah input Vite, bukan file yang boleh dipublikasikan langsung. Jika browser meminta `main.tsx` dan mendapat MIME `application/octet-stream`, folder source sedang disajikan tanpa kompilasi.
+
+Deploy **hasil build `dist/`**, bukan folder `preview/` atau root repository. HTML hasil build harus meminta `/assets/index-....js`, bukan `main.tsx`. Jangan mengubah MIME `.tsx` menjadi JavaScript: JSX dan import source tetap memerlukan kompilasi Vite.
+
+Sesudah menyimpan pengaturan di atas, retry deployment branch `preview/mobile-ai` menggunakan commit perbaikan terbaru. Log harus memuat `Standalone preview ready in dist/`. Konfigurasi `wrangler.jsonc` bernama `rekapanmitra-mobile-demo` khusus proyek demo yang diberikan pengguna; sesuaikan/hapus konfigurasi proyek ini sebelum kelak menggabungkan branch ke konfigurasi proyek produksi lain.
+
+Build memiliki pemeriksaan yang menolak referensi TSX mentah, aset JavaScript yang hilang, source files yang terpublikasi, atau alamat backend produksi. Jalankan regression test dengan `node --test scripts/verify-preview-output.test.mjs`.
 
 ## Batas akses sesi ini
 

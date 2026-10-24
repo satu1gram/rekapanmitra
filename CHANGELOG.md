@@ -12,6 +12,7 @@ Semua perubahan penting pada proyek **Rekapan Mitra** akan dicatat di sini.
 - Demo read-only `/demo/asisten` dengan data sintetis serta analisis migrasi mobile di `docs/MOBILE_AI_BLUEPRINT.md`.
 
 ### Fixed
+- Menetapkan output Cloudflare Pages demo ke `dist`, menyediakan build preview eksplisit, dan menolak hasil deploy yang masih memuat entry TSX mentah penyebab error MIME/white screen.
 - Validasi struktur hasil AI, kuantitas dan tanggal sebelum review; pemisahan mode order/restok.
 - Koreksi kartu AI memperbarui payload konfirmasi; produk tanpa katalog aktif diblokir dan estimasi modal disamakan dengan alur penyimpanan.
 - Rekonsiliasi npm lockfile dan deklarasi Bun sebagai package manager utama.

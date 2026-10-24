@@ -1,6 +1,7 @@
 import { spawnSync } from 'node:child_process';
 import { copyFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { verifyPreviewOutput } from './lib/verify-preview-output.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const outputDirectory = process.argv.includes('--cloudflare') ? 'dist' : 'preview-dist';
@@ -13,4 +14,5 @@ if (result.status !== 0) process.exit(result.status ?? 1);
 for (const name of ['_headers', '_redirects']) {
   copyFileSync(new URL(`../preview/${name}`, import.meta.url), new URL(`../${outputDirectory}/${name}`, import.meta.url));
 }
+verifyPreviewOutput(outputPath);
 console.log(`Standalone preview ready in ${outputDirectory}/ (no production backend).`);
