@@ -1,7 +1,7 @@
-import { NavLink, useNavigate } from 'react-router-dom';
+import { NavLink } from 'react-router-dom';
 import { NAV_PRIMARY_ITEMS } from './NavItems';
 import { cn } from '@/lib/utils';
-import { Plus } from 'lucide-react';
+import { Sparkles } from 'lucide-react';
 
 const TAB_PATHS: Record<string, string> = {
   dashboard: '/dashboard',
@@ -11,12 +11,6 @@ const TAB_PATHS: Record<string, string> = {
 };
 
 export function BottomNav() {
-  const navigate = useNavigate();
-
-  const handleAddClick = () => {
-    navigate('/riwayat', { state: { openAdd: true } });
-  };
-
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-30 bg-white border-t border-slate-100 shadow-[0_-4px_24px_rgba(0,0,0,0.06)] pb-[env(safe-area-inset-bottom)]">
       <div className="mx-auto flex max-w-lg items-stretch justify-around h-[4.5rem] px-2 relative">
@@ -66,19 +60,14 @@ export function BottomNav() {
             return [
               navTab,
               // TAMBAH — same flex-1 structure, aligned with others
-              <div key="add-button" className="relative flex flex-col items-center justify-center flex-1 gap-0.5">
+              <NavLink to="/asisten" key="assistant-button" className="relative flex flex-col items-center justify-center flex-1 gap-0.5 text-emerald-700" aria-label="Asisten Mitra">
                 {/* Top indicator — always hidden (not a route) */}
                 <span className="absolute top-0 left-1/2 -translate-x-1/2 h-0.5 w-8 rounded-full bg-transparent" />
                 {/* Icon wrapper */}
-                <button
-                  onClick={handleAddClick}
-                  className="flex items-center justify-center w-8 h-8 rounded-xl bg-slate-100 text-slate-500 transition-all active:scale-95 active:bg-emerald-50 active:text-emerald-600"
-                >
-                  <Plus className="w-5 h-5 stroke-2" />
-                </button>
+                <span className="flex items-center justify-center w-8 h-8 rounded-xl bg-emerald-50 transition-all active:scale-95"><Sparkles className="w-5 h-5 stroke-2" /></span>
                 {/* Label */}
-                <span className="text-[9px] font-bold tracking-tight text-slate-400">TAMBAH</span>
-              </div>,
+                <span className="text-[9px] font-bold tracking-tight">ASISTEN</span>
+              </NavLink>,
             ];
           }
 

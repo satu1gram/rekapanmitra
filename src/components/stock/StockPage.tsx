@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useStock } from '@/hooks/useStockDb';
 import { useFileUpload } from '@/hooks/useFileUpload';
 import { useProfile } from '@/hooks/useProfile';
@@ -41,6 +42,8 @@ const MONTHS_FULL = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Ju
 const TROPHIES = ['🥇', '🥈', '🥉'];
 
 export function StockPage() {
+  const location = useLocation();
+  const navigate = useNavigate();
   const { currentStock, stockEntries, loading, addStock, updateStockEntry, deleteStockEntry, isLowStock } = useStock();
   const { uploadTransferProof } = useFileUpload();
   const { mitraLevel } = useProfile();
@@ -51,6 +54,12 @@ export function StockPage() {
   const [view, setView] = useState<View>('main');
   const [showChoiceSheet, setShowChoiceSheet] = useState(false);
   const [showBotModal, setShowBotModal] = useState(false);
+  useEffect(() => {
+    if (location.state?.openAssistant) {
+      setShowBotModal(true);
+      navigate(location.pathname + location.search, { replace: true, state: {} });
+    }
+  }, [location, navigate]);
   const [quantity, setQuantity] = useState(1);
   const [buyPrice, setBuyPrice] = useState(mitraInfo.buyPricePerBottle);
   const [notes, setNotes] = useState('');

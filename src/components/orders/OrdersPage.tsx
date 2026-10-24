@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Dialog,
   DialogContent,
@@ -63,6 +64,8 @@ interface DailySummary {
 interface OrdersPageProps { openAddForm?: boolean; onAddFormClose?: () => void; }
 
 export function OrdersPage({ openAddForm = false, onAddFormClose }: OrdersPageProps) {
+  const location = useLocation();
+  const navigate = useNavigate();
   const now = new Date();
   const getLocalYYYYMMDD = (d: Date) => {
     const y = d.getFullYear();
@@ -85,6 +88,14 @@ export function OrdersPage({ openAddForm = false, onAddFormClose }: OrdersPagePr
   const [showChoiceSheet, setShowChoiceSheet] = useState(openAddForm);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showBotModal, setShowBotModal] = useState(false);
+
+  useEffect(() => {
+    if (location.state?.openAssistant) {
+      setShowChoiceSheet(false);
+      setShowBotModal(true);
+      navigate(location.pathname + location.search, { replace: true, state: {} });
+    }
+  }, [location, navigate]);
   
   // Sync internal state with prop for external triggers (e.g. BottomNav)
   useEffect(() => {
@@ -371,7 +382,7 @@ export function OrdersPage({ openAddForm = false, onAddFormClose }: OrdersPagePr
           const items = rawItems.map(item => {
             const canonicalName = getCanonicalProductLabel(item.productName);
             const normalizedName = canonicalName.toLowerCase().trim();
-            const product = products.find(p =>
+            const product = products.find(p => p.id === item.productId) || products.find(p =>
               p.name.toLowerCase().trim() === normalizedName ||
               p.category.toLowerCase().trim() === normalizedName
             );

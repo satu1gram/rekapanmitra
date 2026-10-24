@@ -73,7 +73,7 @@ export function AppShell() {
             {isOnboardingComplete === false && <OnboardingWizard />}
 
             <div
-                className="max-w-lg mx-auto min-h-screen flex flex-col relative pb-[5.5rem]"
+                className="max-w-lg mx-auto min-h-screen flex flex-col relative pb-[calc(5.5rem+env(safe-area-inset-bottom))] pt-[env(safe-area-inset-top)]"
                 style={{
                     transform: pullY > 0 ? `translateY(${Math.min(pullY * 0.4, PULL_MAX * 0.4)}px)` : undefined,
                     transition: pullY === 0 ? 'transform 0.2s ease' : undefined,

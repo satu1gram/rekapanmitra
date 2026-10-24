@@ -4,6 +4,14 @@
 
 ---
 
+## Pengembangan Android/iOS & Asisten Mitra
+
+Fondasi mobile menggunakan **React + Capacitor** dengan kode bisnis dan backend yang sama. Asisten tersedia di `/asisten` setelah login; contoh tanpa transaksi asli tersedia di `/demo/asisten`.
+
+Lihat [analisis proses bisnis, implementasi awal, dan langkah rilis mobile](docs/MOBILE_AI_BLUEPRINT.md). Jalankan `npm run mobile:sync` untuk membangun aset mobile dan menyinkronkan proyek Android/iOS. Kompilasi native memerlukan Android SDK atau macOS/Xcode; APK/IPA belum dibuat.
+
+Untuk melihat demo pada environment Preview dari repository yang sama, gunakan branch `preview/mobile-ai` dan ikuti [panduan Cloudflare Pages](docs/CLOUDFLARE_PREVIEW.md). Build Cloudflare branch ini menghasilkan demo terisolasi di `dist/`; `npm run build:preview` menghasilkan paket demo lokal di `preview-dist/`.
+
 ## 🛠️ Langkah Memulai (Panduan Pengguna)
 
 Ikuti langkah-langkah di bawah ini untuk mulai mengoptimalkan bisnis Anda:

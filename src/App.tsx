@@ -18,6 +18,7 @@ const DashboardPage = lazy(() => import("./pages/DashboardPage"));
 const RiwayatPage = lazy(() => import("./pages/RiwayatPage"));
 const ProdukPage = lazy(() => import("./pages/ProdukPage"));
 const AkunPage = lazy(() => import("./pages/AkunPage"));
+const AssistantPage = lazy(() => import("./pages/AssistantPage"));
 const PublicOrderPage = lazy(() => import("./pages/PublicOrderPage"));
 const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage").then(m => ({ default: m.ResetPasswordPage })));
 
@@ -88,6 +89,9 @@ const App = () => (
 
             {/* Auth route — tidak perlu shell */}
             <Route path="/login" element={<AuthPage />} />
+            <Route path="/demo/asisten" element={
+              <Suspense fallback={<PageLoader />}><AssistantPage demo /></Suspense>
+            } />
 
             {/* Public store page — no auth required */}
             <Route path="/toko/:slug" element={
@@ -101,6 +105,9 @@ const App = () => (
 
             {/* App routes — semua di dalam AppShell */}
             <Route element={<AppShell />}>
+              <Route path="asisten" element={
+                <Suspense fallback={<PageLoader />}><AssistantPage /></Suspense>
+              } />
               <Route path="dashboard" element={
                 <Suspense fallback={<PageLoader variant="dashboard" />}><DashboardPage /></Suspense>
               } />

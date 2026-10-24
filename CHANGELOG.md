@@ -4,6 +4,21 @@ Semua perubahan penting pada proyek **Rekapan Mitra** akan dicatat di sini.
 
 ---
 
+## [2.9.0] - 2026-10-24
+### Added
+- Deployment demo melalui branch `preview/mobile-ai` pada environment Preview Cloudflare Pages di repository yang sama; build produksi tetap memakai jalur normal.
+- Fondasi Capacitor Android/iOS dengan build aset lokal dan safe area mobile.
+- Asisten Mitra: ringkasan 1/7/30 hari, estimasi laba, perencanaan restok total, rekap salin, dan akses ke pencatatan AI yang sudah ada.
+- Demo read-only `/demo/asisten` dengan data sintetis serta analisis migrasi mobile di `docs/MOBILE_AI_BLUEPRINT.md`.
+
+### Fixed
+- Validasi struktur hasil AI, kuantitas dan tanggal sebelum review; pemisahan mode order/restok.
+- Koreksi kartu AI memperbarui payload konfirmasi; produk tanpa katalog aktif diblokir dan estimasi modal disamakan dengan alur penyimpanan.
+- Rekonsiliasi npm lockfile dan deklarasi Bun sebagai package manager utama.
+
+### Release Type
+- **Minor**: fondasi mobile dan asisten tambahan. Belum merupakan rilis APK/IPA; transaksi atomik dan verifikasi backend/native tetap diperlukan sebelum produksi.
+
 ## [2.8.0] - 2026-09-14
 ### 🚀 Added
 - Resolver harga katalog master_products untuk semua kanal: order manual, AI order, Telegram bot, dan toko publik.

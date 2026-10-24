@@ -19,6 +19,7 @@ import { useProducts } from '@/hooks/useProducts';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
 import { toast } from 'sonner';
+import { validateParseResult } from '@/lib/parseResultValidation';
 
 // ─── Types ────────────────────────────────────────────────────────
 export type ChatMode = 'order' | 'restok' | 'demo';
@@ -287,8 +288,9 @@ function OrderResultCard({ msg, onCorrect, onConfirm, confirming, mitraLevel, cu
     baseTier,
     catalog,
   );
-  const pricedItems = pricingResult.priced.map(({ item, pricePerBottle, subtotal }) => ({
+  const pricedItems = pricingResult.priced.map(({ item, productId, pricePerBottle, subtotal }) => ({
     productName: item.productName,
+    productId: productId ?? undefined,
     quantity: item.quantity,
     pricePerBottle,
     subtotal,
@@ -298,13 +300,15 @@ function OrderResultCard({ msg, onCorrect, onConfirm, confirming, mitraLevel, cu
 
   // Hitung Modal dari level mitra
   const myLevelStr = mitraLevel || 'reseller';
-  const myTierData = PRICE_TABLE[myLevelStr] || PRICE_TABLE['reseller'];
-  const totalModal = result.items.reduce((s, item) => {
-    const isBeauty = isBeautyProduct(item.nama);
-    const standardBuyPrice = isBeauty ? myTierData.beauty : myTierData.bp;
-    const effectiveBuyPrice = mitraLevel === 'custom' && customBuyPrice != null ? customBuyPrice : standardBuyPrice;
-    return s + effectiveBuyPrice * item.qty;
-  }, 0);
+  // Match the persisted order calculation in useOrdersDb: one configured cost per bottle.
+  const effectiveBuyPrice = mitraLevel === 'custom'
+    ? customBuyPrice
+    : MITRA_LEVELS[myLevelStr].buyPricePerBottle;
+  const totalModal = totalQty * (effectiveBuyPrice ?? 0);
+  const invalidReason = !result.pelanggan.trim() ? 'Isi nama pelanggan melalui koreksi.'
+    : mitraLevel === 'custom' && (effectiveBuyPrice == null || effectiveBuyPrice <= 0) ? 'Atur harga modal kustom di akun sebelum menyimpan.'
+    : pricingResult.priceSource !== 'catalog' ? 'Katalog belum lengkap. Produk tanpa harga katalog tidak dapat disimpan.'
+    : '';
 
   const totalProfit = totalHargaJual - totalModal;
   const customerTierPricing = { label: TIER_PRICING[activeTier]?.label || activeTier };
@@ -315,6 +319,7 @@ function OrderResultCard({ msg, onCorrect, onConfirm, confirming, mitraLevel, cu
   }
 
   const handleConfirmClick = async () => {
+    if (invalidReason || confirming || confirmed) return;
     const ok = await onConfirm(result, { items: pricedItems, tier: activeTier });
     if (ok) {
       setConfirmed(true);
@@ -409,13 +414,13 @@ function OrderResultCard({ msg, onCorrect, onConfirm, confirming, mitraLevel, cu
 
             {!confirmed ? (
               <div className="flex flex-col gap-2">
-                {!result.pelanggan && (
+                {invalidReason && (
                   <div className="w-full bg-red-50 text-red-600 border border-red-100 rounded-xl py-2 px-3 text-[10px] font-bold text-center">
-                    ⚠️ Nama pelanggan belum terdeteksi. Silakan koreksi terlebih dahulu.
+                    {invalidReason}
                   </div>
                 )}
                 <button onClick={handleConfirmClick}
-                  disabled={confirming || !result.pelanggan}
+                  disabled={confirming || !!invalidReason}
                   className="w-full bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white py-2.5 rounded-xl font-black text-[11px] uppercase tracking-wider shadow-md active:scale-95 transition-all disabled:opacity-60 flex items-center justify-center gap-1.5">
                   {confirming ? <div className="w-3 h-3 border-2 border-white/40 border-t-white rounded-full animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
                   {confirming ? 'Menyimpan...' : 'Konfirmasi & Simpan Order'}
@@ -475,6 +480,7 @@ function RestokResultCard({ msg, onCorrect, onConfirm, confirming, mitraLevel, c
   }
 
   const handleConfirmClick = async () => {
+    if (confirming || confirmed || (mitraLevel === 'custom' && buyPrice <= 0)) return;
     const ok = await onConfirm(result);
     if (ok) {
       setConfirmed(true);
@@ -526,9 +532,11 @@ function RestokResultCard({ msg, onCorrect, onConfirm, confirming, mitraLevel, c
 
             {result.catatan && <p className="text-[10px] text-slate-500 italic">{result.catatan}</p>}
 
+            {mitraLevel === 'custom' && buyPrice <= 0 && <p role="alert" className="text-xs text-red-700">Atur harga modal kustom di akun sebelum menyimpan restok.</p>}
+
             {!confirmed ? (
               <button onClick={handleConfirmClick}
-                disabled={confirming}
+                disabled={confirming || (mitraLevel === 'custom' && buyPrice <= 0)}
                 className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white py-2.5 rounded-xl font-black text-[11px] uppercase tracking-wider shadow-md active:scale-95 transition-all disabled:opacity-60 flex items-center justify-center gap-1.5">
                 {confirming ? <div className="w-3 h-3 border-2 border-white/40 border-t-white rounded-full animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
                 {confirming ? 'Menyimpan...' : 'Konfirmasi Restok'}
@@ -599,6 +607,7 @@ export function ChatInterface({ mode, mitraLevel, customBuyPrice, onConfirmOrder
   const [inputText, setInputText] = useState('');
   const [confirming, setConfirming] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const savingRef = useRef(false);
 
   const scrollToBottom = useCallback(() => {
     setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
@@ -611,19 +620,25 @@ export function ChatInterface({ mode, mitraLevel, customBuyPrice, onConfirmOrder
   }, []);
 
   const handleConfirmOrder = useCallback(async (result: ParsedOrder, pricingInfo?: { items: { productName: string; quantity: number; pricePerBottle: number; subtotal: number }[], tier: TierType }) => {
-    if (!onConfirmOrder) return false;
+    if (!onConfirmOrder || savingRef.current || mode === 'restok') return false;
+    savingRef.current = true;
     setConfirming(result.raw);
     try {
       const ok = await onConfirmOrder(result, pricingInfo);
       if (ok) scrollToBottom();
       return ok;
+    } catch {
+      toast.error('Gagal menyimpan order. Periksa riwayat sebelum mencoba kembali.');
+      return false;
     } finally {
+      savingRef.current = false;
       setConfirming(null);
     }
-  }, [onConfirmOrder, scrollToBottom]);
+  }, [onConfirmOrder, scrollToBottom, mode]);
 
   const handleConfirmRestok = useCallback(async (result: ParsedRestok) => {
-    if (!onConfirmRestok) return false;
+    if (!onConfirmRestok || savingRef.current || mode === 'order') return false;
+    savingRef.current = true;
     const standardBuyPrice = mitraLevel ? MITRA_LEVELS[mitraLevel].buyPricePerBottle : 217000;
     const buyPricePerBottle = mitraLevel === 'custom' && customBuyPrice != null ? customBuyPrice : standardBuyPrice;
     setConfirming(result.raw);
@@ -631,12 +646,20 @@ export function ChatInterface({ mode, mitraLevel, customBuyPrice, onConfirmOrder
       const ok = await onConfirmRestok({ ...result, buyPricePerBottle });
       if (ok) scrollToBottom();
       return ok;
+    } catch {
+      toast.error('Gagal menyimpan restok. Periksa riwayat sebelum mencoba kembali.');
+      return false;
     } finally {
+      savingRef.current = false;
       setConfirming(null);
     }
-  }, [onConfirmRestok, mitraLevel, customBuyPrice, scrollToBottom]);
+  }, [onConfirmRestok, mitraLevel, customBuyPrice, scrollToBottom, mode]);
 
   const handleCorrect = useCallback((raw: string, corrected: ParsedOrder | ParsedRestok) => {
+    try { validateParseResult(corrected); }
+    catch (error) { toast.error((error as Error).message); return; }
+    setMessages(previous => previous.map(message => message.parseResult?.raw === raw
+      ? { ...message, parseResult: corrected } : message));
     saveLearningPattern({ input: raw, corrected, savedAt: Date.now() } as LearningPattern);
     addMsg({ role: 'bot', type: 'system', text: '✅ Koreksi disimpan! AI akan ingat pola ini.' });
     scrollToBottom();
@@ -669,6 +692,12 @@ export function ChatInterface({ mode, mitraLevel, customBuyPrice, onConfirmOrder
       const result = await parseWithAI(trimmedText);
       setIsTyping(false);
 
+      if (result.intent !== 'out_of_scope' && mode !== 'demo' && result.intent !== mode) {
+        addMsg({ role: 'bot', type: 'error', text: `Pesan terbaca sebagai ${result.intent === 'restok' ? 'restok' : 'order pelanggan'}. Buka menu yang sesuai atau perjelas pesan; belum ada data yang disimpan.` });
+        scrollToBottom();
+        return;
+      }
+
       if (result.intent === 'out_of_scope') {
         addMsg({ role: 'bot', type: 'out_of_scope', text: result.message, parseResult: result });
       } else if (result.intent === 'order') {
@@ -682,7 +711,7 @@ export function ChatInterface({ mode, mitraLevel, customBuyPrice, onConfirmOrder
     }
 
     scrollToBottom();
-  }, [isTyping, addMsg, scrollToBottom]);
+  }, [isTyping, addMsg, scrollToBottom, mode]);
 
   const modeLabel = mode === 'restok' ? '📦 Mode Restok' : '🛒 Mode Order';
   const modeColor = mode === 'restok' ? 'text-blue-500' : 'text-emerald-600';

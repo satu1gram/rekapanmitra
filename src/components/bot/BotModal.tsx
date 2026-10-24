@@ -57,6 +57,7 @@ export function BotModal({ mode, open, onClose, onConfirmOrder, onConfirmRestok 
         <header className={`${headerColor} px-4 pt-11 pb-3 flex items-center gap-3 shrink-0 shadow-md sm:pt-4`}>
           <button
             onClick={onClose}
+            aria-label="Tutup asisten"
             className="w-8 h-8 rounded-full flex items-center justify-center bg-white/20 hover:bg-white/30 active:scale-95 transition-all text-white"
           >
             <ArrowLeft className="h-5 w-5" />

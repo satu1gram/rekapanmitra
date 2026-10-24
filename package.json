@@ -1,19 +1,29 @@
 {
   "name": "vite_react_shadcn_ts",
   "private": true,
-  "version": "2.8.0",
+  "version": "2.9.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "node scripts/build-cloudflare.mjs",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
-    "sync:testimoni": "python3 scripts/telegram_scraper.py && npx tsx scripts/import_scraped_data.ts"
+    "sync:testimoni": "python3 scripts/telegram_scraper.py && npx tsx scripts/import_scraped_data.ts",
+    "build:mobile": "vite build --mode mobile",
+    "mobile:android:init": "cap add android",
+    "mobile:ios:init": "cap add ios",
+    "mobile:sync": "npm run build:mobile && cap sync",
+    "mobile:android": "cap open android",
+    "mobile:ios": "cap open ios",
+    "build:preview": "node scripts/build-isolated-preview.mjs"
   },
   "dependencies": {
+    "@capacitor/android": "8.5.3",
+    "@capacitor/core": "8.5.3",
+    "@capacitor/ios": "8.5.3",
     "@hookform/resolvers": "^3.10.0",
     "@radix-ui/react-accordion": "^1.2.11",
     "@radix-ui/react-alert-dialog": "^1.1.14",
@@ -69,6 +79,7 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@capacitor/cli": "8.5.3",
     "@eslint/js": "^9.32.0",
     "@tailwindcss/typography": "^0.5.16",
     "@testing-library/jest-dom": "^6.6.0",
@@ -97,5 +108,6 @@
   },
   "overrides": {
     "serialize-javascript": "^7.0.5"
-  }
+  },
+  "packageManager": "bun@1.3.14"
 }

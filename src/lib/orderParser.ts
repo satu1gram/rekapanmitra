@@ -5,6 +5,7 @@
 // Gunakan shared singleton — JANGAN buat createClient baru di sini.
 // Ini mencegah "supabaseUrl is required" jika env var tidak di-set.
 import { supabase } from '@/integrations/supabase/client';
+import { validateParseResult } from '@/lib/parseResultValidation';
 
 // ─── Tipe hasil parsing ───────────────────────────────────────────
 export type ParseIntent = 'order' | 'restok' | 'out_of_scope';
@@ -76,33 +77,5 @@ export async function parseWithAI(text: string): Promise<ParseResult> {
   if (error) throw new Error(`Edge Function error: ${error.message}`);
   if (data?.error) throw new Error(data.error);
 
-  const intent: ParseIntent = data?.intent || 'out_of_scope';
-
-  if (intent === 'order') {
-    return {
-      intent: 'order',
-      pelanggan: data?.pelanggan || '',
-      hp: data?.hp || '',
-      tanggal: data?.tanggal || '',
-      items: Array.isArray(data?.items) ? data.items : [],
-      catatan: data?.catatan || '',
-      raw: text,
-    };
-  }
-
-  if (intent === 'restok') {
-    return {
-      intent: 'restok',
-      items: Array.isArray(data?.items) ? data.items : [],
-      catatan: data?.catatan || '',
-      raw: text,
-    };
-  }
-
-  // out_of_scope
-  return {
-    intent: 'out_of_scope',
-    message: data?.message || 'Bot ini hanya melayani pencatatan order dan restok barang.',
-    raw: text,
-  };
+  return { ...validateParseResult(data), raw: text };
 }

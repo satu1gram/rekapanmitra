@@ -17,6 +17,7 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 8080,
+    watch: { ignored: ['**/android/**', '**/ios/**'] },
     hmr: {
       overlay: false,
     },
@@ -37,6 +38,7 @@ export default defineConfig(({ mode }) => ({
       brotliSize: true,
     }),
     VitePWA({
+      disable: mode === 'mobile',
       registerType: "prompt",
       includeAssets: ["favicon.ico", "robots.txt", "apple-touch-icon.png"],
       manifest: {
