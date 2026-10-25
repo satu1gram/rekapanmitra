@@ -6,6 +6,8 @@ Semua perubahan penting pada proyek **Rekapan Mitra** akan dicatat di sini.
 
 ## [2.9.0] - 2026-10-24
 ### Added
+- Full mockup mobile 53 layar: splash/onboarding/akun, setup usaha, order-review-payment-fulfillment, nota dan retur penuh, stok/restok, laporan, pelanggan, katalog, toko, koneksi, profil, privasi, keamanan, tim, paket dan bantuan. Semua perubahan sesi tetap terisolasi dari produksi.
+- Peta layar, skenario kosong/offline/gagal baca, pengujian perjalanan browser, dan ekspor dokumentasi screenshot/PDF untuk review desain.
 - Elaborasi MULA PRD v3.0 dengan proses bisnis Rekapan Mitra: rencana integrasi, konflik aturan, prioritas, dan acceptance gates.
 - Prototipe MULA empat tab pada entry preview terisolasi: draf/review/konfirmasi/pembatalan, harga/modal/biaya, confirmed-only reporting, pembelian pemasok, ekuivalen dan level bulanan, serta alokasi stok SKU contoh. Tidak mengubah transaksi atau pricebook produksi.
 - Deployment demo melalui branch `preview/mobile-ai` pada environment Preview Cloudflare Pages di repository yang sama; build produksi tetap memakai jalur normal.

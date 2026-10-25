@@ -1,0 +1,17 @@
+export const PROTOTYPE_SCREENS = [
+  ['Mulai', '/', 'Splash screen'], ['Mulai', '/welcome', 'Onboarding manfaat'],
+  ['Mulai', '/login', 'Masuk'], ['Mulai', '/register', 'Daftar akun'], ['Mulai', '/forgot', 'Lupa kata sandi'],
+  ['Mulai', '/setup', 'Profil & level usaha'], ['Mulai', '/setup-stock', 'Stok awal'], ['Mulai', '/setup-store', 'Siapkan toko'],
+  ['Mulai', '/setup-done', 'Setup selesai'],
+  ['Harian', '/home', 'Beranda usaha'], ['Harian', '/notifications', 'Pusat perhatian'], ['Harian', '/target', 'Target penjualan'],
+  ['Pesanan', '/orders', 'Daftar & pencarian'], ['Pesanan', '/orders/ORD-1031', 'Detail pesanan'], ['Pesanan', '/orders/ORD-1031/payment', 'Catat pembayaran'], ['Pesanan', '/orders/ORD-1031/receipt', 'Nota pesanan'],
+  ['Pesanan', '/orders/ORD-1029/return', 'Retur penuh'], ['Pesanan', '/order-success/ORD-1031', 'Order tersimpan'],
+  ['Pesanan', '/add', 'Pilih cara mencatat'], ['Pesanan', '/capture/paste', 'Tempel chat'], ['Pesanan', '/capture/image', 'Baca screenshot'], ['Pesanan', '/capture/share', 'Terima dari Share'], ['Pesanan', '/compose', 'Form & review order'],
+  ['Usaha', '/reports', 'Laporan & arus uang'], ['Usaha', '/expenses', 'Biaya umum'], ['Usaha', '/income', 'Pendapatan lain'],
+  ['Usaha', '/stock', 'Stok per produk'], ['Usaha', '/stock/GREEN', 'Detail stok'], ['Usaha', '/stock/GREEN/adjust', 'Koreksi stok'], ['Usaha', '/purchases', 'Pembelian pemasok'], ['Usaha', '/purchase/new', 'Buat restok'], ['Usaha', '/level', 'Progres level bulanan'],
+  ['Usaha', '/purchases/PO-203', 'Penerimaan pembelian'],
+  ['Pelanggan & produk', '/customers', 'Pelanggan'], ['Pelanggan & produk', '/customer/customer-3', 'Profil pelanggan'], ['Pelanggan & produk', '/customer/new', 'Tambah pelanggan'], ['Pelanggan & produk', '/catalog', 'Katalog 12 produk'], ['Pelanggan & produk', '/catalog/GREEN', 'Produk & harga'], ['Pelanggan & produk', '/advisor', 'Asisten informasi'],
+  ['Akun & toko', '/settings', 'Pengaturan'], ['Akun & toko', '/profile', 'Profil usaha'], ['Akun & toko', '/shop', 'Pengaturan toko'], ['Akun & toko', '/storefront', 'Tampilan toko pelanggan'], ['Akun & toko', '/connections', 'Sumber & koneksi'], ['Akun & toko', '/connections/whatsapp', 'WhatsApp Business'], ['Akun & toko', '/connections/telegram', 'Bot Telegram'],
+  ['Akun & toko', '/security', 'Keamanan akun'], ['Akun & toko', '/privacy', 'Privasi & izin AI'], ['Akun & toko', '/team', 'Anggota & peran'], ['Akun & toko', '/plan', 'Paket penggunaan'], ['Akun & toko', '/help', 'Bantuan'], ['Akun & toko', '/screens', 'Peta seluruh layar'],
+  ['Akun & toko', '/logout', 'Keluar akun'],
+] as const;

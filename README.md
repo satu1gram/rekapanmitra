@@ -6,6 +6,8 @@
 
 ## Pengembangan Android/iOS & Asisten Mitra
 
+Prototipe mobile lengkap tersedia mulai splash hingga operasional usaha, dengan **53 layar** yang saling terhubung. Lihat [peta fitur, panduan mencoba, dan artefak desain](docs/FULL_MOBILE_PROTOTYPE.md). Entry preview saat ini memakai prototipe ini; data dan koneksinya tetap simulasi.
+
 Rancangan gabungan MULA Smart Order dan Rekapan Mitra tersedia di [MULA × BP Product Plan](docs/MULA_BP_PRODUCT_PLAN.md). Preview branch menampilkan simulasi order → review → konfirmasi → laporan, pembelian pemasok, stok SKU, dan progres level bulanan. Aturan usulan ini belum diaktifkan pada backend produksi.
 
 Fondasi mobile menggunakan **React + Capacitor** dengan kode bisnis dan backend yang sama. Asisten tersedia di `/asisten` setelah login; contoh tanpa transaksi asli tersedia di `/demo/asisten`.

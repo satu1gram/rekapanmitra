@@ -19,7 +19,9 @@
     "mobile:android": "cap open android",
     "mobile:ios": "cap open ios",
     "build:preview": "node scripts/build-isolated-preview.mjs",
-    "build:cloudflare-preview": "node scripts/build-isolated-preview.mjs --cloudflare"
+    "build:cloudflare-preview": "node scripts/build-isolated-preview.mjs --cloudflare",
+    "test:prototype": "node scripts/test-mobile-prototype.mjs",
+    "mobile:prototype:sync": "npm run build:cloudflare-preview && cap sync"
   },
   "dependencies": {
     "@capacitor/android": "8.5.3",
