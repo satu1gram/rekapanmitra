@@ -15,27 +15,27 @@ export interface MitraLevelInfo {
 export const MITRA_LEVELS: Record<MitraLevel, MitraLevelInfo> = {
   reseller: {
     level: 'reseller',
-    buyPricePerBottle: 217000,
+    buyPricePerBottle: 240000,
     label: 'Reseller'
   },
   agen: {
     level: 'agen',
-    buyPricePerBottle: 198000,
+    buyPricePerBottle: 225000,
     label: 'Agen'
   },
   agen_plus: {
     level: 'agen_plus',
-    buyPricePerBottle: 180000,
+    buyPricePerBottle: 210000,
     label: 'Agen Plus'
   },
   sap: {
     level: 'sap',
-    buyPricePerBottle: 170000,
+    buyPricePerBottle: 195000,
     label: 'Spesial Agen Plus (SAP)'
   },
   se: {
     level: 'se',
-    buyPricePerBottle: 150000,
+    buyPricePerBottle: 175000,
     label: 'Special Entrepreneur (SE)'
   },
   custom: {
@@ -59,49 +59,49 @@ export const TIER_PRICING: Record<TierType, TierPricing> = {
   satuan: {
     tier: 'satuan',
     bottles: 1,
-    pricePerBottle: 250000,
-    totalPrice: 250000,
+    pricePerBottle: 265000,
+    totalPrice: 265000,
     marginPerBottle: 0,
     label: 'Satuan (Konsumsi)'
   },
   reseller: {
     tier: 'reseller',
     bottles: 3,
-    pricePerBottle: 217000,
-    totalPrice: 650000,
-    marginPerBottle: 33000,
+    pricePerBottle: 240000,
+    totalPrice: 720000,
+    marginPerBottle: 25000,
     label: 'Reseller'
   },
   agen: {
     tier: 'agen',
     bottles: 5,
-    pricePerBottle: 198000,
-    totalPrice: 990000,
-    marginPerBottle: 52000,
+    pricePerBottle: 225000,
+    totalPrice: 1125000,
+    marginPerBottle: 40000,
     label: 'Agen'
   },
   agen_plus: {
     tier: 'agen_plus',
     bottles: 10,
-    pricePerBottle: 180000,
-    totalPrice: 1800000,
-    marginPerBottle: 70000,
+    pricePerBottle: 210000,
+    totalPrice: 2100000,
+    marginPerBottle: 55000,
     label: 'Agen Plus'
   },
   sap: {
     tier: 'sap',
     bottles: 40,
-    pricePerBottle: 170000,
-    totalPrice: 6800000,
-    marginPerBottle: 80000,
+    pricePerBottle: 195000,
+    totalPrice: 7800000,
+    marginPerBottle: 70000,
     label: 'Spesial Agen Plus (SAP)'
   },
   se: {
     tier: 'se',
     bottles: 200,
-    pricePerBottle: 150000,
-    totalPrice: 30000000,
-    marginPerBottle: 100000,
+    pricePerBottle: 175000,
+    totalPrice: 35000000,
+    marginPerBottle: 90000,
     label: 'Special Entrepreneur (SE)'
   }
 };

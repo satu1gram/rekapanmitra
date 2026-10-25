@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { fetchPublicStore, submitPublicOrder, PaymentInfo } from '@/hooks/useStoreSettings';
 import { formatCurrency } from '@/lib/formatters';
+import { getRetailFallbackPrice } from '@/lib/pricing';
 import { TierType } from '@/types';
 import {
     Store, ArrowRight, ArrowLeft, Check, Loader2, Copy, CheckCheck,
@@ -132,7 +133,7 @@ export default function PublicOrderPage() {
                 setProductCategories(categories);
 
                 setItems(Object.keys(categories).map(cat => {
-                    let defaultPricePerBottle = 250000;
+                    let defaultPricePerBottle = getRetailFallbackPrice(cat, 'satuan');
                     const smallestTier = categories[cat][categories[cat].length - 1];
                     if (smallestTier && smallestTier.quantity_per_package > 0) {
                         defaultPricePerBottle = smallestTier.default_sell_price / smallestTier.quantity_per_package;

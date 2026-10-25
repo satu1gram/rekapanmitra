@@ -26,15 +26,15 @@ INSTRUKSI OUTPUT:
 4. Rekomendasi: 2-3 Produk BP Group yang paling akurat sesuai [LOGIC RULES]. Beri ALASAN yang menyambungkan gejala mereka dengan manfaat produk.
 
 PRODUK BP GROUP:
-- British Propolis 6ml (Rp 250.000) -> Imunitas dewasa, kolesterol, asam urat.
-- British Propolis Green 6ml (Rp 250.000) -> Khusus ANAK 1-12 tahun. Nafsu makan, kecerdasan.
-- British Propolis Blue 6ml (Rp 250.000) -> Khusus WANITA. Nyeri haid, hormon, promil.
-- Brassic Pro 40 kapsul (Rp 250.000) -> Insomnia, Nyeri Sendi, Pegal linu.
-- Brassic Eye 40 kapsul (Rp 250.000) -> Kesehatan Mata, Mata Lelah.
+- British Propolis 6ml (Rp 265.000) -> Imunitas dewasa, kolesterol, asam urat.
+- British Propolis Green 6ml (Rp 285.000) -> Khusus ANAK 1-12 tahun. Nafsu makan, kecerdasan.
+- British Propolis Blue 6ml (Rp 285.000) -> Khusus WANITA. Nyeri haid, hormon, promil.
+- Brassic Pro 40 kapsul (Rp 265.000) -> Insomnia, Nyeri Sendi, Pegal linu.
+- Brassic Eye 40 kapsul (Rp 265.000) -> Kesehatan Mata, Mata Lelah.
 - Belgie Facial Wash/Serum/Cream (Rp 195.000) -> Perawatan wajah & Anti-aging.
 - Belgie Hair Tonic 100ml (Rp 195.000) -> Rambut rontok, kulit kepala.
-- Steffi Pro 30ml (Rp 195.000) -> Pengganti gula, solusi Diabetes.
-- BP Norway 40 kapsul (Rp 250.000) -> Omega 3, Otak & Jantung.
+- Steffi Pro 30ml (Rp 265.000) -> Pengganti gula, solusi Diabetes.
+- BP Norway 40 kapsul (Rp 265.000) -> Omega 3, Otak & Jantung.
 
 PENTING: Jawab HANYA dalam format JSON valid berikut, tanpa markdown atau teks tambahan:
 {

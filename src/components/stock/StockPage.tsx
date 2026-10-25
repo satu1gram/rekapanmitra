@@ -43,16 +43,24 @@ const TROPHIES = ['🥇', '🥈', '🥉'];
 export function StockPage() {
   const { currentStock, stockEntries, loading, addStock, updateStockEntry, deleteStockEntry, isLowStock } = useStock();
   const { uploadTransferProof } = useFileUpload();
-  const { mitraLevel } = useProfile();
+  const { profile, mitraLevel, customBuyPrice, loading: profileLoading } = useProfile();
   const { orders } = useOrders();
 
   const mitraInfo = MITRA_LEVELS[mitraLevel];
+  const buyPriceDefault = mitraLevel === 'custom'
+    ? customBuyPrice ?? 0
+    : mitraInfo.buyPricePerBottle;
+  const stockTier: TierType | null = mitraLevel === 'custom' ? null : mitraLevel;
+  const displayedMitraInfo = {
+    label: mitraLevel === 'custom' ? profile?.custom_level_name || mitraInfo.label : mitraInfo.label,
+    buyPricePerBottle: buyPriceDefault,
+  };
 
   const [view, setView] = useState<View>('main');
   const [showChoiceSheet, setShowChoiceSheet] = useState(false);
   const [showBotModal, setShowBotModal] = useState(false);
   const [quantity, setQuantity] = useState(1);
-  const [buyPrice, setBuyPrice] = useState(mitraInfo.buyPricePerBottle);
+  const [buyPrice, setBuyPrice] = useState(buyPriceDefault);
   const [notes, setNotes] = useState('');
   const getLocalYYYYMMDD = (d: Date) => {
     const y = d.getFullYear();
@@ -116,7 +124,7 @@ export function StockPage() {
       const day = map.get(key)!;
       if (e.type === 'in') {
         day.totalQtyIn += e.quantity;
-        day.totalValueIn += ((e.buy_price_per_bottle || mitraInfo.buyPricePerBottle) * e.quantity);
+        day.totalValueIn += ((e.buy_price_per_bottle ?? buyPriceDefault) * e.quantity);
       } else {
         const orderRef = e.order_id ? orders.find(o => o.id === e.order_id) : null;
         day.totalQtyOut += e.quantity;
@@ -127,18 +135,18 @@ export function StockPage() {
     return Array.from(map.values())
       .filter(d => d.totalQtyIn > 0)
       .sort((a, b) => b.date.getTime() - a.date.getTime());
-  }, [filteredHistory, mitraInfo, orders]);
+  }, [filteredHistory, buyPriceDefault, orders]);
 
   const visibleDays = showAllDays ? dailySummaries : dailySummaries.slice(0, 5);
 
 
   useEffect(() => {
-    setBuyPrice(mitraInfo.buyPricePerBottle);
-  }, [mitraInfo]);
+    setBuyPrice(buyPriceDefault);
+  }, [buyPriceDefault]);
 
   const resetForm = () => {
     setQuantity(1);
-    setBuyPrice(mitraInfo.buyPricePerBottle);
+    setBuyPrice(buyPriceDefault);
     setNotes('');
     setStockDate(new Date().toISOString().split('T')[0]);
     setShowAdvanced(false);
@@ -170,11 +178,12 @@ export function StockPage() {
   const handleRestok = async (e: React.FormEvent) => {
     e.preventDefault();
     if (quantity < 1) { toast.error('Jumlah minimal 1 botol'); return; }
+    if (buyPrice <= 0) { toast.error('Atur harga modal level kustom di Pengaturan Akun terlebih dahulu'); return; }
     setSubmitting(true);
     try {
       if (editingEntry) {
         await updateStockEntry(editingEntry.id, {
-          quantity, tier: mitraLevel as TierType, buyPricePerBottle: buyPrice,
+          quantity, tier: stockTier, buyPricePerBottle: buyPrice,
           transferProofUrl: transferProofUrl || undefined,
           notes: notes.trim() || undefined,
           createdAt: stockDate ? new Date(stockDate).toISOString() : undefined
@@ -182,7 +191,7 @@ export function StockPage() {
         toast.success('Restok berhasil diupdate!');
       } else {
         await addStock({
-          quantity, tier: mitraLevel as TierType, buyPricePerBottle: buyPrice,
+          quantity, tier: stockTier, buyPricePerBottle: buyPrice,
           transferProofUrl: transferProofUrl || undefined,
           notes: notes.trim() || undefined,
           createdAt: stockDate ? new Date(stockDate).toISOString() : undefined,
@@ -204,7 +213,7 @@ export function StockPage() {
     if (initialQty < 1) { toast.error('Jumlah minimal 1 botol'); return; }
     setSubmitting(true);
     try {
-      await addStock({ quantity: initialQty, tier: mitraLevel as TierType, isInitialStock: true });
+      await addStock({ quantity: initialQty, tier: stockTier, isInitialStock: true });
       toast.success(`Berhasil menambah ${initialQty} botol stok awal!`);
       setInitialQty(1);
       setView('main');
@@ -227,7 +236,7 @@ export function StockPage() {
   const openEdit = (entry: StockEntry) => {
     setEditingEntry(entry);
     setQuantity(entry.quantity);
-    setBuyPrice(entry.buy_price_per_bottle || mitraInfo.buyPricePerBottle);
+    setBuyPrice(entry.buy_price_per_bottle ?? buyPriceDefault);
     setNotes(entry.notes || '');
     setTransferProofUrl(entry.transfer_proof_url);
     setTransferProofPreview(entry.transfer_proof_url);
@@ -240,7 +249,7 @@ export function StockPage() {
     return d.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
   };
 
-  if (loading) {
+  if (loading || profileLoading) {
     return <LoadingScreen variant="list" />;
   }
 
@@ -309,7 +318,7 @@ export function StockPage() {
               <p className="text-lg font-bold text-gray-900">{formatCurrency(buyPrice)}</p>
               <p className="text-xs font-medium text-gray-600 flex items-center gap-1 mt-0.5">
                 <Check className="h-3.5 w-3.5 text-emerald-600" />
-                Level: {mitraInfo.label}
+                Level: {displayedMitraInfo.label}
               </p>
             </div>
           </div>
@@ -465,7 +474,7 @@ export function StockPage() {
       <StockPerformancePage
         onBack={() => setShowPerformance(false)}
         stockEntries={stockEntries}
-        mitraInfo={mitraInfo}
+        mitraInfo={displayedMitraInfo}
       />
     );
   }
@@ -545,11 +554,14 @@ export function StockPage() {
           onClose={() => setShowBotModal(false)}
           onConfirmRestok={async (parsed: ParsedRestok & { buyPricePerBottle: number }) => {
             const totalQty = parsed.items.reduce((s, i) => s + i.qty, 0);
-            if (totalQty < 1) return false;
+            if (totalQty < 1 || parsed.buyPricePerBottle <= 0) {
+              toast.error('Harga modal level kustom belum diatur di Pengaturan Akun');
+              return false;
+            }
             try {
               await addStock({
                 quantity: totalQty,
-                tier: mitraLevel as any,
+                tier: stockTier,
                 buyPricePerBottle: parsed.buyPricePerBottle,
                 notes: parsed.items.map(i => `${i.qty}x ${i.nama}`).join(', '),
               });
@@ -718,7 +730,7 @@ export function StockPage() {
                         else { displayTitle = 'Barang Keluar'; badgeText = 'KELUAR'; }
 
                         const totalValue = isIn 
-                          ? (entry.buy_price_per_bottle || mitraInfo.buyPricePerBottle) * entry.quantity
+                          ? (entry.buy_price_per_bottle ?? buyPriceDefault) * entry.quantity
                           : (orderRef ? Number(orderRef.total_price) : 0);
 
                         return (

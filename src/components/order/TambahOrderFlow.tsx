@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 import { formatCurrency } from '@/lib/formatters';
 import { useProducts } from '@/hooks/useProducts';
 import { TierType } from '@/types';
-import { resolveCatalogPricing, type CatalogProduct } from '@/lib/catalogPricing';
+import { resolveCatalogPricing, getFallbackUnitPrice, type CatalogProduct } from '@/lib/catalogPricing';
 import type { Tables } from '@/integrations/supabase/types';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -129,7 +129,7 @@ export function TambahOrderFlow({ customers, submitting, onSubmit, onCancel, onE
         return {
           productName: cat,
           quantity,
-          pricePerBottle: 250000,
+          pricePerBottle: getFallbackUnitPrice(cat, 'satuan'),
           subtotal: 0,
         };
       });

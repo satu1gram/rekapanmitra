@@ -86,7 +86,7 @@ export function useStock() {
 
   const addStock = async (data: {
     quantity: number;
-    tier: TierType;
+    tier: TierType | null;
     buyPricePerBottle?: number;
     transferProofUrl?: string;
     notes?: string;
@@ -174,7 +174,7 @@ export function useStock() {
 
   const updateStockEntry = async (entryId: string, data: {
     quantity: number;
-    tier: TierType;
+    tier: TierType | null;
     buyPricePerBottle: number;
     transferProofUrl?: string;
     notes?: string;

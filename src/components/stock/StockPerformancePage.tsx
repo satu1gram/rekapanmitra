@@ -33,7 +33,7 @@ export function StockPerformancePage({ onBack, stockEntries, mitraInfo }: StockP
         const d = new Date(e.created_at);
         return d.getFullYear() === selectedYear && d.getMonth() === idx;
       });
-      const value = monthEntries.reduce((s, e) => s + ((e.buy_price_per_bottle || mitraInfo.buyPricePerBottle) * e.quantity), 0);
+      const value = monthEntries.reduce((s, e) => s + ((e.buy_price_per_bottle ?? mitraInfo.buyPricePerBottle) * e.quantity), 0);
       const qty = monthEntries.reduce((s, e) => s + e.quantity, 0);
       return { value, qty };
     });

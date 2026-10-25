@@ -1,6 +1,7 @@
 import { Loader2, ArrowLeft, Pencil } from 'lucide-react';
 import { TierType, TIER_PRICING, OrderItem } from '@/types';
 import { formatCurrency } from '@/lib/formatters';
+import { getRetailFallbackPrice } from '@/lib/pricing';
 import { cn } from '@/lib/utils';
 
 interface ReviewOrderPageProps {
@@ -24,9 +25,6 @@ const TIER_LABEL: Record<TierType, string> = {
     sap: 'Spesial Agen Plus',
     se: 'Special Entrepreneur',
 };
-
-// Full retail price (price if buying 1 item, satuan)
-const RETAIL_PRICE = 250000;
 
 const formatDateID = (dateStr: string) => {
     const d = new Date(dateStr);
@@ -92,7 +90,8 @@ export function ReviewOrderPage({
                     {activeItems.map((item, idx) => {
                         // Show original retail price crossed out if the customer gets a
                         // lower price (paket/custom discount)
-                        const showStrikethrough = item.pricePerBottle < RETAIL_PRICE;
+                        const retailPrice = getRetailFallbackPrice(item.productName, 'satuan');
+                        const showStrikethrough = item.pricePerBottle < retailPrice;
                         return (
                             <div key={idx} className="flex items-center justify-between px-4 py-2.5 border-b border-slate-50 last:border-b-0">
                                 <div className="flex-1 min-w-0">
@@ -111,7 +110,7 @@ export function ReviewOrderPage({
                                     <p className="text-sm font-bold text-slate-900">{formatCurrency(item.subtotal)}</p>
                                     {showStrikethrough && (
                                         <p className="text-[11px] text-slate-400 line-through">
-                                            {formatCurrency(RETAIL_PRICE * item.quantity)}
+                                            {formatCurrency(retailPrice * item.quantity)}
                                         </p>
                                     )}
                                 </div>

@@ -55,12 +55,12 @@ function getPricingForTier(tier: string, isBeauty: boolean, customLevels: any[] 
   // Map Harga Standar — hanya fallback harga MODAL level mitra,
   // harga jual selalu dihitung dari katalog master_products.
   const pricingMap: Record<string, { bp: number; beauty: number }> = {
-    'satuan': { bp: 250000, beauty: 195000 },
-    'reseller': { bp: 217000, beauty: 195000 },
-    'agen': { bp: 198000, beauty: 195000 },
-    'agen_plus': { bp: 180000, beauty: 180000 },
-    'sap': { bp: 170000, beauty: 170000 },
-    'se': { bp: 150000, beauty: 150000 },
+    'satuan': { bp: 265000, beauty: 195000 },
+    'reseller': { bp: 240000, beauty: 195000 },
+    'agen': { bp: 225000, beauty: 195000 },
+    'agen_plus': { bp: 210000, beauty: 180000 },
+    'sap': { bp: 195000, beauty: 170000 },
+    'se': { bp: 175000, beauty: 150000 },
   };
 
   const data = pricingMap[tier.toLowerCase()] || pricingMap['satuan'];
@@ -77,6 +77,21 @@ function getActiveTier(totalQty: number, selectedTier?: string) {
     else if (totalQty >= 3) activeTier = 'reseller';
   }
   return activeTier;
+}
+
+function getCatalogFallbackUnitPrice(productName: string, tier: string): number {
+  const normalized = normalizeName(productName);
+  const prices: Record<string, Record<string, number>> = {
+    regular: { satuan: 265000, reseller: 240000, agen: 225000, agen_plus: 210000, sap: 195000, se: 175000 },
+    greenBlue: { satuan: 285000, reseller: 260000, agen: 245000, agen_plus: 225000, sap: 210000, se: 175000 },
+    beauty: { satuan: 195000, reseller: 195000, agen: 195000, agen_plus: 180000, sap: 170000, se: 150000 },
+  };
+  const group = normalized.includes('GREEN') || normalized.includes('KID') || normalized.includes('BLUE')
+    ? 'greenBlue'
+    : normalized.includes('BELGIE')
+      ? 'beauty'
+      : 'regular';
+  return prices[group][tier] ?? prices[group].satuan;
 }
 
 /**
@@ -152,51 +167,19 @@ async function applyTierPricing(items: SessionData['items'], selectedTier: strin
   ];
 
   let totalModal = 0;
-  let fallbackUsed = false;
   const updatedItems = items.map(i => {
-    const isBeauty = i.product_name.toUpperCase().includes('BELGIE') || i.product_name.toUpperCase().includes('STEFFI');
+    const isBeauty = i.product_name.toUpperCase().includes('BELGIE');
     const buyPrice = getPricingForTier(myLevel, isBeauty, customLevels || []);
     totalModal += (buyPrice * i.quantity);
 
     const catalogPrice = resolveCatalogUnitPrice(i, activeTier, catalog, tierCandidates);
     if (catalogPrice === null) {
-      // Mode migrasi: produk tidak menemukan baris katalog aktif → fallback legacy + logging.
-      fallbackUsed = true;
-      console.warn(`[telegram-bot] Fallback PRICE_TABLE untuk "${i.product_name}" tier ${activeTier}`);
-      const price = getPricingForTier(activeTier, isBeauty);
+      console.warn(`[telegram-bot] Fallback harga katalog untuk "${i.product_name}" tier ${activeTier}`);
+      const price = getCatalogFallbackUnitPrice(i.product_name, activeTier);
       return { ...i, price, subtotal: price * i.quantity, buy_price: buyPrice };
     }
     return { ...i, price: catalogPrice, subtotal: catalogPrice * i.quantity, buy_price: buyPrice };
   });
-
-  // Fallback legacy bundle reseller (3 botol = 650rb) hanya bila katalog tidak lengkap.
-  if (fallbackUsed && activeTier === 'reseller') {
-    let bpQty = 0;
-    updatedItems.forEach(i => {
-      const isBeauty = i.product_name.toUpperCase().includes('BELGIE') || i.product_name.toUpperCase().includes('STEFFI');
-      if (!isBeauty) bpQty += i.quantity;
-    });
-
-    if (bpQty > 0) {
-      const bundles = Math.floor(bpQty / 3);
-      const remainder = bpQty % 3;
-      const bpBundleTotal = (bundles * 650000) + (remainder * 217000);
-
-      let assigned = 0;
-      let lastBpIndex = -1;
-      for (let i = 0; i < updatedItems.length; i++) {
-        const isB = updatedItems[i].product_name.toUpperCase().includes('BELGIE') || updatedItems[i].product_name.toUpperCase().includes('STEFFI');
-        if (!isB) {
-          assigned += updatedItems[i].subtotal!;
-          lastBpIndex = i;
-        }
-      }
-      if (assigned !== bpBundleTotal && lastBpIndex !== -1) {
-        updatedItems[lastBpIndex].subtotal! += (bpBundleTotal - assigned);
-        updatedItems[lastBpIndex].price = Math.round(updatedItems[lastBpIndex].subtotal! / updatedItems[lastBpIndex].quantity);
-      }
-    }
-  }
 
   return { items: updatedItems, buy_price: totalModal };
 }
@@ -334,7 +317,7 @@ async function parseFullText(text: string, tenantId: string): Promise<SessionDat
         });
 
         if (matched) {
-          const isBeauty = matched.name.toUpperCase().includes('BELGIE') || matched.name.toUpperCase().includes('STEFFI');
+          const isBeauty = matched.name.toUpperCase().includes('BELGIE');
           data.items.push({
             product_id: matched.id,
             product_name: matched.name.replace(' Satuan', ''),
@@ -356,7 +339,7 @@ async function parseFullText(text: string, tenantId: string): Promise<SessionDat
     }
 
     const totalQty = data.items.reduce((s, i) => s + i.quantity, 0);
-    const hasBeauty = data.items.some(i => i.product_name.toUpperCase().includes('BELGIE') || i.product_name.toUpperCase().includes('STEFFI'));
+    const hasBeauty = data.items.some(i => i.product_name.toUpperCase().includes('BELGIE'));
 
     // Update Harga Satuan & Total Modal
     const pricingRes = await applyTierPricing(data.items, data.customer_info?.tier || 'satuan', customLevels || [], myLevel);

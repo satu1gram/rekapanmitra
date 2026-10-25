@@ -1,5 +1,6 @@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { getRetailFallbackPrice } from '@/lib/pricing';
 import {
   Select,
   SelectContent,
@@ -36,8 +37,8 @@ export function OrderItemRow({
       onUpdate(index, {
         productId: undefined,
         productName: '',
-        pricePerBottle: 250000,
-        subtotal: item.quantity * 250000,
+        pricePerBottle: getRetailFallbackPrice('', 'satuan'),
+        subtotal: item.quantity * getRetailFallbackPrice('', 'satuan'),
       });
       return;
     }

@@ -4,15 +4,13 @@
  * Sumber kebenaran harga jual adalah baris katalog (kategori × package_type).
  * Resolver menentukan tier dari total kuantitas, memetakan tier ke package_type,
  * lalu menghitung harga unit dari harga paket katalog.
- *
- * Fallback ke PRICE_TABLE legacy hanya untuk mode migrasi / katalog tidak lengkap,
- * selalu disertai logging agar pemakaian fallback terpantau.
+ * Fallback memakai harga jual terbaru jika baris katalog belum tersedia.
  *
  * Dipakai oleh: TambahOrderFlow, OrderForm, ChatInterface (AI order).
  */
 
 import { TierType } from '@/types';
-import { getActiveTier, PRICE_TABLE } from './pricing';
+import { getActiveTier, getRetailFallbackPrice } from './pricing';
 
 export interface CatalogProduct {
   id: string;
@@ -35,6 +33,13 @@ export const TIER_PACKAGE_TYPE: Record<TierType, string> = {
 };
 
 const TIER_ORDER: TierType[] = ['satuan', 'reseller', 'agen', 'agen_plus', 'sap', 'se'];
+
+const CATEGORY_ALIASES: Record<string, string[]> = {
+  KID: ['BRITISHPROPOLISGREEN', 'BPGREEN', 'KIDS', 'KID', 'GREEN'],
+  BLUE: ['BRITISHPROPOLISBLUE', 'BPBLUE', 'BLUE'],
+  BP: ['BRITISHPROPOLIS', 'BP'],
+};
+
 
 export interface PricedCatalogItem<T> {
   item: T;
@@ -69,8 +74,13 @@ function findCatalogRow(
   catalog: CatalogProduct[],
 ): CatalogProduct | undefined {
   const norm = normalizeName(productName);
+  const categoryAlias = Object.entries(CATEGORY_ALIASES)
+    .find(([, aliases]) => aliases.some(alias =>
+      norm === alias || (alias !== 'BP' && norm.startsWith(alias)),
+    ))?.[0];
   const active = catalog.filter(p => p.is_active && p.package_type === packageType);
   return (
+    active.find(p => normalizeName(p.category) === categoryAlias) ||
     active.find(p => normalizeName(p.category) === norm) ||
     active.find(p => normalizeName(p.name) === norm) ||
     active.find(p => normalizeName(p.name).includes(norm) && norm.length >= 3) ||
@@ -78,10 +88,8 @@ function findCatalogRow(
   );
 }
 
-function fallbackUnitPrice(productName: string, tier: TierType): number {
-  const isBeauty = productName.toUpperCase().includes('BELGIE') || productName.toUpperCase().includes('STEFFI');
-  const tierData = PRICE_TABLE[tier] || PRICE_TABLE['satuan'];
-  return isBeauty ? tierData.beauty : tierData.bp;
+export function getFallbackUnitPrice(productName: string, tier: TierType): number {
+  return getRetailFallbackPrice(productName, tier);
 }
 
 /**
@@ -122,10 +130,10 @@ export function resolveCatalogPricing<T extends { productName: string; quantity:
 
     if (unitPrice === null) {
       console.warn(
-        `[catalogPricing] Fallback PRICE_TABLE untuk "${item.productName}" tier ${activeTier}: ` +
+        `[catalogPricing] Fallback harga jual untuk "${item.productName}" tier ${activeTier}: ` +
         'baris katalog aktif tidak ditemukan.',
       );
-      unitPrice = fallbackUnitPrice(item.productName, activeTier);
+      unitPrice = getFallbackUnitPrice(item.productName, activeTier);
       return {
         item,
         productId,

@@ -38,7 +38,7 @@ interface ChatInterfaceProps {
   mode: ChatMode;
   mitraLevel?: MitraLevel;
   customBuyPrice?: number | null;
-  onConfirmOrder?: (parsed: ParsedOrder, pricingInfo?: { items: { productName: string; quantity: number; pricePerBottle: number; subtotal: number }[], tier: TierType }) => Promise<boolean>;
+  onConfirmOrder?: (parsed: ParsedOrder, pricingInfo?: { items: { productName: string; productId: string | null; quantity: number; pricePerBottle: number; subtotal: number }[], tier: TierType }) => Promise<boolean>;
   onConfirmRestok?: (parsed: ParsedRestok & { buyPricePerBottle: number }) => Promise<boolean>;
   onSuccess?: () => void;
 }
@@ -226,7 +226,7 @@ function CorrectionForm({ result, onSave, onCancel }: {
 function OrderResultCard({ msg, onCorrect, onConfirm, confirming, mitraLevel, customBuyPrice, onSuccess }: {
   msg: ChatMessage;
   onCorrect: (raw: string, corrected: ParsedOrder) => void;
-  onConfirm: (result: ParsedOrder, pricingInfo?: { items: { productName: string; quantity: number; pricePerBottle: number; subtotal: number }[], tier: TierType }) => Promise<boolean>;
+  onConfirm: (result: ParsedOrder, pricingInfo?: { items: { productName: string; productId: string | null; quantity: number; pricePerBottle: number; subtotal: number }[], tier: TierType }) => Promise<boolean>;
   confirming: boolean;
   mitraLevel?: MitraLevel;
   customBuyPrice?: number | null;
@@ -287,8 +287,9 @@ function OrderResultCard({ msg, onCorrect, onConfirm, confirming, mitraLevel, cu
     baseTier,
     catalog,
   );
-  const pricedItems = pricingResult.priced.map(({ item, pricePerBottle, subtotal }) => ({
+  const pricedItems = pricingResult.priced.map(({ item, productId, pricePerBottle, subtotal }) => ({
     productName: item.productName,
+    productId,
     quantity: item.quantity,
     pricePerBottle,
     subtotal,
@@ -464,7 +465,7 @@ function RestokResultCard({ msg, onCorrect, onConfirm, confirming, mitraLevel, c
   const [confirmed, setConfirmed] = useState(false);
   const [countdown, setCountdown] = useState<number | null>(null);
   const result = msg.parseResult as ParsedRestok;
-  const standardBuyPrice = mitraLevel ? MITRA_LEVELS[mitraLevel].buyPricePerBottle : 217000;
+  const standardBuyPrice = mitraLevel ? MITRA_LEVELS[mitraLevel].buyPricePerBottle : 240000;
   const buyPrice = mitraLevel === 'custom' && customBuyPrice != null ? customBuyPrice : standardBuyPrice;
   const totalQty = result.items.reduce((s, i) => s + i.qty, 0);
   const totalHarga = totalQty * buyPrice;
@@ -610,7 +611,7 @@ export function ChatInterface({ mode, mitraLevel, customBuyPrice, onConfirmOrder
     return newMsg;
   }, []);
 
-  const handleConfirmOrder = useCallback(async (result: ParsedOrder, pricingInfo?: { items: { productName: string; quantity: number; pricePerBottle: number; subtotal: number }[], tier: TierType }) => {
+  const handleConfirmOrder = useCallback(async (result: ParsedOrder, pricingInfo?: { items: { productName: string; productId: string | null; quantity: number; pricePerBottle: number; subtotal: number }[], tier: TierType }) => {
     if (!onConfirmOrder) return false;
     setConfirming(result.raw);
     try {
@@ -624,7 +625,7 @@ export function ChatInterface({ mode, mitraLevel, customBuyPrice, onConfirmOrder
 
   const handleConfirmRestok = useCallback(async (result: ParsedRestok) => {
     if (!onConfirmRestok) return false;
-    const standardBuyPrice = mitraLevel ? MITRA_LEVELS[mitraLevel].buyPricePerBottle : 217000;
+    const standardBuyPrice = mitraLevel ? MITRA_LEVELS[mitraLevel].buyPricePerBottle : 240000;
     const buyPricePerBottle = mitraLevel === 'custom' && customBuyPrice != null ? customBuyPrice : standardBuyPrice;
     setConfirming(result.raw);
     try {

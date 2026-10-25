@@ -4,7 +4,7 @@ import { cn } from '@/lib/utils';
 import { formatCurrency } from '@/lib/formatters';
 import { useProducts } from '@/hooks/useProducts';
 import { TierType, OrderItem } from '@/types';
-import { resolveCatalogPricing, type CatalogProduct } from '@/lib/catalogPricing';
+import { resolveCatalogPricing, getFallbackUnitPrice, type CatalogProduct } from '@/lib/catalogPricing';
 import type { Tables } from '@/integrations/supabase/types';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -95,7 +95,7 @@ export function OrderForm({ customers, submitting, onSubmit, onCancel, onEditCus
       const initialItems = categories.map(cat => ({
         productName: cat,
         quantity: 0,
-        pricePerBottle: 250000,
+        pricePerBottle: getFallbackUnitPrice(cat, 'satuan'),
         subtotal: 0,
       }));
       setItems(recalcItems(initialItems, tier));

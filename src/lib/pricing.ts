@@ -14,13 +14,29 @@ export interface PricedItem {
 
 // Tabel harga dasar per tier
 export const PRICE_TABLE: Record<string, { bp: number; beauty: number }> = {
-  satuan:    { bp: 250000, beauty: 195000 },
-  reseller:  { bp: 217000, beauty: 195000 },
-  agen:      { bp: 198000, beauty: 195000 },
-  agen_plus: { bp: 180000, beauty: 180000 },
-  sap:       { bp: 170000, beauty: 170000 },
-  se:        { bp: 150000, beauty: 150000 },
+  satuan:    { bp: 265000, beauty: 195000 },
+  reseller:  { bp: 240000, beauty: 195000 },
+  agen:      { bp: 225000, beauty: 195000 },
+  agen_plus: { bp: 210000, beauty: 180000 },
+  sap:       { bp: 195000, beauty: 170000 },
+  se:        { bp: 175000, beauty: 150000 },
 };
+
+const RETAIL_FALLBACKS: Record<string, Record<TierType, number>> = {
+  regular: { satuan: 265000, reseller: 240000, agen: 225000, agen_plus: 210000, sap: 195000, se: 175000 },
+  greenBlue: { satuan: 285000, reseller: 260000, agen: 245000, agen_plus: 225000, sap: 210000, se: 175000 },
+  beauty: { satuan: 195000, reseller: 195000, agen: 195000, agen_plus: 180000, sap: 170000, se: 150000 },
+};
+
+export function getRetailFallbackPrice(productName: string, tier: TierType): number {
+  const normalized = productName.toUpperCase().replace(/[^A-Z0-9]/g, '');
+  const group = normalized.includes('BELGIE')
+    ? 'beauty'
+    : normalized.includes('GREEN') || normalized.includes('KID') || normalized.includes('BLUE')
+      ? 'greenBlue'
+      : 'regular';
+  return RETAIL_FALLBACKS[group][tier] ?? RETAIL_FALLBACKS[group].satuan;
+}
 
 export const TIER_PRIORITY: Record<string, number> = {
   satuan: 0, reseller: 1, agen: 2, agen_plus: 3, sap: 4, se: 5,
@@ -44,14 +60,10 @@ export function getActiveTier(baseTier: TierType, totalQty: number): TierType {
 
 export function isBeautyProduct(name: string): boolean {
   const u = name.toUpperCase();
-  return u.includes('BELGIE') || u.includes('STEFFI');
+  return u.includes('BELGIE');
 }
 
-/**
- * Kalkulasi ulang semua item dengan harga yang benar.
- * - BP (bukan beauty): bila activeTier === 'reseller', pakai logika bundle 3=650rb
- * - Beauty (Belgie/Steffi): selalu pakai harga tier, tidak ada bundle khusus
- */
+/** Recalculate legacy order data using the current retail fallback tiers. */
 export function recalcPricing<T extends { productName: string; quantity: number }>(
   items: T[],
   baseTier: TierType
@@ -59,32 +71,9 @@ export function recalcPricing<T extends { productName: string; quantity: number 
   const totalQty = items.reduce((s, i) => s + i.quantity, 0);
   const activeTier = getActiveTier(baseTier, totalQty);
 
-  // Hitung total BP qty untuk bundle reseller
-  const bpQty = items
-    .filter(i => !isBeautyProduct(i.productName))
-    .reduce((s, i) => s + i.quantity, 0);
-
-  let bpBundleTotal = 0;
-  if (activeTier === 'reseller') {
-    const bundles = Math.floor(bpQty / 3);
-    const remainder = bpQty % 3;
-    bpBundleTotal = bundles * 650000 + remainder * 217000;
-  }
-
   return items.map(item => {
-    const isBeauty = isBeautyProduct(item.productName);
-    const tierData = PRICE_TABLE[activeTier] || PRICE_TABLE['satuan'];
-    let pricePerBottle: number;
-    let subtotal: number;
-
-    if (!isBeauty && activeTier === 'reseller' && bpQty > 0) {
-      // Distribusi proporsional dari bundle total
-      subtotal = Math.round((item.quantity / bpQty) * bpBundleTotal);
-      pricePerBottle = item.quantity > 0 ? Math.round(subtotal / item.quantity) : tierData.bp;
-    } else {
-      pricePerBottle = isBeauty ? tierData.beauty : tierData.bp;
-      subtotal = pricePerBottle * item.quantity;
-    }
+    const pricePerBottle = getRetailFallbackPrice(item.productName, activeTier);
+    const subtotal = pricePerBottle * item.quantity;
 
     return { ...item, pricePerBottle, subtotal };
   });

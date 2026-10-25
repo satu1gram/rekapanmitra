@@ -13,6 +13,7 @@ import { useProducts } from '@/hooks/useProducts';
 import { useGeneralExpenses } from '@/hooks/useGeneralExpenses';
 import { useGeneralIncome } from '@/hooks/useGeneralIncome';
 import { TierType, OrderItem, MITRA_LEVELS, OrderStatus } from '@/types';
+import { getRetailFallbackPrice } from '@/lib/pricing';
 import {
   Loader2,
   Calendar,
@@ -360,18 +361,19 @@ export function OrdersPage({ openAddForm = false, onAddFormClose }: OrdersPagePr
         mode="order"
         open={showBotModal}
         onClose={() => setShowBotModal(false)}
-        onConfirmOrder={async (parsed: ParsedOrder, pricingInfo?: { items: any[], tier: string }) => {
+        onConfirmOrder={async (parsed: ParsedOrder, pricingInfo?: { items: { productName: string; productId: string | null; quantity: number; pricePerBottle: number; subtotal: number }[], tier: string }) => {
           // Gunakan hasil perhitungan pricingInfo jika ada, kalau tidak fallback ke parsed raw
           const rawItems = pricingInfo?.items || parsed.items.map(item => ({
             productName: item.nama,
+            productId: null,
             quantity: item.qty,
-            pricePerBottle: 250000, // harga default satuan — form summary bisa koreksi
-            subtotal: item.qty * 250000,
+            pricePerBottle: getRetailFallbackPrice(item.nama, 'satuan'),
+            subtotal: item.qty * getRetailFallbackPrice(item.nama, 'satuan'),
           }));
           const items = rawItems.map(item => {
             const canonicalName = getCanonicalProductLabel(item.productName);
             const normalizedName = canonicalName.toLowerCase().trim();
-            const product = products.find(p =>
+            const product = products.find(p => p.id === item.productId) || products.find(p =>
               p.name.toLowerCase().trim() === normalizedName ||
               p.category.toLowerCase().trim() === normalizedName
             );

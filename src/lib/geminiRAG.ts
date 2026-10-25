@@ -3,6 +3,7 @@
 // ============================================================
 
 import { supabase } from "@/integrations/supabase/client";
+import { KATALOG_PRODUCTS } from "@/data/katalogProducts";
 
 // ── Tipe data ─────────────────────────────────────────────────────
 export interface RAGResult {
@@ -16,7 +17,7 @@ export interface RAGResult {
 
 // ── Cache ──────────────────────────────────────────────────────────
 const CACHE_TTL_HOURS = 24;
-const CACHE_PREFIX = 'bp_gemini_v2_';
+const CACHE_PREFIX = 'bp_gemini_v3_';
 
 interface CacheEntry { value: string; expiry: number; }
 
@@ -258,7 +259,7 @@ function getDynamicFallback(query: string): RAGResult {
             name,
             emoji: productDetails[name]?.emoji || '🌿',
             reason: productDetails[name]?.reason || 'Mendukung kesehatan tubuh secara menyeluruh',
-            price: 'Rp 250.000'
+            price: KATALOG_PRODUCTS.find(product => product.name === name)?.price || 'Rp 265.000'
         })),
         cta: "Untuk saran lebih akurat, konsultasikan langsung via chat — gratis! 💬",
         testimonials: []
