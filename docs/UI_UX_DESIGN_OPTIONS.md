@@ -1,6 +1,8 @@
-# MULA mobile: pilihan UI/UX dan aktivitas multiproduk
+# Arsip eksplorasi: pilihan UI/UX dan aktivitas multiproduk
 
 25 Oktober 2026 · branch `preview/mobile-ai` · prototipe React + Capacitor.
+
+**Status terbaru:** pengguna telah memilih **Bold Fintech** dengan referensi visual tambahan. Implementasi aktif dan panduan ada di [Bold Fintech Reference](BOLD_FINTECH_REFERENCE.md). Dokumen ini menyimpan perbandingan sebelum keputusan tersebut; rute desain lama kini mengikuti tampilan Bold yang dipilih.
 
 ## Pilihan yang bisa dicoba
 

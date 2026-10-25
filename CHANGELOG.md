@@ -6,6 +6,8 @@ Semua perubahan penting pada proyek **Rekapan Mitra** akan dicatat di sini.
 
 ## [2.9.0] - 2026-10-24
 ### Added
+- Arah UI/UX Bold Fintech berdasarkan referensi pengguna diterapkan sebagai default seluruh prototipe: onboarding imersif, foto katalog lokal, grid produk/favorit, detail cover, keranjang dengan stepper/panel total, timeline order/restok, profil dan navigasi empat tujuan.
+- Perbaikan transisi wizard/checkout agar kembali ke heading, pencarian beranda yang terhubung ke daftar order, guard submit toko, dan board/PDF review desain terpilih.
 - Keranjang multiproduk pada order dan restok: pilih beberapa SKU sekaligus, jumlah/modal per produk, satu ringkasan/ID/konfirmasi. Penerimaan pembelian memperbarui seluruh SKU satu kali; pembatalan mengoreksi seluruh baris dan ekuivalen.
 - Galeri tiga arah desain UI/UX yang dapat dicoba di seluruh prototipe: Calm Finance, Bold Fintech, Warm Companion; dilengkapi desk research Material/WCAG, screenshot perbandingan, dan pengujian alur multiproduk. Pilihan final belum ditetapkan.
 - Full mockup mobile 53 layar: splash/onboarding/akun, setup usaha, order-review-payment-fulfillment, nota dan retur penuh, stok/restok, laporan, pelanggan, katalog, toko, koneksi, profil, privasi, keamanan, tim, paket dan bantuan. Semua perubahan sesi tetap terisolasi dari produksi.

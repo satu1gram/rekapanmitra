@@ -15,7 +15,7 @@ const server = createServer((req, res) => {
   const pathname = decodeURIComponent(new URL(req.url, 'http://localhost').pathname);
   const file = path.resolve(dist, `.${pathname === '/' ? '/index.html' : pathname}`);
   if (!file.startsWith(`${dist}${path.sep}`) || !existsSync(file)) { res.writeHead(404); res.end(); return; }
-  const mime = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png', '.svg': 'image/svg+xml' }[path.extname(file)] || 'application/octet-stream';
+  const mime = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png', '.svg': 'image/svg+xml', '.webp': 'image/webp' }[path.extname(file)] || 'application/octet-stream';
   res.writeHead(200, { 'content-type': mime }); res.end(readFileSync(file));
 });
 await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
@@ -27,6 +27,7 @@ try {
   const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
   const page = await context.newPage();
   page.on('pageerror', error => errors.push(error.message));
+  page.on('response', response => { if (response.status() >= 400) errors.push(`HTTP ${response.status()}: ${response.url()}`); });
   page.on('request', request => { if (!request.url().startsWith(base) && !/^(data:|blob:)/.test(request.url())) external.push(request.url()); });
   const device = page.locator('.p-device');
   const navigate = async route => { await page.evaluate(value => { location.hash = value; }, route); await page.waitForURL(url => url.hash === `#${route}`); await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))); };
@@ -34,6 +35,7 @@ try {
     const file = `screens/${String(screenshots.length + 1).padStart(2, '0')}.png`;
     const dismiss = device.getByRole('button', { name: 'Tutup pemberitahuan', exact: true });
     if (await dismiss.count()) await dismiss.click();
+    await device.locator('img').evaluateAll(async images => { await Promise.all(images.filter(img => { const box = img.getBoundingClientRect(); return box.top < innerHeight && box.bottom > 0; }).map(async img => { img.loading = 'eager'; await img.decode(); })); });
     await device.screenshot({ path: path.join(output, file) }); screenshots.push({ name, path: route, group, file });
   };
   const screens = [...readFileSync(path.join(root, 'src/prototype/screens.ts'), 'utf8').matchAll(/\['([^']+)', '([^']+)', '([^']+)'\]/g)].map(m => ({ group: m[1], route: m[2], name: m[3] }));
@@ -141,7 +143,7 @@ try {
   await navigate('/target');
   await device.getByLabel('Target omzet bulan ini (Rp)', { exact: true }).fill('1234567');
   await device.getByRole('button', { name: 'Simpan target', exact: true }).click();
-  await device.getByText('dari Rp 1.234.567', { exact: true }).waitFor();
+  await device.locator('.p-sales-target').getByText('dari Rp 1.234.567', { exact: false }).waitFor();
   await navigate('/income');
   await device.getByRole('button', { name: 'Tambah pendapatan', exact: true }).click();
   await device.getByLabel('Nama catatan', { exact: true }).fill('Bonus contoh');

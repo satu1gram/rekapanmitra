@@ -8,7 +8,7 @@
 
 Prototipe mobile lengkap tersedia mulai splash hingga operasional usaha, dengan **54 layar** yang saling terhubung. Order dan restok mendukung **beberapa produk dalam satu aktivitas**, dengan jumlah/modal per SKU, satu total, dan satu nomor transaksi. Lihat [peta fitur, panduan mencoba, dan artefak desain](docs/FULL_MOBILE_PROTOTYPE.md). Entry preview saat ini memakai prototipe ini; data dan koneksinya tetap simulasi.
 
-Bandingkan tiga pilihan UI/UX pada [galeri desain preview](https://rekapanmitra-mobile-demo.pages.dev/#/designs): Calm Finance, Bold Fintech, dan Warm Companion. [Dasar riset, tradeoff, dan alur multiproduk](docs/UI_UX_DESIGN_OPTIONS.md) menjelaskan rekomendasi awal; belum ada pilihan desain final.
+Desain aktif memakai **Bold Fintech** berdasarkan referensi mobile pilihan pengguna: foto produk, katalog dua kolom, keranjang multiproduk, panel total/CTA, timeline aktivitas, dan navigasi empat tujuan. Lihat [panduan desain preview](https://rekapanmitra-mobile-demo.pages.dev/#/designs) serta [analisis referensi, spesifikasi, dan validasi](docs/BOLD_FINTECH_REFERENCE.md).
 
 Rancangan gabungan MULA Smart Order dan Rekapan Mitra tersedia di [MULA × BP Product Plan](docs/MULA_BP_PRODUCT_PLAN.md). Preview branch menampilkan simulasi order → review → konfirmasi → laporan, pembelian pemasok, stok SKU, dan progres level bulanan. Aturan usulan ini belum diaktifkan pada backend produksi.
 

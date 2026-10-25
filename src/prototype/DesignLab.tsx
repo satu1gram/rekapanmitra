@@ -1,31 +1,23 @@
-import { Link, useNavigate } from 'react-router-dom';
-import { ArrowUpRight, Check, Palette, Package, ClipboardList } from 'lucide-react';
-import { DESIGN_OPTIONS } from './designOptions';
-import { usePrototype } from './context';
-import { businessSummary, today } from './model';
-import { money } from './format';
-import { Page, Card, Button, Note, Pill } from './ui';
+import { Link } from 'react-router-dom';
+import { CheckCircle2, ArrowUpRight } from 'lucide-react';
+import { BOLD_PALETTE } from './designOptions';
+import { Page, Card, Note, Pill } from './ui';
 
 export function DesignLab() {
-  const { data, update, notify } = usePrototype(); const navigate = useNavigate();
-  const summary = businessSummary(data, today().slice(0, 7));
-  return <Page title="Pilih arah desain" subtitle="Bandingkan isi yang sama dalam tiga pendekatan">
-    <Note>Belum ada desain final yang diterapkan. Pilihan di sini hanya mengubah tampilan prototipe pada sesi ini; angka dan aturan bisnis tetap sama.</Note>
-    {DESIGN_OPTIONS.map(option => <Card key={option.id} className="p-design-option">
-      <div className="p-between"><div><span className="p-small">OPSI {option.code}</span><h2>{option.name}</h2></div>{option.recommended ? <Pill>Rekomendasi</Pill> : <span className="p-row-icon"><Palette size={22} /></span>}</div>
-      <p>{option.tagline}</p>
-      <div className={`p-design-sample ${option.id}`}>
-        <div className="p-sample-top"><strong>MULA</strong><span>Halo, Bu Rina</span></div>
-        {option.id === 'warm' && <div className="p-sample-task"><Check size={16} />Periksa draf sebelum mulai jualan</div>}
-        <div className="p-sample-finance"><span>Omzet terkonfirmasi</span><strong>{money(summary.revenue)}</strong><small>Estimasi hasil {money(summary.net)}</small><div>+ Catat pesanan</div></div>
-        <div className="p-sample-grid"><span><Package size={16} />Stok & restok</span><span><ClipboardList size={16} />Pesanan</span></div>
-      </div>
-      <div className="p-palette" aria-label={`Palet ${option.name}`}>{option.palette.map(color => <span key={color} style={{ background: color }} />)}</div>
-      <p className="p-small">{option.description}</p><p className="p-small"><strong>Cocok untuk:</strong> {option.bestFor}</p><p className="p-small"><strong>Pertimbangan:</strong> {option.tradeoff}</p>
-      <Button onClick={() => { update(d => ({ ...d, design: option.id })); notify(`Sedang mencoba opsi ${option.code} · ${option.name}. Ini belum pilihan desain final.`); navigate(`/home?design=${option.id}`); }}>{data.design === option.id ? 'Coba lagi' : 'Coba di seluruh layar'} · {option.code}<ArrowUpRight size={18} /></Button>
-      <div className="p-action-row"><Link className="p-button secondary" to={`/compose?example=multi&design=${option.id}`}>Order multiproduk</Link><Link className="p-button secondary" to={`/purchase/new?example=multi&design=${option.id}`}>Restok multiproduk</Link></div>
-    </Card>)}
-    <Button secondary onClick={() => { update(d => ({ ...d, design: 'current' })); notify('Tampilan awal dipulihkan.'); navigate('/home'); }}>Kembali ke tampilan awal</Button>
-    <Card><h2>Dasar perbandingan</h2><p className="p-small">Perbedaan bukan hanya warna: hierarki angka, kepadatan informasi, bentuk kartu, serta urutan tindakan ikut berubah. Ketiga opsi memakai alur dan data yang sama agar mudah dibandingkan.</p><p className="p-small">Arah ini diturunkan dari dokumentasi resmi Material Design dan WCAG. Belum merupakan hasil usability test pada pengguna BP atau sertifikasi aksesibilitas.</p></Card>
+  return <Page title="Arah desain MULA" subtitle="Bold Fintech · mengacu pada referensi pilihan Anda">
+    <section className="p-hero"><Pill><CheckCircle2 size={13} />Desain yang dipilih</Pill><strong>Jelas angkanya.<br />Ringan mencatatnya.</strong><p className="p-small">Foto produk yang mudah dikenali, keranjang yang rapi, dan satu langkah utama pada setiap layar.</p></section>
+    <div className="p-design-palette">{BOLD_PALETTE.map(color => <div key={color.name}><span style={{ background: color.value }} /><strong>{color.name}</strong><small>{color.value}</small><p>{color.role}</p></div>)}</div>
+    <Card><h2>Dari referensi ke MULA</h2><div className="p-design-principles">{[
+      ['01', 'Awal yang berkarakter', 'Layar pembuka dengan judul tegas, visual produk, dan satu tombol mulai.'],
+      ['02', 'Temukan lebih cepat', 'Pencarian di atas, kategori ringkas, dan kartu produk dengan foto asli katalog.'],
+      ['03', 'Keranjang yang transparan', 'Thumbnail, jumlah yang bisa langsung diubah, modal per SKU, dan ringkasan satu transaksi.'],
+      ['04', 'Tahu langkah berikutnya', 'Progres order dan restok mengikuti aktivitas yang benar-benar dicatat. Pembayaran tetap terpisah.'],
+      ['05', 'Satu bahasa visual', 'Permukaan putih, jarak lapang, ikon konsisten, dan navigasi empat tujuan yang tetap.'],
+    ].map(([number, title, description]) => <div key={number}><span>{number}</span><div><h3>{title}</h3><p className="p-small">{description}</p></div></div>)}</div></Card>
+    <Card><h2>Coba perjalanan utamanya</h2>{[
+      ['/welcome', 'Mulai & pengenalan'], ['/home', 'Beranda usaha'], ['/catalog', 'Katalog produk'], ['/catalog/GREEN', 'Detail produk'],
+      ['/compose?example=multi', 'Order beberapa produk'], ['/purchase/new?example=multi', 'Restok beberapa produk'], ['/orders/ORD-1031', 'Progres pesanan'], ['/settings', 'Akun & usaha'],
+    ].map(([route, title]) => <Link className="p-row" key={route} to={route}><span className="p-row-copy"><strong>{title}</strong></span><ArrowUpRight size={19} /></Link>)}</Card>
+    <Note>Seluruh angka dan transaksi masih berupa data contoh. Melihat serta mencoba prototipe tidak mengubah usaha di production.</Note>
   </Page>;
 }

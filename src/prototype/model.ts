@@ -24,6 +24,7 @@ export interface PrototypeData {
   biometric: boolean; autoLock: boolean; plan: string;
   openingBySku: Record<string, number>;
   design: DesignTheme;
+  favoriteSkus: string[];
 }
 export const today = () => businessDate(new Date());
 export const newId = () => crypto.randomUUID();
@@ -84,7 +85,7 @@ export function seedPrototype(empty = false): PrototypeData {
       { id: 'PO-204', lines: [{ sku: 'BP', quantity: 2, unitCost: 225000 }, { sku: 'BLUE', quantity: 1, unitCost: 245000 }, { sku: 'FW', quantity: 4, unitCost: 195000 }], purchaseDate: day, receivedDate: null, supplier: 'Distributor BP (contoh)', notes: 'Satu rencana restok berisi tiga produk.', status: 'planned' },
     ],
     cash: empty ? [] : [{ id: 'EXP-1', date: day, name: 'Transport antar paket', amount: 15000, kind: 'expense', category: 'Transportasi' }, { id: 'INC-1', date: day, name: 'Bonus penjualan', amount: 30000, kind: 'income', category: 'Bonus' }],
-    adjustments: [], connections: { whatsapp: false, telegram: false }, offline: false, aiError: false, notifications: true, aiConsent: false, team: [{ id: 'owner', name: 'Bu Rina', email: 'rina@example.test', role: 'Pemilik' }], biometric: false, autoLock: true, plan: 'Pilot internal', openingBySku: {}, design: 'current',
+    adjustments: [], connections: { whatsapp: false, telegram: false }, offline: false, aiError: false, notifications: true, aiConsent: false, team: [{ id: 'owner', name: 'Bu Rina', email: 'rina@example.test', role: 'Pemilik' }], biometric: false, autoLock: true, plan: 'Pilot internal', openingBySku: {}, design: 'bold', favoriteSkus: ['GREEN', 'BP'],
   };
 }
 
