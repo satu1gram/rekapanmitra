@@ -6,6 +6,7 @@ Semua perubahan penting pada proyek **Rekapan Mitra** akan dicatat di sini.
 
 ## [2.9.0] - 2026-10-24
 ### Added
+- Redesign keuangan berbasis prioritas pengguna dan walkthrough agent: uang diterima, tagihan, modal terjual dan estimasi laba dipisahkan; contoh order, pembayaran tambahan, daftar tagihan lintas periode dan penjelasan restok vs modal terjual. Beranda tugas/angka serta navigasi Beranda/Pesanan/Stok/Uang.
 - Arah UI/UX Bold Fintech berdasarkan referensi pengguna diterapkan sebagai default seluruh prototipe: onboarding imersif, foto katalog lokal, grid produk/favorit, detail cover, keranjang dengan stepper/panel total, timeline order/restok, profil dan navigasi empat tujuan.
 - Perbaikan transisi wizard/checkout agar kembali ke heading, pencarian beranda yang terhubung ke daftar order, guard submit toko, dan board/PDF review desain terpilih.
 - Keranjang multiproduk pada order dan restok: pilih beberapa SKU sekaligus, jumlah/modal per produk, satu ringkasan/ID/konfirmasi. Penerimaan pembelian memperbarui seluruh SKU satu kali; pembatalan mengoreksi seluruh baris dan ekuivalen.
@@ -20,6 +21,7 @@ Semua perubahan penting pada proyek **Rekapan Mitra** akan dicatat di sini.
 - Demo read-only `/demo/asisten` dengan data sintetis serta analisis migrasi mobile di `docs/MOBILE_AI_BLUEPRINT.md`.
 
 ### Fixed
+- Biaya chat 20rb/20.000 tidak lagi dibaca Rp20 atau diabaikan; nominal ambigu tetap kosong dan memblokir konfirmasi, draf tanpa pembeli dapat disimpan tanpa omzet, serta tanggal pembelian aktual tidak ditimpa tanggal konfirmasi.
 - Menetapkan output Cloudflare Pages demo ke `dist`, menyediakan build preview eksplisit, dan menolak hasil deploy yang masih memuat entry TSX mentah penyebab error MIME/white screen.
 - Validasi struktur hasil AI, kuantitas dan tanggal sebelum review; pemisahan mode order/restok.
 - Koreksi kartu AI memperbarui payload konfirmasi; produk tanpa katalog aktif diblokir dan estimasi modal disamakan dengan alur penyimpanan.

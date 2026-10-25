@@ -9,6 +9,7 @@ export interface Order extends MulaOrder {
   fulfillment: 'new' | 'preparing' | 'shipped' | 'completed';
   shipped: boolean; returned: boolean; syncPending?: boolean;
   paymentProof?: string;
+  captureWarnings?: string[];
 }
 export interface PurchaseLine { sku: string; quantity: number; unitCost: number }
 export interface Purchase { id: string; lines: PurchaseLine[]; purchaseDate: string; receivedDate: string | null; supplier: string; notes: string; status: 'planned' | 'ordered' | 'cancelled' }

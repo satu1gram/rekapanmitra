@@ -2,6 +2,8 @@
 
 25 Oktober 2026 (WIB) · prototipe mobile v3 · branch `preview/mobile-ai`.
 
+**Pembaruan v4:** visual Bold dipertahankan, tetapi prioritas informasi diubah berdasarkan keluhan keuangan pengguna dan walkthrough otomatis. Navigasi aktif kini Beranda/Pesanan/Stok/Uang. Lihat [evidence dan hasil redesign](research/MITRA_REDESIGN_EVIDENCE.md); dokumen ini mencatat fondasi visual v3.
+
 Pengguna memilih **Bold Fintech** dan memberikan referensi delapan layar aplikasi mobile. Arah ini sudah menjadi default pada seluruh prototipe. Halaman `/#/designs` sekarang menjelaskan sistem desain yang diterapkan; bukan lagi pemilihan A/B/C.
 
 ## Pembacaan referensi secara sistematis

@@ -6,6 +6,8 @@
 
 ## Pengembangan Android/iOS & Asisten Mitra
 
+Redesign terbaru memprioritaskan **kejelasan uang diterima, tagihan, modal produk terjual, dan estimasi laba**. Beranda berisi tindakan harian; tab Uang menjelaskan perbedaan angka dengan contoh order. Lihat [dasar evidence, batas riset dan pengujian](docs/research/MITRA_REDESIGN_EVIDENCE.md). Persona agent adalah simulasi; belum studi mitra manusia.
+
 Prototipe mobile lengkap tersedia mulai splash hingga operasional usaha, dengan **54 layar** yang saling terhubung. Order dan restok mendukung **beberapa produk dalam satu aktivitas**, dengan jumlah/modal per SKU, satu total, dan satu nomor transaksi. Lihat [peta fitur, panduan mencoba, dan artefak desain](docs/FULL_MOBILE_PROTOTYPE.md). Entry preview saat ini memakai prototipe ini; data dan koneksinya tetap simulasi.
 
 Desain aktif memakai **Bold Fintech** berdasarkan referensi mobile pilihan pengguna: foto produk, katalog dua kolom, keranjang multiproduk, panel total/CTA, timeline aktivitas, dan navigasi empat tujuan. Lihat [panduan desain preview](https://rekapanmitra-mobile-demo.pages.dev/#/designs) serta [analisis referensi, spesifikasi, dan validasi](docs/BOLD_FINTECH_REFERENCE.md).

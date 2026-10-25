@@ -228,8 +228,8 @@ try {
     for (const route of ['/home', '/catalog', '/catalog/GREEN', '/purchase/new?example=multi', '/settings', '/storefront']) {
       await navigate(route);
       assert.equal(await page.locator('.p-scroll').evaluate(el => el.scrollWidth > el.clientWidth + 1), false, `Overflow ${width}px ${route}`);
-      const expectedSection = route.startsWith('/catalog') ? 'Produk' : route === '/settings' ? 'Akun' : 'Beranda';
-      if (route !== '/storefront') assert.equal(await device.getByRole('navigation').locator('[aria-current=page]').innerText(), expectedSection, `Navigation context: ${route}`);
+      const expectedSection = route.startsWith('/catalog') || route.startsWith('/purchase') ? 'Stok' : route === '/settings' ? null : 'Beranda';
+      if (expectedSection && route !== '/storefront') assert.equal(await device.getByRole('navigation').locator('[aria-current=page]').innerText(), expectedSection, `Navigation context: ${route}`);
       const dock = device.locator('.p-action-dock');
       if (await dock.count()) {
         const bounds = await dock.boundingBox(); const nav = device.locator('.p-nav');

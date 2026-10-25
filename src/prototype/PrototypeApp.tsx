@@ -1,22 +1,24 @@
 import { useEffect, useRef } from 'react';
 import { Routes, Route, Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { BatteryFull, Wifi, Signal, Home as HomeIcon, ClipboardList, LayoutGrid, UserRound, X, CheckCircle2 } from 'lucide-react';
+import { BatteryFull, Wifi, Signal, Home as HomeIcon, ClipboardList, Package, Wallet, X, CheckCircle2 } from 'lucide-react';
 import { PrototypeProvider } from './store';
 import { usePrototype } from './context';
 import { Brand, Empty, Page } from './ui';
 import { PROTOTYPE_SCREENS } from './screens';
 import { DesignLab } from './DesignLab';
 import { Splash, Welcome, Login, Forgot, Setup, SetupDone } from './IntroPages';
-import { Notifications, TargetPage, Reports, CashPage, Stock, StockDetail, LevelPage } from './BusinessPages';
+import { Notifications, TargetPage, CashPage, Stock, StockDetail, LevelPage } from './BusinessPages';
 import { Purchases, PurchaseForm, PurchaseDetail } from './PurchasePages';
 import { AddOrder, Capture, Compose, OrderList, OrderDetail, OrderSuccess, Payment, Receipt, ReturnOrder } from './OrderPages';
 import { Customers, CustomerPage, Advisor, Profile, ShopSettings, Connections, Security, Privacy, Team, Plan, Help, Logout, Screens } from './SupportPages';
 import { Home } from './HomePage';
+import { Reports } from './MoneyPage';
 import { Catalog, CatalogDetail } from './CatalogPages';
 import { Settings } from './AccountPage';
 import { Storefront } from './StorefrontPage';
 import './prototype.css';
 import './reference-design.css';
+import './usability-redesign.css';
 
 function PrototypeShell() {
   const { data, update, reset, message, notify } = usePrototype(); const location = useLocation(); const navigate = useNavigate(); const scroll = useRef<HTMLDivElement>(null);
@@ -46,7 +48,7 @@ function PrototypeShell() {
         <Route path="/security" element={<Security />} /><Route path="/privacy" element={<Privacy />} /><Route path="/team" element={<Team />} /><Route path="/plan" element={<Plan />} /><Route path="/help" element={<Help />} /><Route path="/logout" element={<Logout />} /><Route path="/screens" element={<Screens />} />
         <Route path="*" element={<Page title="Layar tidak ditemukan"><Empty title="Mari kembali ke ruang usaha" text="Gunakan peta layar untuk menjelajahi alur yang tersedia." action={<Link className="p-button" to="/screens">Buka peta layar</Link>} /></Page>} />
       </Routes></div>
-      {!intro && <nav className="p-nav" aria-label="Navigasi utama">{[[HomeIcon, '/home', 'Beranda'], [LayoutGrid, '/catalog', 'Produk'], [ClipboardList, '/orders', 'Pesanan'], [UserRound, '/settings', 'Akun']].map(([Icon, to, label]) => { const I = Icon as typeof HomeIcon; const active = location.pathname === to || (to === '/home' && ['/reports', '/stock', '/purchase', '/level', '/target', '/notifications'].some(prefix => location.pathname.startsWith(prefix))) || (to === '/orders' && ['/orders/', '/compose', '/capture', '/add', '/order-success'].some(prefix => location.pathname.startsWith(prefix))) || (to === '/catalog' && location.pathname.startsWith('/catalog/')) || (to === '/settings' && ['/profile', '/shop', '/team', '/connections', '/security', '/privacy', '/plan', '/help', '/designs', '/screens'].some(prefix => location.pathname.startsWith(prefix))); return <Link className={active ? 'active' : ''} aria-current={active ? 'page' : undefined} key={to as string} to={to as string}><span><I size={21} /></span>{label as string}</Link>; })}</nav>}<div className="p-home-indicator" />
+      {!intro && <nav className="p-nav" aria-label="Navigasi utama">{[[HomeIcon, '/home', 'Beranda'], [ClipboardList, '/orders', 'Pesanan'], [Package, '/stock', 'Stok'], [Wallet, '/reports', 'Uang']].map(([Icon, to, label]) => { const I = Icon as typeof HomeIcon; const active = location.pathname === to || (to === '/home' && ['/target', '/notifications'].some(prefix => location.pathname.startsWith(prefix))) || (to === '/orders' && ['/orders/', '/compose', '/capture', '/add', '/order-success'].some(prefix => location.pathname.startsWith(prefix))) || (to === '/stock' && ['/catalog', '/purchase', '/level', '/stock/'].some(prefix => location.pathname.startsWith(prefix))) || (to === '/reports' && ['/expenses', '/income'].some(prefix => location.pathname.startsWith(prefix))); return <Link className={active ? 'active' : ''} aria-current={active ? 'page' : undefined} key={to as string} to={to as string}><span><I size={21} /></span>{label as string}</Link>; })}</nav>}<div className="p-home-indicator" />
     </div>
   </div>;
 }

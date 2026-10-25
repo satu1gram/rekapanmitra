@@ -1,12 +1,12 @@
 # MULA — full mobile prototype
 
-25 Oktober 2026 · UI prototype v3 · React + Capacitor · branch `preview/mobile-ai`.
+25 Oktober 2026 · UI prototype v4 · React + Capacitor · branch `preview/mobile-ai`.
 
 ## Membuka dan mencoba
 
 Proyek demo yang sama: https://rekapanmitra-mobile-demo.pages.dev/ (menunggu deployment commit terbaru). Buka root untuk mulai dari splash. Tautan langsung `/#/home` membuka Beranda dan `/#/screens` membuka peta layar.
 
-Desain aktif **Bold Fintech** mengacu referensi visual pengguna dan diterapkan pada seluruh layar. Halaman `/#/designs` menjelaskan arah yang dipilih. Lihat [analisis referensi, sistem visual, dan bukti pemeriksaan](BOLD_FINTECH_REFERENCE.md). Navigasi bawah: Beranda, Produk, Pesanan, Akun; laporan dapat dibuka dari banner beranda.
+Desain aktif **Bold Fintech** mengacu referensi visual pengguna dan diterapkan pada seluruh layar. Halaman `/#/designs` menjelaskan arah yang dipilih. Lihat [analisis referensi, sistem visual, dan bukti pemeriksaan](BOLD_FINTECH_REFERENCE.md). Navigasi bawah terbaru: Beranda, Pesanan, Stok, Uang. Profil ada di avatar; katalog dapat dibuka dari Stok atau beranda. Tab Uang memisahkan pembayaran, tagihan, modal terjual dan laba. Lihat [evidence redesign keuangan](research/MITRA_REDESIGN_EVIDENCE.md).
 
 - Desktop: gunakan daftar layar di kiri bingkai ponsel.
 - Ponsel: masuk melalui onboarding/login contoh, lalu **Akun & usaha → Jelajahi seluruh layar**.
@@ -82,7 +82,7 @@ Desain aktif **Bold Fintech** mengacu referensi visual pengguna dan diterapkan p
 | 21 | Pesanan | Baca screenshot | `#/capture/image` |
 | 22 | Pesanan | Terima dari Share | `#/capture/share` |
 | 23 | Pesanan | Form & review order | `#/compose` |
-| 24 | Usaha | Laporan & arus uang | `#/reports` |
+| 24 | Usaha | Uang, tagihan & laba | `#/reports` |
 | 25 | Usaha | Biaya umum | `#/expenses` |
 | 26 | Usaha | Pendapatan lain | `#/income` |
 | 27 | Usaha | Stok per produk | `#/stock` |
@@ -148,6 +148,7 @@ Ini menyiapkan aset prototipe dalam native shell; bukan bukti APK/IPA sudah diko
 
 - Prototipe interaktif di branch preview; deployment menggunakan `npm run build:cloudflare-preview`, output `dist`, root repository.
 - PDF kumpulan layar: `/workspace/artifacts/MULA-Mobile-Prototype.pdf`.
+- Hasil redesign keuangan terbaru, board sebelum/sesudah dan evidence: `/workspace/artifacts/MULA-Finance-Redesign.pdf` dan `.png`; tangkapan terfokus di `/workspace/artifacts/mula-finance-usability/`.
 - Board/PDF desain terpilih: `/workspace/artifacts/MULA-Bold-Fintech-Reference.png` dan `.pdf`. Perbandingan A/B/C sebelumnya merupakan arsip eksplorasi.
 - Gambar per layar dan manifest: `/workspace/artifacts/mula-mobile/`.
 - PDF menangkap viewport ponsel; form panjang dan bagian di bawah lipatan dapat ditelusuri penuh pada prototipe interaktif.
@@ -155,7 +156,7 @@ Ini menyiapkan aset prototipe dalam native shell; bukan bukti APK/IPA sudah diko
 
 ## Bukti pemeriksaan
 
-- **69 tes aplikasi lulus** pada 9 file, termasuk konsistensi stok fisik/alokasi, pembelian multiproduk, barang dalam perjalanan, stok awal per SKU, pembatalan/retur, serta snapshot historis.
+- **93 tes aplikasi lulus** pada 11 file, termasuk konsistensi stok fisik/alokasi, pembelian multiproduk, barang dalam perjalanan, stok awal per SKU, pembatalan/retur, serta snapshot historis.
 - **4 tes guard output build lulus**; preview tidak memuat source TSX mentah, module Auth/Supabase, atau endpoint produksi.
 - Browser Chromium berhasil membuka **54 layar terpetakan** pada viewport 390 × 844 dan merekam **67 tampilan**, termasuk variasi onboarding, review biaya, checkout, recovery, offline, serta modal belum lengkap.
 - Uji browser tambahan berhasil mencatat satu restok tiga SKU hingga diterima, pembatalan seluruh pembelian, satu order campuran beserta biaya satu kali/nota/alokasi, favorit, pencarian, checkout, transfer jumlah dari katalog serta desain Bold sebagai default; merekam 14 tampilan terfokus dan memeriksa layout serta panel aksi pada 360/390/430 piksel.
