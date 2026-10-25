@@ -5,8 +5,11 @@ import { PrototypeProvider } from './store';
 import { usePrototype } from './context';
 import { Brand, Empty, Page } from './ui';
 import { PROTOTYPE_SCREENS } from './screens';
+import { DesignLab } from './DesignLab';
+import './design-themes.css';
 import { Splash, Welcome, Login, Forgot, Setup, SetupDone } from './IntroPages';
-import { Home, Notifications, TargetPage, Reports, CashPage, Stock, StockDetail, Purchases, PurchaseForm, PurchaseDetail, LevelPage } from './BusinessPages';
+import { Home, Notifications, TargetPage, Reports, CashPage, Stock, StockDetail, LevelPage } from './BusinessPages';
+import { Purchases, PurchaseForm, PurchaseDetail } from './PurchasePages';
 import { AddOrder, Capture, Compose, OrderList, OrderDetail, OrderSuccess, Payment, Receipt, ReturnOrder } from './OrderPages';
 import { Customers, CustomerPage, Catalog, CatalogDetail, Advisor, Settings, Profile, ShopSettings, Storefront, Connections, Security, Privacy, Team, Plan, Help, Logout, Screens } from './SupportPages';
 import './prototype.css';
@@ -15,14 +18,19 @@ function PrototypeShell() {
   const { data, update, reset, message, notify } = usePrototype(); const location = useLocation(); const navigate = useNavigate(); const scroll = useRef<HTMLDivElement>(null);
   const intro = ['/', '/welcome', '/login', '/register', '/forgot', '/setup', '/setup-stock', '/setup-store', '/setup-done', '/logout', '/storefront'].includes(location.pathname);
   useEffect(() => { scroll.current?.scrollTo({ top: 0 }); }, [location.pathname, location.search]);
+  useEffect(() => {
+    const design = new URLSearchParams(location.search).get('design');
+    if (design === 'calm' || design === 'bold' || design === 'warm') update(d => d.design === design ? d : { ...d, design });
+  }, [location.search, update]);
   useEffect(() => { if (!message) return; const timer = setTimeout(() => notify(''), 5500); return () => clearTimeout(timer); }, [message, notify]);
-  return <div className="p-stage">
-    <aside className="p-sidebar"><Brand /><p className="p-sidebar-note">Prototipe mobile lengkap.<br />Pilih layar atau ikuti perjalanan dari awal.</p><div className="p-preview-tools"><button onClick={() => { reset(false); navigate('/'); }}>Ulang dari splash</button><button onClick={() => { reset(false); navigate('/home'); }}>Data contoh</button><button onClick={() => { reset(true); navigate('/home'); }}>Data kosong</button><button aria-pressed={data.offline} onClick={() => update(d => ({ ...d, offline: !d.offline }))}>{data.offline ? 'Aktifkan online' : 'Coba offline'}</button><button aria-pressed={data.aiError} onClick={() => update(d => ({ ...d, aiError: !d.aiError }))}>Gagal baca: {data.aiError ? 'aktif' : 'nonaktif'}</button></div>{[...new Set(PROTOTYPE_SCREENS.map(s => s[0]))].map(group => <div key={group}><h2>{group}</h2>{PROTOTYPE_SCREENS.filter(s => s[0] === group).map(([, path, name]) => <NavLink key={path} to={path} end>{name}</NavLink>)}</div>)}<p className="p-sidebar-note">Data hanya di sesi browser, tidak terhubung ke produksi. Pengaturan perangkat, akun, dan AI diperagakan sebagai simulasi.</p></aside>
+  return <div className="p-stage" data-design={data.design}>
+    <aside className="p-sidebar"><Brand /><Link className="p-text-button" to="/designs">Bandingkan 3 desain →</Link><p className="p-sidebar-note">Prototipe mobile lengkap.<br />Pilih layar atau ikuti perjalanan dari awal.</p><div className="p-preview-tools"><button onClick={() => { reset(false); navigate('/'); }}>Ulang dari splash</button><button onClick={() => { reset(false); navigate('/home'); }}>Data contoh</button><button onClick={() => { reset(true); navigate('/home'); }}>Data kosong</button><button aria-pressed={data.offline} onClick={() => update(d => ({ ...d, offline: !d.offline }))}>{data.offline ? 'Aktifkan online' : 'Coba offline'}</button><button aria-pressed={data.aiError} onClick={() => update(d => ({ ...d, aiError: !d.aiError }))}>Gagal baca: {data.aiError ? 'aktif' : 'nonaktif'}</button></div>{[...new Set(PROTOTYPE_SCREENS.map(s => s[0]))].map(group => <div key={group}><h2>{group}</h2>{PROTOTYPE_SCREENS.filter(s => s[0] === group).map(([, path, name]) => <NavLink key={path} to={path} end>{name}</NavLink>)}</div>)}<p className="p-sidebar-note">Data hanya di sesi browser, tidak terhubung ke produksi. Pengaturan perangkat, akun, dan AI diperagakan sebagai simulasi.</p></aside>
     <div className="p-device"><div className="p-statusbar"><span>9:41</span><span className="p-demo-tag">PROTOTIPE · DATA CONTOH</span><span className="p-status-icons"><Signal size={12} /><Wifi size={13} /><BatteryFull size={18} /></span></div>{data.offline && <div className="p-offline">Skenario offline · simpan draf dulu, konfirmasi saat online.</div>}{message && <div className="p-toast" role="status"><CheckCircle2 size={17} /><span>{message}</span><button aria-label="Tutup pemberitahuan" onClick={() => notify('')}><X size={17} /></button></div>}
       <div ref={scroll} className="p-scroll" data-testid="prototype-scroll"><Routes key={location.pathname + location.search}>
         <Route path="/" element={<Splash />} /><Route path="/welcome" element={<Welcome />} /><Route path="/login" element={<Login />} /><Route path="/register" element={<Login register />} /><Route path="/forgot" element={<Forgot />} />
         <Route path="/setup" element={<Setup step={0} />} /><Route path="/setup-stock" element={<Setup step={1} />} /><Route path="/setup-store" element={<Setup step={2} />} /><Route path="/setup-done" element={<SetupDone />} />
         <Route path="/home" element={<Home />} /><Route path="/notifications" element={<Notifications />} /><Route path="/target" element={<TargetPage />} />
+        <Route path="/designs" element={<DesignLab />} />
         <Route path="/orders" element={<OrderList />} /><Route path="/orders/:id" element={<OrderDetail />} /><Route path="/orders/:id/payment" element={<Payment />} /><Route path="/orders/:id/receipt" element={<Receipt />} /><Route path="/orders/:id/return" element={<ReturnOrder />} /><Route path="/order-success/:id" element={<OrderSuccess />} />
         <Route path="/add" element={<AddOrder />} /><Route path="/capture/:kind" element={<Capture />} /><Route path="/compose" element={<Compose />} />
         <Route path="/reports" element={<Reports />} /><Route path="/expenses" element={<CashPage kind="expense" />} /><Route path="/income" element={<CashPage kind="income" />} />

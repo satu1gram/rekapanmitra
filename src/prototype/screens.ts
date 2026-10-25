@@ -14,4 +14,5 @@ export const PROTOTYPE_SCREENS = [
   ['Akun & toko', '/settings', 'Pengaturan'], ['Akun & toko', '/profile', 'Profil usaha'], ['Akun & toko', '/shop', 'Pengaturan toko'], ['Akun & toko', '/storefront', 'Tampilan toko pelanggan'], ['Akun & toko', '/connections', 'Sumber & koneksi'], ['Akun & toko', '/connections/whatsapp', 'WhatsApp Business'], ['Akun & toko', '/connections/telegram', 'Bot Telegram'],
   ['Akun & toko', '/security', 'Keamanan akun'], ['Akun & toko', '/privacy', 'Privasi & izin AI'], ['Akun & toko', '/team', 'Anggota & peran'], ['Akun & toko', '/plan', 'Paket penggunaan'], ['Akun & toko', '/help', 'Bantuan'], ['Akun & toko', '/screens', 'Peta seluruh layar'],
   ['Akun & toko', '/logout', 'Keluar akun'],
+  ['Arah desain', '/designs', 'Bandingkan opsi A / B / C'],
 ] as const;

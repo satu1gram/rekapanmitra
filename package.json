@@ -21,6 +21,7 @@
     "build:preview": "node scripts/build-isolated-preview.mjs",
     "build:cloudflare-preview": "node scripts/build-isolated-preview.mjs --cloudflare",
     "test:prototype": "node scripts/test-mobile-prototype.mjs",
+    "test:prototype:multi": "node scripts/test-multi-product-designs.mjs",
     "mobile:prototype:sync": "npm run build:cloudflare-preview && cap sync"
   },
   "dependencies": {

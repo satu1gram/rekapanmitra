@@ -105,13 +105,14 @@ try {
   console.log('Order capture, review, partial payment, shipment, return, and receipt completed.');
 
   await navigate('/purchase/new');
-  await device.getByLabel('Produk', { exact: true }).selectOption('BP');
-  await device.getByLabel('Jumlah botol', { exact: true }).fill('5');
-  await device.getByRole('button', { name: 'Simpan rencana restok', exact: true }).click();
+  await device.getByLabel('Produk restok 1', { exact: true }).selectOption('BP');
+  await device.getByLabel('Botol produk 1', { exact: true }).fill('5');
+  await device.getByRole('button', { name: 'Simpan satu rencana restok', exact: true }).click();
   await device.getByRole('button', { name: 'Konfirmasi pembelian ke pemasok', exact: true }).click();
-  await device.getByRole('button', { name: 'Konfirmasi penerimaan barang', exact: true }).click();
+  await device.getByRole('checkbox').check();
+  await device.getByRole('button', { name: 'Konfirmasi semua barang diterima', exact: true }).click();
   await device.getByText('Diterima', { exact: true }).waitFor();
-  assert.equal(await device.getByRole('button', { name: 'Konfirmasi penerimaan barang', exact: true }).count(), 0);
+  assert.equal(await device.getByRole('button', { name: 'Konfirmasi semua barang diterima', exact: true }).count(), 0);
   await navigate('/stock/BP');
   await capture('Stok setelah penerimaan barang', '/stock/BP');
   await navigate('/customer/new');

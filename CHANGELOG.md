@@ -6,6 +6,8 @@ Semua perubahan penting pada proyek **Rekapan Mitra** akan dicatat di sini.
 
 ## [2.9.0] - 2026-10-24
 ### Added
+- Keranjang multiproduk pada order dan restok: pilih beberapa SKU sekaligus, jumlah/modal per produk, satu ringkasan/ID/konfirmasi. Penerimaan pembelian memperbarui seluruh SKU satu kali; pembatalan mengoreksi seluruh baris dan ekuivalen.
+- Galeri tiga arah desain UI/UX yang dapat dicoba di seluruh prototipe: Calm Finance, Bold Fintech, Warm Companion; dilengkapi desk research Material/WCAG, screenshot perbandingan, dan pengujian alur multiproduk. Pilihan final belum ditetapkan.
 - Full mockup mobile 53 layar: splash/onboarding/akun, setup usaha, order-review-payment-fulfillment, nota dan retur penuh, stok/restok, laporan, pelanggan, katalog, toko, koneksi, profil, privasi, keamanan, tim, paket dan bantuan. Semua perubahan sesi tetap terisolasi dari produksi.
 - Peta layar, skenario kosong/offline/gagal baca, pengujian perjalanan browser, dan ekspor dokumentasi screenshot/PDF untuk review desain.
 - Elaborasi MULA PRD v3.0 dengan proses bisnis Rekapan Mitra: rencana integrasi, konflik aturan, prioritas, dan acceptance gates.

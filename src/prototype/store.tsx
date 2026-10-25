@@ -10,5 +10,5 @@ export function PrototypeProvider({ children }: { children: ReactNode }) {
     if (next.profile !== previous.profile) return { ...next, team: next.team.map(member => member.id === 'owner' ? { ...member, name: next.profile.name, email: next.profile.email } : member) };
     return next;
   }), []);
-  return <Context.Provider value={{ data, update, reset: empty => { setData(seedPrototype(empty)); setMessage('Skenario demo dimuat ulang.'); }, message, notify: setMessage }}>{children}</Context.Provider>;
+  return <Context.Provider value={{ data, update, reset: empty => { setData(previous => ({ ...seedPrototype(empty), design: previous.design })); setMessage('Skenario demo dimuat ulang.'); }, message, notify: setMessage }}>{children}</Context.Provider>;
 }

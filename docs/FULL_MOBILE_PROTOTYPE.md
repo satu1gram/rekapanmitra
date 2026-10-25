@@ -1,10 +1,12 @@
 # MULA — full mobile prototype
 
-25 Oktober 2026 · UI prototype v1 · React + Capacitor · branch `preview/mobile-ai`.
+25 Oktober 2026 · UI prototype v2 · React + Capacitor · branch `preview/mobile-ai`.
 
 ## Membuka dan mencoba
 
 Proyek demo yang sama: https://rekapanmitra-mobile-demo.pages.dev/ (menunggu deployment commit terbaru). Buka root untuk mulai dari splash. Tautan langsung `/#/home` membuka Beranda dan `/#/screens` membuka peta layar.
+
+Galeri `/#/designs` menyediakan tiga pilihan UI/UX yang bisa dicoba pada seluruh layar. Lihat [riset, tradeoff, contoh multiproduk, dan panduan memilih](UI_UX_DESIGN_OPTIONS.md). Kandidat mengubah tampilan sesi; desain final belum dipilih.
 
 - Desktop: gunakan daftar layar di kiri bingkai ponsel.
 - Ponsel: masuk melalui onboarding/login contoh, lalu **Akun & usaha → Jelajahi seluruh layar**.
@@ -21,6 +23,8 @@ Proyek demo yang sama: https://rekapanmitra-mobile-demo.pages.dev/ (menunggu dep
 **Setelah konfirmasi:** pembayaran sebagian/lunas dicatat setelah diperiksa pengguna; persiapan/pengiriman/selesai dicatat terpisah. Nota pelanggan menampilkan nilai jual serta pembayaran, tanpa modal atau laba. Pembatalan sebelum pengiriman melepas alokasi; retur penuh memerlukan pemeriksaan barang dan pengembalian dana sebelum mengoreksi stok/laporan. Aplikasi tidak mengirim uang atau pesan.
 
 **Restok:** rencana beli → pembelian disepakati → perjalanan → penerimaan barang. Rencana tidak memengaruhi level maupun stok; pembelian dikonfirmasi memengaruhi ekuivalen pada bulan pembelian; stok baru bertambah pada tanggal penerimaan. Koreksi stok fisik memerlukan alasan dan tidak dianggap pembelian.
+
+**Multiproduk:** order dan restok memiliki pemilih beberapa SKU sekaligus. Satu pembeli/pemasok, tanggal, dan aktivitas menyimpan banyak baris produk. Atur jumlah tiap SKU serta modal tiap produk restok; lihat subtotal dan total sebelum satu konfirmasi. Restok menerima seluruh kiriman sekaligus dengan pemeriksaan pengguna; penerimaan sebagian belum tersedia. Contoh langsung: `/#/compose?example=multi` dan `/#/purchase/new?example=multi`.
 
 **Usaha:** laporan penjualan, pembayaran, produk; biaya umum dan pendapatan lain; target omzet; pelanggan; katalog harga; level bulanan; pengaturan toko dan tampilan pelanggan; koneksi WhatsApp/Telegram; profil, privasi, keamanan, anggota, paket, bantuan dan logout.
 
@@ -39,7 +43,7 @@ Proyek demo yang sama: https://rekapanmitra-mobile-demo.pages.dev/ (menunggu dep
 | Pelanggan | Cari, tambah, ubah, detail dan riwayat; pilih pelanggan pada order |
 | Katalog | Dua belas SKU, cari/filter kelompok, detail harga satuan/paket dan modal per level |
 | Stok | Fisik, alokasi, tersedia, perjalanan, detail per SKU, stok awal, koreksi dan alasannya |
-| Pembelian | Rencana/konfirmasi, harga pemasok, tanggal beli/terima, penerimaan satu kali, batal sebelum diterima |
+| Pembelian | Satu aktivitas multiproduk, modal per SKU, rencana/konfirmasi, tanggal beli/terima, penerimaan seluruh baris satu kali, batal bersama sebelum diterima |
 | Level | Bulan WIB, ekuivalen BP/Belgie, proyeksi naik/bertahan/reset bulan berikutnya |
 | Laporan | Bulan, confirmed-only, biaya umum/pendapatan lain, pembayaran dan sisa tagihan, produk, rekap unduhan |
 | Target penjualan | Ubah target omzet; terpisah dari target pembelian level |
@@ -51,7 +55,7 @@ Proyek demo yang sama: https://rekapanmitra-mobile-demo.pages.dev/ (menunggu dep
 | Tim/paket | Tambah/hapus anggota contoh, ilustrasi peran, pilih rencana paket tanpa harga/tagihan |
 | Bantuan | FAQ, masukan lokal, peta layar, skenario kosong/offline/gagal baca |
 
-## Peta 53 layar
+## Peta 54 layar
 
 | No | Kelompok | Layar | Rute hash |
 |---|---|---|---|
@@ -108,6 +112,7 @@ Proyek demo yang sama: https://rekapanmitra-mobile-demo.pages.dev/ (menunggu dep
 | 51 | Akun & toko | Bantuan | `#/help` |
 | 52 | Akun & toko | Peta seluruh layar | `#/screens` |
 | 53 | Akun & toko | Keluar akun | `#/logout` |
+| 54 | Arah desain | Bandingkan opsi A / B / C | `#/designs` |
 
 ## Status dan batas implementasi
 
@@ -122,6 +127,7 @@ Semua form dan transaksi contoh mengubah state lokal yang dipakai lintas layar. 
 ```bash
 npm run build:cloudflare-preview
 npm run test:prototype
+npm run test:prototype:multi
 npm test
 node --test scripts/verify-preview-output.test.mjs
 ```
@@ -142,15 +148,17 @@ Ini menyiapkan aset prototipe dalam native shell; bukan bukti APK/IPA sudah diko
 
 - Prototipe interaktif di branch preview; deployment menggunakan `npm run build:cloudflare-preview`, output `dist`, root repository.
 - PDF kumpulan layar: `/workspace/artifacts/MULA-Mobile-Prototype.pdf`.
+- PDF perbandingan A/B/C: `/workspace/artifacts/MULA-UI-Options.pdf`, dengan screenshot aktual beranda, keranjang order, restok dan ringkasannya.
 - Gambar per layar dan manifest: `/workspace/artifacts/mula-mobile/`.
 - PDF menangkap viewport ponsel; form panjang dan bagian di bawah lipatan dapat ditelusuri penuh pada prototipe interaktif.
 - Rencana produk/aturan konflik tetap ada di `docs/MULA_BP_PRODUCT_PLAN.md`.
 
 ## Bukti pemeriksaan
 
-- **63 tes aplikasi lulus** pada 9 file, termasuk konsistensi stok fisik/alokasi, barang dalam perjalanan, stok awal per SKU, pembatalan/retur, serta snapshot historis.
+- **69 tes aplikasi lulus** pada 9 file, termasuk konsistensi stok fisik/alokasi, pembelian multiproduk, barang dalam perjalanan, stok awal per SKU, pembatalan/retur, serta snapshot historis.
 - **4 tes guard output build lulus**; preview tidak memuat source TSX mentah, module Auth/Supabase, atau endpoint produksi.
-- Browser Chromium berhasil membuka **53 layar terpetakan** pada viewport 390 × 844 dan merekam **66 tampilan**, termasuk variasi onboarding, review biaya, checkout, recovery, offline, serta modal belum lengkap.
+- Browser Chromium berhasil membuka **54 layar terpetakan** pada viewport 390 × 844 dan merekam **67 tampilan**, termasuk variasi onboarding, review biaya, checkout, recovery, offline, serta modal belum lengkap.
+- Uji browser tambahan berhasil mencatat satu restok tiga SKU hingga diterima, pembatalan seluruh pembelian, satu order campuran beserta biaya satu kali/nota/alokasi, dan pergantian ketiga desain tanpa mengubah data bisnis; merekam 13 tampilan perbandingan dan memeriksa layout 360/390/430 piksel.
 - Alur registrasi/setup, capture/review/konfirmasi, pembayaran sebagian, pengiriman/retur penuh, rencana beli/penerimaan, koreksi stok, pelanggan, biaya/pendapatan lain, toko pelanggan, anggota, keamanan, gambar lokal, ekspor, dan reset sandi contoh berhasil dieksekusi.
 - Tidak ada page error atau request eksternal. Pemeriksaan layout tambahan pada katalog 360 dan 430 piksel lulus.
 - ESLint kode prototipe lulus tanpa error/warning. Type-check seluruh aplikasi masih gagal pada kode lama yang sudah ada; tidak ada error baru pada direktori prototipe.
