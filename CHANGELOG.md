@@ -6,6 +6,7 @@ Semua perubahan penting pada proyek **Rekapan Mitra** akan dicatat di sini.
 
 ## [2.9.0] - 2026-10-24
 ### Added
+- Copy mobile mengikuti Rekapan Mitra: Beranda/Riwayat/Stok/Akun, Tambah Order, Restok Barang, Omset, Modal, Keuntungan, Pengeluaran dan Pemasukan. Penjelasan panjang dibuka lewat Info; form pembayaran memakai tombol simpan tetap dan bukti opsional yang dapat dibuka.
 - Redesign keuangan berbasis prioritas pengguna dan walkthrough agent: uang diterima, tagihan, modal terjual dan estimasi laba dipisahkan; contoh order, pembayaran tambahan, daftar tagihan lintas periode dan penjelasan restok vs modal terjual. Beranda tugas/angka serta navigasi Beranda/Pesanan/Stok/Uang.
 - Arah UI/UX Bold Fintech berdasarkan referensi pengguna diterapkan sebagai default seluruh prototipe: onboarding imersif, foto katalog lokal, grid produk/favorit, detail cover, keranjang dengan stepper/panel total, timeline order/restok, profil dan navigasi empat tujuan.
 - Perbaikan transisi wizard/checkout agar kembali ke heading, pencarian beranda yang terhubung ke daftar order, guard submit toko, dan board/PDF review desain terpilih.

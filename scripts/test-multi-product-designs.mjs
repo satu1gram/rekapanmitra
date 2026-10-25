@@ -45,7 +45,7 @@ try {
   const readStock = async sku => {
     await navigate(`/stock/${sku}`);
     const value = async label => Number(await device.locator('.p-stat').filter({ hasText: label }).locator('strong').innerText());
-    return { physical: await value('Fisik'), incoming: await value('Dalam perjalanan'), reserved: await value('Alokasi order') };
+    return { physical: await value('Fisik'), incoming: await value('Dikirim'), reserved: await value('Untuk Order') };
   };
   const capture = async (theme, screen, route) => {
     const dismiss = device.getByRole('button', { name: 'Tutup pemberitahuan', exact: true });
@@ -64,10 +64,10 @@ try {
   // Select several restock products in one picker, but save exactly one activity.
   await navigate('/purchase/new');
   await device.getByRole('button', { name: 'Hapus produk restok 1', exact: true }).click();
-  assert.equal(await device.getByRole('button', { name: 'Simpan satu rencana restok', exact: true }).isDisabled(), true);
-  await device.getByRole('button', { name: 'Tambah beberapa produk', exact: true }).click();
+  assert.equal(await device.getByRole('button', { name: 'Simpan Rencana', exact: true }).isDisabled(), true);
+  await device.getByRole('button', { name: 'Tambah Produk', exact: true }).click();
   for (const name of ['BP Reguler BP normal', 'BP Blue BP premium', 'Belgie Facial Wash Belgie']) await device.getByRole('checkbox', { name, exact: true }).check();
-  await device.getByRole('button', { name: 'Tambahkan 3 produk', exact: true }).click();
+  await device.getByRole('button', { name: 'Tambah 3 Produk', exact: true }).click();
   const quantities = { BP: 2, BLUE: 1, FW: 4 };
   for (let i = 1; i <= 3; i++) {
     const sku = await device.getByLabel(`Produk restok ${i}`, { exact: true }).inputValue();
@@ -75,10 +75,10 @@ try {
   }
   await device.getByText('7 botol', { exact: true }).waitFor();
   await device.getByText('5 ekuivalen', { exact: true }).waitFor();
-  await device.getByLabel('Modal/botol 1 (Rp)', { exact: true }).fill('0');
-  assert.equal(await device.getByRole('button', { name: 'Simpan satu rencana restok', exact: true }).isDisabled(), true);
-  await device.getByLabel('Modal/botol 1 (Rp)', { exact: true }).fill('225000');
-  await device.getByRole('button', { name: 'Simpan satu rencana restok', exact: true }).click();
+  await device.getByLabel('Harga Beli/botol 1 (Rp)', { exact: true }).fill('0');
+  assert.equal(await device.getByRole('button', { name: 'Simpan Rencana', exact: true }).isDisabled(), true);
+  await device.getByLabel('Harga Beli/botol 1 (Rp)', { exact: true }).fill('225000');
+  await device.getByRole('button', { name: 'Simpan Rencana', exact: true }).click();
   const purchaseId = new URL(page.url()).hash.split('/').at(-1);
   assert.ok(purchaseId.startsWith('PO-'));
   const planned = await exportData();
@@ -89,8 +89,8 @@ try {
   assert.equal(planned.purchases[0].lines.reduce((s, l) => s + l.quantity * l.unitCost, 0), 1475000);
   for (const sku of Object.keys(quantities)) assert.deepEqual(await readStock(sku), stockBefore[sku], `Plan changed stock: ${sku}`);
   await navigate(`/purchases/${purchaseId}`);
-  await device.getByRole('button', { name: 'Konfirmasi pembelian ke pemasok', exact: true }).click();
-  assert.equal(await device.getByRole('button', { name: 'Konfirmasi semua barang diterima', exact: true }).isDisabled(), true);
+  await device.getByRole('button', { name: 'Konfirmasi Restok', exact: true }).click();
+  assert.equal(await device.getByRole('button', { name: 'Tambah ke Stok', exact: true }).isDisabled(), true);
   for (const sku of Object.keys(quantities)) {
     const actual = await readStock(sku);
     assert.equal(actual.physical, stockBefore[sku].physical);
@@ -98,9 +98,9 @@ try {
   }
   await navigate(`/purchases/${purchaseId}`);
   await device.getByRole('checkbox').check();
-  await device.getByRole('button', { name: 'Konfirmasi semua barang diterima', exact: true }).click();
+  await device.getByRole('button', { name: 'Tambah ke Stok', exact: true }).click();
   await device.getByText('Diterima', { exact: true }).waitFor();
-  assert.equal(await device.getByRole('button', { name: 'Konfirmasi semua barang diterima', exact: true }).count(), 0);
+  assert.equal(await device.getByRole('button', { name: 'Tambah ke Stok', exact: true }).count(), 0);
   for (const sku of Object.keys(quantities)) {
     const actual = await readStock(sku);
     assert.equal(actual.physical, stockBefore[sku].physical + quantities[sku]);
@@ -111,13 +111,13 @@ try {
 
   // Cancel one complete incoming activity and check every SKU, including no second receipt.
   await navigate('/purchase/new?example=multi');
-  await device.getByRole('button', { name: 'Periksa restok', exact: true }).click();
+  await device.getByRole('button', { name: 'Cek Restok', exact: true }).click();
   await device.getByRole('checkbox').check();
-  await device.getByRole('button', { name: 'Catat 3 produk dalam satu pembelian', exact: true }).click();
+  await device.getByRole('button', { name: 'Simpan Restok', exact: true }).click();
   const cancelledId = new URL(page.url()).hash.split('/').at(-1);
-  await device.getByRole('button', { name: 'Batalkan pembelian', exact: true }).click();
-  await device.getByRole('button', { name: 'Ya, batalkan pembelian contoh', exact: true }).click();
-  await device.getByText('Dibatalkan', { exact: true }).waitFor();
+  await device.getByRole('button', { name: 'Batalkan Restok', exact: true }).click();
+  await device.getByRole('button', { name: 'Ya, Batalkan', exact: true }).click();
+  await device.locator('.p-pill.red').getByText('Dibatalkan', { exact: true }).waitFor();
   for (const sku of Object.keys(quantities)) {
     const actual = await readStock(sku);
     assert.equal(actual.physical, stockBefore[sku].physical + quantities[sku]);
@@ -127,22 +127,22 @@ try {
 
   // Add a mixed order in one picker; a single expense applies once to the whole order.
   await navigate('/compose');
-  await device.getByLabel('Nama pembeli', { exact: true }).fill('Pembeli multiproduk uji');
-  await device.getByRole('button', { name: 'Lanjut pilih item', exact: true }).click();
+  await device.getByLabel('Nama Pelanggan', { exact: true }).fill('Pembeli multiproduk uji');
+  await device.getByRole('button', { name: 'Pilih Produk', exact: true }).click();
   await device.getByRole('button', { name: 'Hapus produk 1', exact: true }).click();
-  await device.getByRole('button', { name: 'Tambah beberapa produk', exact: true }).click();
+  await device.getByRole('button', { name: 'Tambah Produk', exact: true }).click();
   for (const name of ['BP Reguler BP normal', 'BP Blue BP premium', 'Belgie Facial Wash Belgie']) await device.getByRole('checkbox', { name, exact: true }).check();
-  await device.getByRole('button', { name: 'Tambahkan 3 produk', exact: true }).click();
+  await device.getByRole('button', { name: 'Tambah 3 Produk', exact: true }).click();
   for (let i = 1; i <= 3; i++) {
     const sku = await device.getByLabel(`Produk ${i}`, { exact: true }).inputValue();
     await device.getByLabel(`Jumlah botol ${i}`, { exact: true }).fill(String(quantities[sku]));
     assert.equal(await device.getByLabel(`Produk ${i}`, { exact: true }).locator('option:disabled').count(), 2);
   }
-  await device.getByRole('button', { name: 'Tambah biaya', exact: true }).click();
+  await device.getByRole('button', { name: 'Tambah Pengeluaran', exact: true }).click();
   await device.getByLabel('Nominal biaya 1 (Rp)', { exact: true }).fill('20000');
-  await device.getByRole('button', { name: 'Lihat ringkasan pesanan', exact: true }).click();
+  await device.getByRole('button', { name: 'Cek Pesanan', exact: true }).click();
   await device.getByRole('checkbox').check();
-  await device.getByRole('button', { name: 'Konfirmasi pesanan contoh', exact: true }).click();
+  await device.getByRole('button', { name: 'Simpan Order', exact: true }).click();
   const orderId = new URL(page.url()).hash.split('/').at(-1);
   const afterOrder = await exportData();
   assert.equal(afterOrder.orders.length, initial.orders.length + 1);
@@ -182,53 +182,53 @@ try {
   await device.getByRole('button', { name: 'Tambah jumlah produk pilihan', exact: true }).click();
   assert.equal(await device.getByLabel('Jumlah produk pilihan', { exact: true }).inputValue(), '2');
   await device.getByLabel('Jumlah produk pilihan', { exact: true }).fill('0');
-  assert.equal(await device.getByRole('button', { name: 'Tambahkan ke pesanan', exact: true }).isDisabled(), true);
+  assert.equal(await device.getByRole('button', { name: 'Tambah ke Order', exact: true }).isDisabled(), true);
   await device.getByLabel('Jumlah produk pilihan', { exact: true }).fill('2');
-  await device.getByRole('button', { name: 'Tambahkan ke pesanan', exact: true }).click();
-  await device.getByLabel('Nama pembeli', { exact: true }).fill('Uji dari katalog');
-  await device.getByRole('button', { name: 'Lanjut pilih item', exact: true }).click();
+  await device.getByRole('button', { name: 'Tambah ke Order', exact: true }).click();
+  await device.getByLabel('Nama Pelanggan', { exact: true }).fill('Uji dari katalog');
+  await device.getByRole('button', { name: 'Pilih Produk', exact: true }).click();
   assert.equal(await device.getByLabel('Jumlah botol 1', { exact: true }).inputValue(), '2');
 
   await navigate('/compose?example=multi');
-  await device.getByRole('button', { name: 'Lanjut pilih item', exact: true }).click();
+  await device.getByRole('button', { name: 'Pilih Produk', exact: true }).click();
   await capture('bold', 'order-cart', '/compose?example=multi');
-  await device.getByRole('button', { name: 'Lihat ringkasan pesanan', exact: true }).click();
+  await device.getByRole('button', { name: 'Cek Pesanan', exact: true }).click();
   await capture('bold', 'order-review', '/compose?example=multi');
-  assert.equal(await device.getByRole('button', { name: 'Konfirmasi pesanan contoh', exact: true }).isDisabled(), true);
+  assert.equal(await device.getByRole('button', { name: 'Simpan Order', exact: true }).isDisabled(), true);
 
   await navigate('/purchase/new?example=multi');
   await device.getByRole('heading', { name: 'Daftar produk', exact: true }).evaluate(el => { const scroll = el.closest('.p-scroll'); const header = scroll.querySelector('.p-header'); scroll.scrollTop += el.getBoundingClientRect().top - scroll.getBoundingClientRect().top - header.getBoundingClientRect().height - 18; });
   await capture('bold', 'restock-cart', '/purchase/new?example=multi');
-  await device.getByRole('button', { name: 'Periksa restok', exact: true }).click();
+  await device.getByRole('button', { name: 'Cek Restok', exact: true }).click();
   assert.equal(await page.evaluate(() => window.scrollY), 0, 'Restock review must scroll inside the phone, not move its frame');
   assert.ok((await device.locator('.p-statusbar').boundingBox()).y >= 0, 'Restock status bar must stay visible');
-  assert.equal(await device.getByRole('button', { name: 'Catat 3 produk dalam satu pembelian', exact: true }).isDisabled(), true);
+  assert.equal(await device.getByRole('button', { name: 'Simpan Restok', exact: true }).isDisabled(), true);
   await device.getByRole('checkbox').check();
-  assert.equal(await device.getByRole('button', { name: 'Catat 3 produk dalam satu pembelian', exact: true }).isEnabled(), true);
+  assert.equal(await device.getByRole('button', { name: 'Simpan Restok', exact: true }).isEnabled(), true);
   await capture('bold', 'restock-review', '/purchase/new?example=multi');
 
   await navigate('/storefront');
   for (const name of ['BP Reguler', 'BP Green', 'Belgie Facial Wash']) await device.getByRole('button', { name: `Tambah ${name} ke keranjang`, exact: true }).click();
-  await device.getByRole('button', { name: 'Periksa keranjang', exact: true }).click();
+  await device.getByRole('button', { name: 'Cek Pesanan', exact: true }).click();
   assert.equal(await device.locator('.p-cart-item').count(), 3);
   assert.equal(await page.locator('.p-scroll').evaluate(el => el.scrollTop), 0, 'Opening checkout should start at the cart heading');
   await capture('bold', 'store-cart', '/storefront');
-  assert.equal(await device.getByRole('button', { name: 'Kirim permintaan contoh', exact: true }).isEnabled(), true);
+  assert.equal(await device.getByRole('button', { name: 'Kirim Order', exact: true }).isEnabled(), true);
 
   const current = await exportData();
   assert.deepEqual({ ...current, exportedAt: undefined }, { ...seed, exportedAt: undefined }, 'Browsing, favorites and unsaved carts must not alter business data');
   await navigate('/home');
-  await device.getByLabel('Cari pesanan pelanggan', { exact: true }).fill('Bu Ani');
-  await device.getByRole('button', { name: 'Buka hasil pencarian', exact: true }).click();
-  assert.equal(await device.getByLabel('Cari pesanan', { exact: true }).inputValue(), 'Bu Ani');
+  await device.getByLabel('Cari Order', { exact: true }).fill('Bu Ani');
+  await device.getByRole('button', { name: 'Cari', exact: true }).click();
+  assert.equal(await device.getByLabel('Cari Order', { exact: true }).inputValue(), 'Bu Ani');
   assert.equal(await device.locator('.p-order-card').count(), 1);
 
   for (const width of [360, 390, 430]) {
     await page.setViewportSize({ width, height: 844 });
-    for (const route of ['/home', '/catalog', '/catalog/GREEN', '/purchase/new?example=multi', '/settings', '/storefront']) {
+    for (const route of ['/home', '/catalog', '/catalog/GREEN', '/purchase/new?example=multi', '/settings', '/orders/ORD-1031/payment', '/storefront']) {
       await navigate(route);
       assert.equal(await page.locator('.p-scroll').evaluate(el => el.scrollWidth > el.clientWidth + 1), false, `Overflow ${width}px ${route}`);
-      const expectedSection = route.startsWith('/catalog') || route.startsWith('/purchase') ? 'Stok' : route === '/settings' ? null : 'Beranda';
+      const expectedSection = route.startsWith('/catalog') || route.startsWith('/purchase') ? 'Stok' : route === '/settings' ? 'Akun' : route.startsWith('/orders') ? 'Riwayat' : 'Beranda';
       if (expectedSection && route !== '/storefront') assert.equal(await device.getByRole('navigation').locator('[aria-current=page]').innerText(), expectedSection, `Navigation context: ${route}`);
       const dock = device.locator('.p-action-dock');
       if (await dock.count()) {

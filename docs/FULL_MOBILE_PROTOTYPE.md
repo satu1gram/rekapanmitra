@@ -1,15 +1,15 @@
 # MULA — full mobile prototype
 
-25 Oktober 2026 · UI prototype v4 · React + Capacitor · branch `preview/mobile-ai`.
+25 Oktober 2026 · UI prototype v5 · React + Capacitor · branch `preview/mobile-ai`.
 
 ## Membuka dan mencoba
 
 Proyek demo yang sama: https://rekapanmitra-mobile-demo.pages.dev/ (menunggu deployment commit terbaru). Buka root untuk mulai dari splash. Tautan langsung `/#/home` membuka Beranda dan `/#/screens` membuka peta layar.
 
-Desain aktif **Bold Fintech** mengacu referensi visual pengguna dan diterapkan pada seluruh layar. Halaman `/#/designs` menjelaskan arah yang dipilih. Lihat [analisis referensi, sistem visual, dan bukti pemeriksaan](BOLD_FINTECH_REFERENCE.md). Navigasi bawah terbaru: Beranda, Pesanan, Stok, Uang. Profil ada di avatar; katalog dapat dibuka dari Stok atau beranda. Tab Uang memisahkan pembayaran, tagihan, modal terjual dan laba. Lihat [evidence redesign keuangan](research/MITRA_REDESIGN_EVIDENCE.md).
+Desain aktif **Bold Fintech** mengacu referensi visual pengguna dan diterapkan pada seluruh layar. Halaman `/#/designs` menjelaskan arah yang dipilih. Lihat [analisis referensi, sistem visual, dan bukti pemeriksaan](BOLD_FINTECH_REFERENCE.md). Navigasi bawah mengikuti Rekapan Mitra: **Beranda, Riwayat, Stok, Akun**. Rekap Bulanan dibuka dari kartu Beranda atau Akun; Produk & Harga dari Beranda atau Stok. Label memakai Omset, Modal, Keuntungan, Pengeluaran, Pemasukan, Tambah Order, dan Restok Barang. Penjelasan panjang tersedia lewat Info, sedangkan kesalahan input tetap tampil langsung. Lihat [panduan copy mobile](MOBILE_COPY_GUIDE.md). Lihat [evidence redesign keuangan](research/MITRA_REDESIGN_EVIDENCE.md).
 
 - Desktop: gunakan daftar layar di kiri bingkai ponsel.
-- Ponsel: masuk melalui onboarding/login contoh, lalu **Akun & usaha → Jelajahi seluruh layar**.
+- Ponsel: masuk melalui onboarding/login contoh, lalu **Akun → Bantuan → Lihat peta seluruh layar**.
 - Setiap layar bisa digulir. Navigasi kembali, menu bawah, link detail, form, dan tindakan contoh saling terhubung.
 - Muat **Data contoh** atau **Data kosong**, nyalakan **Offline** atau **Gagal baca** dari peta layar. Pergantian data me-reset skenario; bukan mengubah data produksi.
 - Data hanya berada di memori sesi browser dan hilang saat reload. Gunakan identitas/gambar sintetis, bukan data pelanggan asli.
@@ -46,7 +46,7 @@ Desain aktif **Bold Fintech** mengacu referensi visual pengguna dan diterapkan p
 | Pembelian | Satu aktivitas multiproduk, modal per SKU, rencana/konfirmasi, tanggal beli/terima, penerimaan seluruh baris satu kali, batal bersama sebelum diterima |
 | Level | Bulan WIB, ekuivalen BP/Belgie, proyeksi naik/bertahan/reset bulan berikutnya |
 | Laporan | Bulan, confirmed-only, biaya umum/pendapatan lain, pembayaran dan sisa tagihan, produk, rekap unduhan |
-| Target penjualan | Ubah target omzet; terpisah dari target pembelian level |
+| Target Omset | Ubah target omzet; terpisah dari target pembelian level |
 | Toko | Nama/slug/deskripsi/rekening contoh, aktif/nonaktif, katalog pelanggan, keranjang, checkout menjadi draf pemilik |
 | Koneksi | Aktif/putus simulasi, cakupan resmi Business 1:1, contoh inbound; tidak mengirim WhatsApp/Telegram |
 | Asisten | Pertanyaan dan jawaban skenario usaha/produk; tidak memberikan diagnosis atau klaim medis baru |
@@ -70,7 +70,7 @@ Desain aktif **Bold Fintech** mengacu referensi visual pengguna dan diterapkan p
 | 9 | Mulai | Setup selesai | `#/setup-done` |
 | 10 | Harian | Beranda usaha | `#/home` |
 | 11 | Harian | Pusat perhatian | `#/notifications` |
-| 12 | Harian | Target penjualan | `#/target` |
+| 12 | Harian | Target Omset | `#/target` |
 | 13 | Pesanan | Daftar & pencarian | `#/orders` |
 | 14 | Pesanan | Detail pesanan | `#/orders/ORD-1031` |
 | 15 | Pesanan | Catat pembayaran | `#/orders/ORD-1031/payment` |
@@ -82,13 +82,13 @@ Desain aktif **Bold Fintech** mengacu referensi visual pengguna dan diterapkan p
 | 21 | Pesanan | Baca screenshot | `#/capture/image` |
 | 22 | Pesanan | Terima dari Share | `#/capture/share` |
 | 23 | Pesanan | Form & review order | `#/compose` |
-| 24 | Usaha | Uang, tagihan & laba | `#/reports` |
-| 25 | Usaha | Biaya umum | `#/expenses` |
-| 26 | Usaha | Pendapatan lain | `#/income` |
+| 24 | Usaha | Rekap Bulanan | `#/reports` |
+| 25 | Usaha | Pengeluaran | `#/expenses` |
+| 26 | Usaha | Pemasukan | `#/income` |
 | 27 | Usaha | Stok per produk | `#/stock` |
 | 28 | Usaha | Detail stok | `#/stock/GREEN` |
 | 29 | Usaha | Koreksi stok | `#/stock/GREEN/adjust` |
-| 30 | Usaha | Pembelian pemasok | `#/purchases` |
+| 30 | Usaha | Riwayat Restok | `#/purchases` |
 | 31 | Usaha | Buat restok | `#/purchase/new` |
 | 32 | Usaha | Progres level bulanan | `#/level` |
 | 33 | Usaha | Penerimaan pembelian | `#/purchases/PO-203` |

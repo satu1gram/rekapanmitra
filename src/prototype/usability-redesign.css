@@ -67,3 +67,17 @@
 .p-stage[data-design="bold"] .p-order-cart.p-has-dock{padding-bottom:192px}
 .p-payment-preview{display:flex;flex-direction:column;gap:12px;padding:15px;background:#f0f4ff;border:1px solid #e0e8ff;border-radius:13px}.p-payment-preview>div{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:12px}.p-payment-preview span{color:#526383;max-width:52%}.p-payment-preview strong{font-size:14px;font-variant-numeric:tabular-nums}.p-payment-preview>div:last-child{padding-top:12px;border-top:1px solid #dce5fb}
 @media(max-width:374px){.p-stage[data-design="bold"] .p-daily-actions .p-button{font-size:12px;gap:5px;padding:10px 8px}.p-financial-card{padding:12px;min-height:113px}.p-financial-card>strong{font-size:21px}.p-financial-label{font-size:11px}.p-financial-card>small{font-size:10px}.p-fast-links>a{font-size:10px;gap:5px}.p-example-amounts strong{font-size:12px}.p-bill-amount strong{font-size:18px}}
+
+/* Familiar Rekapan Mitra labels; longer help opens only when requested. */
+.p-financial-card{min-height:94px;justify-content:center;gap:8px}
+.p-inline-help{padding:0 12px;border:0;background:#f6f8fc}
+.p-inline-help>summary{display:flex;align-items:center;gap:8px;min-height:44px;list-style:none;font-size:12px}
+.p-inline-help>summary::after{content:'+';margin-left:auto;font-size:18px;font-weight:400}
+.p-inline-help[open]>summary::after{content:'−'}
+.p-info-body{padding:0 0 12px;line-height:1.65}
+.p-info-body p+p{margin-top:9px}
+.p-stage[data-design="bold"] .p-brand{letter-spacing:-.4px}
+.p-stage[data-design="bold"] .p-brand.large{font-size:30px;letter-spacing:-1px;text-align:center}
+.p-stage[data-design="bold"] .p-financial-card>strong{white-space:nowrap;overflow-wrap:normal}
+
+.p-payment-preview>div:only-child{padding-top:0;border-top:0}
