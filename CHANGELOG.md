@@ -13,7 +13,7 @@ Semua perubahan penting pada proyek **Rekapan Mitra** akan dicatat di sini.
 
 ### 🔧 Fixed
 - Link konfirmasi email, reset sandi, dan link toko publik memakai alamat web publik (`https://mitrabp.biz.id`, dapat diatur lewat `VITE_PUBLIC_WEB_URL`) saat berjalan di aplikasi native, bukan alamat internal WebView.
-- Konten tidak tertutup status bar/notch: Android memberi jarak sistem bar secara native, iOS memakai `contentInset: always`.
+- Konten tidak tertutup status bar/notch: build mobile memakai `viewport-fit=cover` dan jarak area aman lewat CSS (`html.native-app`); header sticky berhenti di bawah status bar dan tidak lagi menutupi isi halaman di iOS.
 
 ## [2.8.0] - 2026-09-14
 ### 🚀 Added

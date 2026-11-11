@@ -171,6 +171,43 @@ All colors MUST be HSL.
   }
 }
 
+/* ── Native app (Capacitor) safe area ──
+   Only the mobile build adds `native-app` to <html> together with viewport-fit=cover.
+   Keep content out from under the status bar / notch and the home indicator. */
+html.native-app {
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+html.native-app body {
+  padding-top: var(--safe-top);
+  padding-bottom: var(--safe-bottom);
+}
+
+/* Opaque strip behind the status bar so scrolled content never shows through it. */
+html.native-app body::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--safe-top);
+  background: #ffffff;
+  z-index: 9998;
+  pointer-events: none;
+}
+
+/* Sticky headers stop below the status bar instead of sliding under it. */
+html.native-app .sticky.top-0 {
+  top: var(--safe-top);
+}
+
+/* Full-screen layers and top-pinned bars start below the status bar. */
+html.native-app .fixed.inset-0,
+html.native-app .fixed.top-0 {
+  top: var(--safe-top);
+}
+
 /* ── Carousel track smoothness ── */
 .carousel-track {
   cursor: grab;

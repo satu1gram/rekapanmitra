@@ -5,9 +5,9 @@ const config: CapacitorConfig = {
   appName: 'Rekapan Mitra',
   webDir: 'dist-mobile',
   ios: {
-    // Keep content below the status bar / notch and above the home indicator.
-    // The web layout uses many `sticky top-0` headers that are not safe-area aware.
-    contentInset: 'always',
+    // Safe areas are handled in CSS (html.native-app in src/index.css). 'always' made WKWebView
+    // offset sticky headers and page content differently, so headers covered content.
+    contentInset: 'never',
   },
   // Bundle local assets; never ship a development server URL in native releases.
 };

@@ -6,6 +6,19 @@ import { componentTagger } from "lovable-tagger";
 import { VitePWA } from "vite-plugin-pwa";
 import compression from "vite-plugin-compression";
 import { visualizer } from "rollup-plugin-visualizer";
+import type { Plugin } from "vite";
+
+/** Native (Capacitor) build only: draw edge-to-edge and let CSS reserve the status bar / notch area. */
+function nativeShellHtml(): Plugin {
+  return {
+    name: "native-shell-html",
+    transformIndexHtml(html) {
+      return html
+        .replace(/<meta name="viewport" content="[^"]*"\s*\/?>/, '<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />')
+        .replace(/<html([^>]*)>/, (_tag, attrs: string) => `<html${attrs} class="native-app">`);
+    },
+  };
+}
 
 const { version: appVersion } = JSON.parse(readFileSync(new URL("./package.json", import.meta.url), "utf8"));
 
@@ -25,6 +38,7 @@ export default defineConfig(({ mode }) => ({
   plugins: [
     react(),
     mode === "development" && componentTagger(),
+    mode === "mobile" && nativeShellHtml(),
     compression({
       algorithm: "gzip",
       ext: ".gz",

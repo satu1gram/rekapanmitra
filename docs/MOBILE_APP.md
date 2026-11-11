@@ -27,7 +27,7 @@ Build mobile tidak memakai service worker PWA, sehingga pembaruan aplikasi mengi
 |---|---|
 | Link email (konfirmasi daftar, reset sandi) dan link toko | Memakai `https://mitrabp.biz.id` (atau `VITE_PUBLIC_WEB_URL`), bukan alamat internal WebView. Reset sandi diselesaikan di browser, lalu login kembali di aplikasi. |
 | Tombol back Android | Tutup dialog → kembali satu halaman → keluar aplikasi dari Beranda/Login. |
-| Status bar / notch | Tanpa `viewport-fit=cover`, Android memberi jarak sistem bar secara native; iOS memakai `contentInset: 'always'`. Header `sticky top-0` yang ada tetap aman. |
+| Status bar / notch | Hanya build mobile: `viewport-fit=cover` + class `native-app` pada `<html>` (plugin di `vite.config.ts`). CSS di `src/index.css` memberi jarak `env(safe-area-inset-*)`, menggeser header `sticky top-0` dan layar penuh `fixed inset-0` ke bawah status bar. iOS `contentInset: 'never'`. Build web tidak berubah. |
 | Kamera / galeri iOS | `NSCameraUsageDescription`, `NSPhotoLibraryUsageDescription`, `NSPhotoLibraryAddUsageDescription` sudah diisi. |
 | Export compliance iOS | `ITSAppUsesNonExemptEncryption = false` (hanya HTTPS standar). |
 
