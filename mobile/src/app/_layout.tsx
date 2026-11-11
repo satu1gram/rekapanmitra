@@ -1,0 +1,77 @@
+import { useEffect, useState } from 'react';
+import { Stack } from 'expo-router';
+import * as SplashScreen from 'expo-splash-screen';
+import { StatusBar } from 'expo-status-bar';
+import { QueryClient, QueryClientProvider, focusManager, onlineManager } from '@tanstack/react-query';
+import { AppState, Platform, View } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+
+import { useProfile } from '~/hooks/queries';
+import { errorMessage } from '~/lib/supabase';
+import { AuthProvider, useAuth } from '~/providers/AuthProvider';
+import { ErrorState, LoadingState } from '~/ui/components';
+import { colors } from '~/ui/theme';
+
+SplashScreen.preventAutoHideAsync();
+
+// Refetch when the app returns to the foreground.
+if (Platform.OS !== 'web') {
+  AppState.addEventListener('change', state => focusManager.setFocused(state === 'active'));
+}
+onlineManager.setOnline(true);
+
+export default function RootLayout() {
+  const [queryClient] = useState(
+    () => new QueryClient({ defaultOptions: { queries: { staleTime: 30_000, retry: 1 } } }),
+  );
+  return (
+    <SafeAreaProvider>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <StatusBar style="dark" />
+          <RootNavigator />
+        </AuthProvider>
+      </QueryClientProvider>
+    </SafeAreaProvider>
+  );
+}
+
+function RootNavigator() {
+  const { session, initializing } = useAuth();
+  const profile = useProfile();
+  const signedIn = !!session;
+  const profileReady = !signedIn || profile.isSuccess;
+
+  useEffect(() => {
+    if (!initializing && (profileReady || profile.isError)) SplashScreen.hideAsync();
+  }, [initializing, profileReady, profile.isError]);
+
+  if (initializing) return null;
+  if (signedIn && profile.isError) {
+    return (
+      <View style={{ flex: 1, backgroundColor: colors.bg }}>
+        <ErrorState message={errorMessage(profile.error)} onRetry={() => profile.refetch()} />
+      </View>
+    );
+  }
+  if (!profileReady) return <View style={{ flex: 1, backgroundColor: colors.bg }}><LoadingState /></View>;
+
+  const needsOnboarding = signedIn && !profile.data?.onboarding_completed;
+
+  return (
+    <Stack screenOptions={{ headerTintColor: colors.brandDark, contentStyle: { backgroundColor: colors.bg }, headerBackButtonDisplayMode: 'minimal' }}>
+      <Stack.Protected guard={!signedIn} redirectTo="/">
+        <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+      </Stack.Protected>
+      <Stack.Protected guard={needsOnboarding} redirectTo="/">
+        <Stack.Screen name="onboarding" options={{ title: 'Pengaturan awal', headerBackVisible: false, gestureEnabled: false }} />
+      </Stack.Protected>
+      <Stack.Protected guard={signedIn && !needsOnboarding} redirectTo={signedIn ? '/onboarding' : '/login'}>
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="order/new" options={{ title: 'Tambah order', presentation: 'modal' }} />
+        <Stack.Screen name="order/[id]" options={{ title: 'Detail order' }} />
+        <Stack.Screen name="restok/new" options={{ title: 'Restok barang', presentation: 'modal' }} />
+      </Stack.Protected>
+    </Stack>
+  );
+}
