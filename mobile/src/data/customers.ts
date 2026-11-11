@@ -60,3 +60,23 @@ export async function recordCustomerPurchase(
   if (error) throw error;
   return data.id;
 }
+
+export async function updateCustomer(id: string, fields: { name: string; phone: string; address: string; city: string; province: string }) {
+  const userId = await requireUserId();
+  if (!fields.name.trim()) throw new Error('Nama pelanggan wajib diisi.');
+  const { error } = await supabase
+    .from('customers')
+    .update({
+      name: fields.name.trim(),
+      phone: normalizePhone(fields.phone) || NO_PHONE,
+      address: fields.address.trim() || null,
+      city: fields.city.trim() || null,
+      province: fields.province.trim() || null,
+    })
+    .eq('id', id)
+    .eq('user_id', userId);
+  if (error) {
+    if ((error as { code?: string }).code === '23505') throw new Error('Nomor WhatsApp ini sudah dipakai pelanggan lain.');
+    throw error;
+  }
+}

@@ -24,10 +24,21 @@ export function monthLabel({ year, month }: MonthRef): string {
   return `${MONTH_NAMES[month]} ${year}`;
 }
 
+/** Timestamps parse normally; a plain date ("2026-11-03", e.g. expense_date) is a local calendar day, not UTC midnight. */
+export function parseDateLike(value: string): Date {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  return m ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])) : new Date(value);
+}
+
 /** Same rule as the web dashboard: the device's local calendar month. */
-export function isInMonth(iso: string, { year, month }: MonthRef): boolean {
-  const d = new Date(iso);
+export function isInMonth(value: string, { year, month }: MonthRef): boolean {
+  const d = parseDateLike(value);
   return d.getFullYear() === year && d.getMonth() === month;
+}
+
+/** Local calendar date as YYYY-MM-DD (for date-only columns such as expense_date). */
+export function toDateKey(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
 export function sameDay(a: Date, b: Date): boolean {
@@ -55,7 +66,7 @@ export function formatDayHeading(iso: string, now = new Date()): string {
 }
 
 export function formatDate(iso: string): string {
-  const d = new Date(iso);
+  const d = parseDateLike(iso);
   return `${d.getDate()} ${MONTH_SHORT[d.getMonth()]} ${d.getFullYear()}`;
 }
 

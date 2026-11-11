@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Alert, View } from 'react-native';
 import Constants from 'expo-constants';
+import { router } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import type { MitraLevel } from '@/types';
 
@@ -15,12 +16,12 @@ import { AppText, Badge, Button, Card, Divider, ErrorState, ListItem, LoadingSta
 import { LevelPicker } from '~/ui/LevelPicker';
 import { colors } from '~/ui/theme';
 
-const WEB_FEATURES: { title: string; subtitle: string; icon: IconName; path: string }[] = [
-  { title: 'Pengeluaran & pemasukan', subtitle: 'Catat biaya umum dan pemasukan lain', icon: 'wallet-outline', path: '/dashboard' },
-  { title: 'Target bulanan', subtitle: 'Atur target untung, penjualan, dan restok', icon: 'flag-outline', path: '/dashboard' },
-  { title: 'Pelanggan', subtitle: 'Ubah data dan lihat riwayat pelanggan', icon: 'people-outline', path: '/riwayat' },
-  { title: 'Toko online', subtitle: 'Link toko dan rekening pembayaran', icon: 'storefront-outline', path: '/akun' },
-  { title: 'Asisten AI', subtitle: 'Catat order dari teks chat', icon: 'sparkles-outline', path: '/riwayat' },
+const FEATURES: { title: string; subtitle: string; icon: IconName; href: '/keuangan' | '/target' | '/pelanggan' | '/toko' | '/asisten' }[] = [
+  { title: 'Pengeluaran & pemasukan', subtitle: 'Biaya umum dan pemasukan di luar penjualan', icon: 'wallet-outline', href: '/keuangan' },
+  { title: 'Target bulanan', subtitle: 'Target untung, penjualan, dan restok', icon: 'flag-outline', href: '/target' },
+  { title: 'Pelanggan', subtitle: 'Data dan riwayat belanja pelanggan', icon: 'people-outline', href: '/pelanggan' },
+  { title: 'Toko online', subtitle: 'Link toko dan cara pembayaran', icon: 'storefront-outline', href: '/toko' },
+  { title: 'Asisten AI', subtitle: 'Isi order dari teks chat', icon: 'sparkles-outline', href: '/asisten' },
 ];
 
 export default function AccountScreen() {
@@ -119,16 +120,16 @@ export default function AccountScreen() {
         )}
       </Card>
 
-      <SectionTitle>Fitur lain di web</SectionTitle>
+      <SectionTitle>Usaha</SectionTitle>
       <Card style={{ paddingVertical: 4 }}>
-        {WEB_FEATURES.map((f, i) => (
+        {FEATURES.map((f, i) => (
           <View key={f.title}>
             {i > 0 ? <Divider /> : null}
-            <ListItem title={f.title} subtitle={f.subtitle} icon={f.icon} onPress={() => WebBrowser.openBrowserAsync(publicWebUrl(f.path))} accessibilityLabel={`${f.title}, buka di aplikasi web`} />
+            <ListItem title={f.title} subtitle={f.subtitle} icon={f.icon} onPress={() => router.push(f.href)} />
           </View>
         ))}
       </Card>
-      <AppText variant="small" color={colors.textSubtle}>Fitur ini dibuka di browser memakai akun yang sama. Akan dipindahkan ke aplikasi secara bertahap.</AppText>
+      <Button label="Buka versi web" icon="globe-outline" tone="ghost" onPress={() => WebBrowser.openBrowserAsync(publicWebUrl('/dashboard'))} />
 
       <Button label="Keluar" icon="log-out-outline" tone="danger" onPress={confirmSignOut} />
       <AppText variant="small" color={colors.textSubtle} style={{ textAlign: 'center' }}>

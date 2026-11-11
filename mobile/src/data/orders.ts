@@ -59,6 +59,7 @@ export interface NewOrderInput {
   mitraLevel: MitraLevel;
   customBuyPrice: number | null;
   createdAt: string;
+  transferProofUrl?: string | null;
 }
 
 /**
@@ -87,7 +88,7 @@ export async function createOrder(input: NewOrderInput): Promise<OrderRow> {
       total_price: totals.totalPrice,
       buy_price: totals.buyPrice,
       margin: totals.margin,
-      transfer_proof_url: null,
+      transfer_proof_url: input.transferProofUrl || null,
       status: 'selesai',
       created_at: input.createdAt,
     })
@@ -167,4 +168,99 @@ export async function deleteOrder(orderId: string) {
   }
   const { error } = await supabase.from('orders').delete().eq('id', orderId).eq('user_id', userId);
   if (error) throw error;
+}
+
+function itemRows(orderId: string, userId: string, items: DraftItem[]) {
+  return items.map(item => ({
+    order_id: orderId,
+    user_id: userId,
+    product_name: item.productName,
+    product_id: item.productId || null,
+    quantity: item.quantity,
+    price_per_bottle: item.pricePerBottle,
+    subtotal: item.subtotal,
+  }));
+}
+
+/**
+ * Edit an order (same result as the web app's updateOrder). To avoid losing lines if the network
+ * drops halfway, the new items/expenses are inserted first, then the old ones are removed by id,
+ * and only then is the header updated. On failure the newly inserted rows are removed again.
+ */
+export async function updateOrder(orderId: string, input: NewOrderInput) {
+  const userId = await requireUserId();
+  const items = input.items.filter(item => item.quantity > 0);
+  if (items.length === 0) throw new Error('Pilih minimal satu produk.');
+  const totals = computeOrderTotals(items, input.expenses, buyPricePerBottle(input.mitraLevel, input.customBuyPrice));
+
+  const [oldItems, oldExpenses] = await Promise.all([
+    supabase.from('order_items').select('id').eq('order_id', orderId),
+    untyped.from('order_expenses').select('id').eq('order_id', orderId),
+  ]);
+  if (oldItems.error) throw oldItems.error;
+  if (oldExpenses.error && (oldExpenses.error as { code?: string }).code !== 'PGRST205') throw oldExpenses.error;
+  const oldItemIds = (oldItems.data ?? []).map(r => r.id);
+  const oldExpenseIds = ((oldExpenses.data ?? []) as { id: string }[]).map(r => r.id);
+
+  const insertedItemIds: string[] = [];
+  const insertedExpenseIds: string[] = [];
+  try {
+    const { data: newItems, error: itemsError } = await supabase.from('order_items').insert(itemRows(orderId, userId, items)).select('id');
+    if (itemsError) throw itemsError;
+    insertedItemIds.push(...(newItems ?? []).map(r => r.id));
+
+    if (input.expenses.length > 0) {
+      const { data: newExpenses, error: expensesError } = await untyped
+        .from('order_expenses')
+        .insert(input.expenses.map(e => ({ order_id: orderId, user_id: userId, name: e.name.trim(), amount: Number(e.amount) })))
+        .select('id');
+      if (expensesError) throw expensesError;
+      insertedExpenseIds.push(...((newExpenses ?? []) as { id: string }[]).map(r => r.id));
+    }
+
+    const { error: headerError } = await supabase
+      .from('orders')
+      .update({
+        customer_id: input.customerId || null,
+        customer_name: input.customerName.trim(),
+        customer_phone: input.customerPhone.trim(),
+        tier: input.tier,
+        quantity: totals.totalQuantity,
+        price_per_bottle: totals.avgPricePerBottle,
+        total_price: totals.totalPrice,
+        buy_price: totals.buyPrice,
+        margin: totals.margin,
+        transfer_proof_url: input.transferProofUrl || null,
+        created_at: input.createdAt,
+      })
+      .eq('id', orderId)
+      .eq('user_id', userId);
+    if (headerError) throw headerError;
+  } catch (error) {
+    if (insertedItemIds.length) await supabase.from('order_items').delete().in('id', insertedItemIds);
+    if (insertedExpenseIds.length) await untyped.from('order_expenses').delete().in('id', insertedExpenseIds);
+    throw error;
+  }
+
+  // The order now points at the new lines; remove the previous ones.
+  if (oldItemIds.length) {
+    const { error } = await supabase.from('order_items').delete().in('id', oldItemIds);
+    if (error) throw error;
+  }
+  if (oldExpenseIds.length) {
+    const { error } = await untyped.from('order_expenses').delete().in('id', oldExpenseIds);
+    if (error) throw error;
+  }
+}
+
+export async function setOrderProof(orderId: string, url: string | null) {
+  const userId = await requireUserId();
+  const { error } = await supabase.from('orders').update({ transfer_proof_url: url }).eq('id', orderId).eq('user_id', userId);
+  if (error) throw error;
+}
+
+/** Orders of one customer: linked by id, or (older rows) by the same name. */
+export function ordersForCustomer(orders: OrderRow[], customer: { id: string; name: string }) {
+  const name = customer.name.trim().toLowerCase();
+  return orders.filter(o => o.customer_id === customer.id || (!o.customer_id && o.customer_name?.trim().toLowerCase() === name));
 }

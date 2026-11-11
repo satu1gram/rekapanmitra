@@ -45,14 +45,18 @@ Metro hanya mengawasi `../src` dan selalu mengambil paket dari `mobile/node_modu
 | Fitur | Status di aplikasi |
 |---|---|
 | Masuk, daftar, lupa kata sandi | Ada. Link email dibuka di `https://mitrabp.biz.id` (ganti lewat `EXPO_PUBLIC_WEB_URL`). |
-| Pengaturan awal (nama, level, stok awal) | Ada. Pengaturan toko online tetap di web. |
+| Pengaturan awal (nama, level, stok awal) | Ada. |
 | Beranda: omset, untung kotor/setelah biaya, stok, target, order bulan ini | Ada, rumus sama dengan dashboard web. |
-| Tambah order (pelanggan → produk → periksa, biaya order) | Ada. Harga dari katalog `master_products` dengan resolver yang sama dengan web. |
-| Riwayat per hari, cari, detail, ubah status, hapus, bagikan nota | Ada. **Edit isi order** masih di web. |
-| Stok: saldo, catat restok, riwayat, hapus catatan | Ada. Edit catatan stok masih di web. |
-| Akun: profil, ganti level mitra, keluar | Ada. |
-| Pengeluaran/pemasukan, target, pelanggan, toko, Asisten AI, admin | Dibuka di web dari menu Akun. |
-| Upload bukti transfer, notifikasi, offline | Belum. |
+| Tambah dan **ubah** order (pelanggan → produk → periksa, biaya, bukti transfer) | Ada. Saat mengubah, harga tersimpan dipakai sampai produk atau harga pelanggan diganti. |
+| Riwayat per hari, cari, detail, status, hapus, bagikan nota, bukti transfer | Ada. Foto dari kamera atau galeri, disimpan di bucket `transfer-proofs` yang sama dengan web. |
+| Stok: saldo, catat/ubah/hapus restok dengan bukti/nota | Ada. |
+| Pengeluaran & pemasukan (kategori sama dengan web) | Ada. |
+| Target bulanan | Ada, tersimpan di `monthly_targets` yang sama. |
+| Pelanggan: daftar, cari, urutkan, detail, riwayat order, ubah data, WhatsApp | Ada. |
+| Toko online: nama, alamat link, aktif/nonaktif, cara pembayaran, bagikan link | Ada. |
+| Asisten AI: tempel chat → draf order/restok untuk diperiksa | Ada. Memakai Edge Function `parse-order`; aplikasi **tidak** mengirim contoh koreksi lama (berisi data pelanggan lain) dan membatasi teks 2.000 karakter. |
+| Panel admin, konsultasi produk AI | Tetap di web (bukan fitur harian mitra). |
+| Notifikasi, offline | Belum. |
 
 Perbedaan yang disengaja dibanding web:
 - Simpan order memeriksa setiap langkah. Jika rincian produk atau biaya gagal tersimpan, header order dihapus lagi agar tidak ada order setengah jadi.

@@ -2,13 +2,14 @@ import { Alert, Share, View } from 'react-native';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import type { OrderStatus } from '@/types';
 
-import { deleteOrder, updateOrderStatus } from '~/data/orders';
+import { deleteOrder, setOrderProof, updateOrderStatus } from '~/data/orders';
 import { useOrderDetail, useRefreshingMutation } from '~/hooks/queries';
 import { formatDate, formatTime } from '~/lib/dates';
 import { formatRupiah } from '~/lib/money';
 import { errorMessage } from '~/lib/supabase';
 import { AppText, Button, Card, Divider, ErrorState, LoadingState, Row, Screen, Segmented } from '~/ui/components';
 import { STATUS_LABEL } from '~/lib/orderStatus';
+import { ProofPicker } from '~/ui/ProofPicker';
 import { colors, space } from '~/ui/theme';
 
 const STATUSES: OrderStatus[] = ['pending', 'terkirim', 'selesai'];
@@ -18,6 +19,7 @@ export default function OrderDetailScreen() {
   const detail = useOrderDetail(id);
   const setStatus = useRefreshingMutation((status: OrderStatus) => updateOrderStatus(id, status), ['orders', 'order']);
   const remove = useRefreshingMutation(() => deleteOrder(id), ['orders', 'stock']);
+  const proof = useRefreshingMutation((url: string | null) => setOrderProof(id, url), ['orders', 'order']);
 
   if (detail.isPending) return <LoadingState />;
   if (detail.isError) return <ErrorState message={errorMessage(detail.error)} onRetry={() => detail.refetch()} />;
@@ -102,11 +104,16 @@ export default function OrderDetailScreen() {
         {expenseTotal > 0 ? <AppText variant="small" color={colors.textMuted}>Total biaya di order: {formatRupiah(expenseTotal)}</AppText> : null}
       </Card>
 
+      <Card>
+        <ProofPicker
+          value={order.transfer_proof_url}
+          onChange={url => proof.mutate(url, { onError: e => Alert.alert('Bukti gagal disimpan', errorMessage(e)) })}
+        />
+      </Card>
+
+      <Button label="Ubah order" icon="create-outline" onPress={() => router.push({ pathname: '/order/[id]/edit', params: { id } })} />
       <Button label="Bagikan nota" icon="share-outline" tone="secondary" onPress={shareReceipt} />
       <Button label="Hapus order" icon="trash-outline" tone="danger" onPress={confirmDelete} loading={remove.isPending} />
-      <AppText variant="small" color={colors.textSubtle} style={{ textAlign: 'center' }}>
-        Ubah isi order (produk, harga, biaya) untuk saat ini lewat aplikasi web.
-      </AppText>
     </Screen>
   );
 }

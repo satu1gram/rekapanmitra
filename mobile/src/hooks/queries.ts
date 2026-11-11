@@ -6,6 +6,7 @@ import { listGeneralExpenses, listGeneralIncome, listTargets } from '~/data/fina
 import { getOrderDetail, listOrders } from '~/data/orders';
 import { getProfile } from '~/data/profile';
 import { getStock } from '~/data/stock';
+import { getStoreSettings } from '~/data/store';
 import { useAuth } from '~/providers/AuthProvider';
 
 export const keys = {
@@ -18,6 +19,7 @@ export const keys = {
   expenses: (u: string) => ['expenses', u] as const,
   income: (u: string) => ['income', u] as const,
   targets: (u: string) => ['targets', u] as const,
+  store: (u: string) => ['store', u] as const,
 };
 
 function useUserId() {
@@ -60,10 +62,15 @@ export function useTargets() {
   return useQuery({ queryKey: keys.targets(u), queryFn: () => listTargets(u), enabled: !!u });
 }
 
+export function useStoreSettings() {
+  const u = useUserId();
+  return useQuery({ queryKey: keys.store(u), queryFn: () => getStoreSettings(u), enabled: !!u });
+}
+
 /** Mutation that refreshes the given data sets when it succeeds. */
 export function useRefreshingMutation<TInput, TResult>(
   fn: (input: TInput) => Promise<TResult>,
-  invalidate: ('profile' | 'orders' | 'stock' | 'customers' | 'expenses' | 'income' | 'targets' | 'order')[],
+  invalidate: ('profile' | 'orders' | 'stock' | 'customers' | 'expenses' | 'income' | 'targets' | 'order' | 'store')[],
 ) {
   const client = useQueryClient();
   return useMutation({

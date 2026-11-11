@@ -83,7 +83,10 @@ export default function HistoryScreen() {
             <Total label="Omset" value={formatRupiahShort(totals.revenue)} />
             <Total label="Untung" value={formatRupiahShort(totals.profit)} color={totals.profit < 0 ? colors.danger : colors.brandDark} />
           </Card>
-          <Button label="Tambah order" icon="add-circle" onPress={() => router.push('/order/new')} />
+          <Row>
+            <Button label="Tambah order" icon="add-circle" onPress={() => router.push('/order/new')} style={{ flex: 1 }} />
+            <Button label="Dari chat" icon="sparkles-outline" tone="secondary" onPress={() => router.push('/asisten')} style={{ flex: 1 }} />
+          </Row>
         </View>
       }
       renderSectionHeader={({ section }) => (

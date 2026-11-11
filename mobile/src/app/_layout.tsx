@@ -69,8 +69,17 @@ function RootNavigator() {
       <Stack.Protected guard={signedIn && !needsOnboarding} redirectTo={signedIn ? '/onboarding' : '/login'}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="order/new" options={{ title: 'Tambah order', presentation: 'modal' }} />
-        <Stack.Screen name="order/[id]" options={{ title: 'Detail order' }} />
+        <Stack.Screen name="order/[id]/index" options={{ title: 'Detail order' }} />
+        <Stack.Screen name="order/[id]/edit" options={{ title: 'Ubah order', presentation: 'modal' }} />
         <Stack.Screen name="restok/new" options={{ title: 'Restok barang', presentation: 'modal' }} />
+        <Stack.Screen name="restok/[id]" options={{ title: 'Ubah restok', presentation: 'modal' }} />
+        <Stack.Screen name="asisten" options={{ title: 'Asisten AI', presentation: 'modal' }} />
+        <Stack.Screen name="keuangan/index" options={{ title: 'Pengeluaran & pemasukan' }} />
+        <Stack.Screen name="keuangan/form" options={{ title: 'Catatan keuangan', presentation: 'modal' }} />
+        <Stack.Screen name="target" options={{ title: 'Target bulanan' }} />
+        <Stack.Screen name="pelanggan/index" options={{ title: 'Pelanggan' }} />
+        <Stack.Screen name="pelanggan/[id]" options={{ title: 'Pelanggan' }} />
+        <Stack.Screen name="toko" options={{ title: 'Toko online' }} />
       </Stack.Protected>
     </Stack>
   );

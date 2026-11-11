@@ -86,7 +86,10 @@ export default function StockScreen() {
                   {entry.notes ? <AppText variant="small" color={colors.textMuted}>{entry.notes}</AppText> : null}
                 </View>
                 {entry.type === 'in' ? (
-                  <Button label="Hapus" tone="ghost" onPress={() => confirmDelete(entry)} style={{ minHeight: 40, paddingHorizontal: space.sm }} />
+                  <View style={{ alignItems: 'flex-end' }}>
+                    <Button label="Ubah" tone="ghost" onPress={() => router.push({ pathname: '/restok/[id]', params: { id: entry.id } })} style={{ minHeight: 40, paddingHorizontal: space.sm }} />
+                    <Button label="Hapus" tone="ghost" onPress={() => confirmDelete(entry)} style={{ minHeight: 40, paddingHorizontal: space.sm }} />
+                  </View>
                 ) : null}
               </Row>
             </View>

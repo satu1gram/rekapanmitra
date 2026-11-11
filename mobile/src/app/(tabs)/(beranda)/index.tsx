@@ -90,6 +90,7 @@ export default function HomeScreen() {
             <Line label="Biaya di order" value={-summary.orderExpenses} />
             <Line label="Pengeluaran umum" value={-summary.generalExpenses} />
             <Line label="Pemasukan lain" value={summary.otherIncome} />
+            <Button label="Catat pengeluaran / pemasukan" icon="wallet-outline" tone="ghost" onPress={() => router.push('/keuangan')} />
             {financeMissing ? <Notice tone="warning">Data pengeluaran/pemasukan gagal dimuat, angka setelah biaya belum lengkap. Tarik ke bawah untuk memuat ulang.</Notice> : null}
           </View>
         ) : (
@@ -101,6 +102,7 @@ export default function HomeScreen() {
         <Button label="Tambah order" icon="add-circle" onPress={() => router.push('/order/new')} style={{ flex: 1 }} />
         <Button label="Restok" icon="cube" tone="secondary" onPress={() => router.push('/restok/new')} style={{ flex: 1 }} />
       </Row>
+      <Button label="Isi order dari chat (Asisten AI)" icon="sparkles-outline" tone="secondary" onPress={() => router.push('/asisten')} />
 
       <Pressable onPress={() => router.navigate('/stok')} accessibilityRole="button" accessibilityLabel={`Stok saat ini ${stock.data.currentStock} botol. Buka halaman stok.`}>
         <Card style={lowStock ? { borderColor: '#FCD34D' } : undefined}>
@@ -121,9 +123,15 @@ export default function HomeScreen() {
         </Card>
       </Pressable>
 
+      {!progress ? (
+        <Button label={`Atur target ${monthLabel(month)}`} icon="flag-outline" tone="ghost" onPress={() => router.push('/target')} />
+      ) : null}
       {progress ? (
         <Card>
-          <AppText variant="heading">Target {monthLabel(month)}</AppText>
+          <Row style={{ justifyContent: 'space-between' }}>
+            <AppText variant="heading">Target {monthLabel(month)}</AppText>
+            <Button label="Ubah" tone="ghost" onPress={() => router.push('/target')} style={{ minHeight: 36, paddingHorizontal: space.sm }} />
+          </Row>
           <ProgressBar label={showNet ? 'Untung setelah biaya' : 'Untung kotor'} valueText={`${formatRupiah(progress.profit.value)} / ${formatRupiah(progress.profit.target)}`} pct={progress.profit.pct} />
           <ProgressBar label="Botol terjual" valueText={`${progress.qty.value} / ${progress.qty.target}`} pct={progress.qty.pct} />
           <ProgressBar label="Restok" valueText={`${progress.stock.value} / ${progress.stock.target}`} pct={progress.stock.pct} />

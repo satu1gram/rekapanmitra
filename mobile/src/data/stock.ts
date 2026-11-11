@@ -38,6 +38,7 @@ export interface RestockInput {
   buyPricePerBottle: number | null;
   notes?: string;
   createdAt: string;
+  transferProofUrl?: string | null;
 }
 
 export async function addRestock(input: RestockInput) {
@@ -53,7 +54,7 @@ export async function addRestock(input: RestockInput) {
       tier: input.tier,
       buy_price_per_bottle: input.buyPricePerBottle,
       total_buy_price: input.buyPricePerBottle != null ? input.quantity * input.buyPricePerBottle : null,
-      transfer_proof_url: null,
+      transfer_proof_url: input.transferProofUrl || null,
       notes: input.notes?.trim() || null,
       created_at: input.createdAt,
     })
@@ -77,4 +78,29 @@ export async function deleteStockEntry(entry: Pick<StockEntryRow, 'id' | 'quanti
   const balance = await readBalance(userId);
   const adjustment = entry.type === 'in' || entry.type === 'initial' ? -entry.quantity : entry.quantity;
   await writeBalance(userId, balance.exists, Math.max(0, balance.value + adjustment));
+}
+
+/** Edit a restock entry; the balance moves by the difference in quantity (same as the web app). */
+export async function updateRestock(entryId: string, oldQuantity: number, input: RestockInput) {
+  const userId = await requireUserId();
+  if (!Number.isInteger(input.quantity) || input.quantity <= 0) throw new Error('Jumlah botol harus lebih dari 0.');
+  const { error } = await supabase
+    .from('stock_entries')
+    .update({
+      quantity: input.quantity,
+      tier: input.tier,
+      buy_price_per_bottle: input.buyPricePerBottle,
+      total_buy_price: input.buyPricePerBottle != null ? input.quantity * input.buyPricePerBottle : null,
+      transfer_proof_url: input.transferProofUrl || null,
+      notes: input.notes?.trim() || null,
+      created_at: input.createdAt,
+    })
+    .eq('id', entryId)
+    .eq('user_id', userId);
+  if (error) throw error;
+  const diff = input.quantity - oldQuantity;
+  if (diff !== 0) {
+    const balance = await readBalance(userId);
+    await writeBalance(userId, balance.exists, balance.value + diff);
+  }
 }
