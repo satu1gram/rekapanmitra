@@ -80,6 +80,7 @@ function RootNavigator() {
         <Stack.Screen name="pelanggan/index" options={{ title: 'Pelanggan' }} />
         <Stack.Screen name="pelanggan/[id]" options={{ title: 'Pelanggan' }} />
         <Stack.Screen name="toko" options={{ title: 'Toko online' }} />
+        <Stack.Screen name="hapus-akun" options={{ title: 'Hapus akun' }} />
       </Stack.Protected>
     </Stack>
   );

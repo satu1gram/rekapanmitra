@@ -4,21 +4,48 @@ Aplikasi native iOS dan Android untuk mitra, dibangun dengan **Expo SDK 58 (Reac
 
 ## Menjalankan di Mac
 
-Prasyarat: Node 20+, dan untuk simulator: Xcode (iOS) atau Android Studio (Android).
+Prasyarat: Node 20+. Lalu:
 
 ```bash
 cd mobile
 npm install
+```
+
+### Cara 1 — Expo Go (paling cepat, iPhone atau Android asli)
+
+```bash
 npx expo start
 ```
 
-Lalu pilih salah satu:
+Install **Expo Go** dari App Store / Play Store, lalu scan QR di terminal (iPhone: pakai Kamera; Android: dari dalam Expo Go). HP dan Mac harus di Wi‑Fi yang sama. Semua library aplikasi ini tersedia di Expo Go.
 
-- **iPhone asli, paling cepat:** install **Expo Go** dari App Store, lalu scan QR di terminal dengan kamera iPhone. Mac dan iPhone harus di Wi‑Fi yang sama.
-- **iOS Simulator:** tekan `i` di terminal (Xcode harus sudah terpasang).
-- **Android:** tekan `a` (emulator Android Studio), atau scan QR dengan aplikasi Expo Go di HP Android.
+### Cara 2 — iPhone dengan Xcode
 
-Semua library yang dipakai sudah tersedia di Expo Go, jadi belum perlu build native untuk mencoba.
+Xcode hanya untuk iOS (iPhone/iPad), tidak bisa menjalankan Android.
+
+```bash
+npm run ios:native
+```
+
+Perintah ini membuat folder `ios/`, meng-compile dengan Xcode, dan membuka iOS Simulator. Untuk iPhone asli: buka `ios/RekapanMitra.xcworkspace` di Xcode, pilih Team (Signing & Capabilities), pilih iPhone yang tersambung, lalu ▶. Folder `ios/` dibuat ulang otomatis dan tidak di-commit.
+
+### Cara 3 — Android dengan Android Studio (di Mac yang sama)
+
+Install Android Studio, buka **SDK Manager** (pasang Android SDK terbaru), lalu buat emulator di **Device Manager** atau sambungkan HP Android dengan **USB debugging** aktif.
+
+```bash
+npm run android:native
+```
+
+Perintah ini membuat folder `android/`, meng-compile, dan memasang aplikasi ke emulator/HP. Folder `android/` juga dibuat ulang otomatis.
+
+### Cara 4 — file APK Android untuk dibagikan
+
+```bash
+npx eas-cli@latest build --platform android --profile preview
+```
+
+Hasilnya link unduhan APK yang bisa dipasang langsung di HP Android (perlu akun Expo gratis).
 
 ## Pemeriksaan
 
@@ -55,6 +82,7 @@ Metro hanya mengawasi `../src` dan selalu mengambil paket dari `mobile/node_modu
 | Pelanggan: daftar, cari, urutkan, detail, riwayat order, ubah data, WhatsApp | Ada. |
 | Toko online: nama, alamat link, aktif/nonaktif, cara pembayaran, bagikan link | Ada. |
 | Asisten AI: tempel chat → draf order/restok untuk diperiksa | Ada. Memakai Edge Function `parse-order`; aplikasi **tidak** mengirim contoh koreksi lama (berisi data pelanggan lain) dan membatasi teks 2.000 karakter. |
+| Hapus akun (Akun → Hapus akun) | Ada. Minta ulang kata sandi dan ketik `HAPUS AKUN`, lalu memanggil Edge Function `delete-account`. |
 | Panel admin, konsultasi produk AI | Tetap di web (bukan fitur harian mitra). |
 | Notifikasi, offline | Belum. |
 
@@ -81,7 +109,11 @@ Bundle ID / package: `id.biz.mitrabp.rekapan` (sama dengan rencana Capacitor seb
 
 ### Wajib sebelum rilis ke store
 
-1. **Hapus akun dari dalam aplikasi.** Apple mewajibkan ini untuk aplikasi yang bisa membuat akun. Perlu endpoint/Edge Function penghapusan akun di backend; belum ada.
+1. **Deploy fungsi hapus akun** (sudah dibuat di `supabase/functions/delete-account`):
+   ```bash
+   supabase functions deploy delete-account
+   ```
+   Fungsi ini memakai `verify_jwt = true`, mengambil ID pengguna dari token (bukan dari isi permintaan), menolak akun admin, menghapus foto di bucket `transfer-proofs`, menghapus data di semua tabel milik pengguna (termasuk tabel yang belum `ON DELETE CASCADE`: `order_items`, `order_expenses`, `general_income`, `products`), lalu menghapus akun login.
 2. Kebijakan privasi dan formulir App Privacy / Data Safety.
 3. Pastikan `https://mitrabp.biz.id/dashboard` dan `/reset-password` ada di Supabase → Authentication → Redirect URLs.
 4. Ganti kunci API AI yang pernah bocor di riwayat git, dan amankan RPC `submit_public_order` serta webhook Telegram (lihat `docs/VALIDASI_RENCANA_MOBILE.md` di branch `preview/mobile-ai`). Backend yang sama dipakai aplikasi ini.

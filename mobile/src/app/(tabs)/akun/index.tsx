@@ -132,6 +132,7 @@ export default function AccountScreen() {
       <Button label="Buka versi web" icon="globe-outline" tone="ghost" onPress={() => WebBrowser.openBrowserAsync(publicWebUrl('/dashboard'))} />
 
       <Button label="Keluar" icon="log-out-outline" tone="danger" onPress={confirmSignOut} />
+      <Button label="Hapus akun" tone="ghost" onPress={() => router.push('/hapus-akun')} accessibilityHint="Membuka halaman untuk menghapus akun dan semua data secara permanen" />
       <AppText variant="small" color={colors.textSubtle} style={{ textAlign: 'center' }}>
         Rekapan Mitra {Constants.expoConfig?.version ?? ''}
       </AppText>
