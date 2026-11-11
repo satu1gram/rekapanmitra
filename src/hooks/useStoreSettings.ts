@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
+import { publicWebUrl } from '@/lib/native/platform';
 
 export interface PaymentInfo {
     type: 'bank' | 'ewallet' | 'cod';
@@ -207,7 +208,7 @@ export function useStoreSettings() {
 
     const getStoreUrl = useCallback(() => {
         if (!settings?.slug) return '';
-        return `${window.location.origin}/toko/${settings.slug}`;
+        return publicWebUrl(`/toko/${settings.slug}`);
     }, [settings]);
 
     return {

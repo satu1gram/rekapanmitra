@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Rekapan Mitra</string>
+    <string name="title_activity_main">Rekapan Mitra</string>
+    <string name="package_name">id.biz.mitrabp.rekapan</string>
+    <string name="custom_url_scheme">id.biz.mitrabp.rekapan</string>
+</resources>

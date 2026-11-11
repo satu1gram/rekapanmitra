@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { getPublicWebOrigin } from '@/lib/native/platform';
 
 const PAYMENT_TYPES = [
     { value: 'bank', label: 'Transfer Bank' },
@@ -233,7 +234,7 @@ export function StoreSettingsCard() {
                             />
                         </div>
                         <p className="text-[10px] text-slate-400 font-medium">
-                            Contoh: toko-budi → link: <span className="font-bold text-slate-600">{window.location.origin}/toko/toko-budi</span>
+                            Contoh: toko-budi → link: <span className="font-bold text-slate-600">{getPublicWebOrigin()}/toko/toko-budi</span>
                         </p>
                     </div>
 

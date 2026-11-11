@@ -11,6 +11,7 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { APP_VERSION } from '@/lib/appVersion';
+import { publicWebUrl } from '@/lib/native/platform';
 
 // Design System
 const DS = {
@@ -100,7 +101,7 @@ export function AuthPage() {
         }
       } else {
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
-          redirectTo: `${window.location.origin}/reset-password`,
+          redirectTo: publicWebUrl('/reset-password'),
         });
         if (error) toast.error(error.message || 'Gagal mengirim email reset.');
         else toast.success('Link reset password sudah dikirim ke email kamu!');

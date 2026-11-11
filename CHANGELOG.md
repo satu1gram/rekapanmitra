@@ -4,6 +4,17 @@ Semua perubahan penting pada proyek **Rekapan Mitra** akan dicatat di sini.
 
 ---
 
+## [2.9.0] - 2026-11-11
+### 🚀 Added
+- Aplikasi Android dan iOS (Capacitor 8.5.3) yang membungkus aplikasi web yang sama; app ID `id.biz.mitrabp.rekapan`.
+- Perintah `npm run mobile:sync`, `mobile:android`, `mobile:ios`; build mobile ditulis ke `dist-mobile/` agar tidak tercampur build web atau preview.
+- Tombol back Android: menutup dialog terlebih dahulu, lalu kembali ke halaman sebelumnya, lalu keluar dari Beranda/Login.
+- Teks izin kamera dan galeri iOS untuk unggah bukti transfer/foto.
+
+### 🔧 Fixed
+- Link konfirmasi email, reset sandi, dan link toko publik memakai alamat web publik (`https://mitrabp.biz.id`, dapat diatur lewat `VITE_PUBLIC_WEB_URL`) saat berjalan di aplikasi native, bukan alamat internal WebView.
+- Konten tidak tertutup status bar/notch: Android memberi jarak sistem bar secara native, iOS memakai `contentInset: always`.
+
 ## [2.8.0] - 2026-09-14
 ### 🚀 Added
 - Resolver harga katalog master_products untuk semua kanal: order manual, AI order, Telegram bot, dan toko publik.

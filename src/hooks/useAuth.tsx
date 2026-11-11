@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
+import { publicWebUrl } from '@/lib/native/platform';
 
 interface AuthContextType {
   user: User | null;
@@ -80,7 +81,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       password,
       options: {
         data: { name, phone, location },
-        emailRedirectTo: `${window.location.origin}/dashboard`
+        emailRedirectTo: publicWebUrl('/dashboard')
       }
     });
 

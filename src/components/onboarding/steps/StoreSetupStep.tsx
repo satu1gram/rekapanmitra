@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { getPublicWebOrigin } from '@/lib/native/platform';
 
 const DS = {
     primary: '#059669',
@@ -35,7 +36,7 @@ function slugify(val: string): string {
 }
 
 export function StoreSetupStep({ storeName, slug, paymentInfo, welcomeMessage, saving, onChange, onFinish, onBack }: StoreSetupStepProps) {
-    const [origin] = useState(() => typeof window !== 'undefined' ? window.location.origin : '');
+    const [origin] = useState(() => getPublicWebOrigin());
     const [copied, setCopied] = useState(false);
     const canFinish = storeName.trim() && slug.trim() && !saving;
 
