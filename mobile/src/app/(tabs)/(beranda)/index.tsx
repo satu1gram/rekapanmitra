@@ -124,7 +124,7 @@ export default function HomeScreen() {
       {progress ? (
         <View style={styles.target}>
           <Row style={{ justifyContent: 'space-between' }}>
-            <AppText variant="heading" style={{ fontWeight: '800', fontSize: 15 }}>Target {monthName}</AppText>
+            <AppText variant="heading" style={{ fontWeight: '800', fontSize: 16 }}>Target {monthName}</AppText>
             <Pressable onPress={() => router.push('/target')} accessibilityRole="button" style={styles.textBtn}>
               <AppText variant="small" color={colors.brand} style={{ fontWeight: '700' }}>Ubah target</AppText>
             </Pressable>
@@ -338,8 +338,8 @@ const styles = StyleSheet.create({
   iconBox: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   avatar: { borderRadius: 22, backgroundColor: colors.brandSoft },
   tray: { flexDirection: 'row', marginTop: -6, borderWidth: 1, borderColor: colors.border, borderRadius: radius.lg, paddingVertical: 6, paddingHorizontal: 4 },
-  quick: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 6, minHeight: 76 },
-  quickLabel: { fontSize: 13, fontWeight: '600', letterSpacing: 0, textAlign: 'center' },
+  quick: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 6, minHeight: 72 },
+  quickLabel: { fontSize: 12, fontWeight: '600', letterSpacing: 0, textAlign: 'center' },
   task: { borderWidth: 1, borderColor: colors.border, borderRadius: radius.lg, padding: 14, gap: space.md },
   taskAvatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.warningSoft, alignItems: 'center', justifyContent: 'center' },
   smallBtn: { minHeight: 44, paddingHorizontal: 14, borderRadius: 10, borderWidth: 1.5, borderColor: colors.brand, justifyContent: 'center' },
@@ -355,6 +355,6 @@ const styles = StyleSheet.create({
   whiteBtn: { alignSelf: 'flex-start', minHeight: 48, paddingHorizontal: 20, borderRadius: 12, backgroundColor: colors.white, justifyContent: 'center' },
   bone: { backgroundColor: '#ECECF1', borderRadius: 8 },
   card: { borderRadius: radius.xl, overflow: 'hidden', backgroundColor: colors.brand },
-  recent: { flexDirection: 'row', alignItems: 'center', gap: space.md, minHeight: 60 },
+  recent: { flexDirection: 'row', alignItems: 'center', gap: space.md, minHeight: 54 },
   recentSep: { borderTopWidth: 1, borderColor: colors.border },
 });

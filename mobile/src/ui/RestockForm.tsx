@@ -96,7 +96,7 @@ export function RestockForm({ entry, initialQuantity }: { entry?: StockEntryRow;
             })}
           </View>
           <View style={styles.field}>
-            <AppText variant="body" color={colors.textMuted} style={styles.fieldLabel} numberOfLines={1}>Jumlah</AppText>
+            <AppText variant="body" color={colors.textMuted} style={styles.fieldLabel} numberOfLines={1}>Jumlah lain</AppText>
             <TextInput
               value={quantity ? String(quantity) : ''}
               onChangeText={t => setQuantity(parseInt(t.replace(/[^0-9]/g, ''), 10) || 0)}
