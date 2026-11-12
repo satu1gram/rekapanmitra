@@ -13,7 +13,7 @@ const icon = (name: IconName) => function TabIcon({ color, size }: { color: Colo
 /** Web build only (used for browser previews and automated checks); iOS/Android use native tabs. */
 export default function WebTabsLayout() {
   return (
-    <Tabs screenOptions={{ headerShown: false, tabBarActiveTintColor: colors.brand, tabBarInactiveTintColor: colors.textSubtle }}>
+    <Tabs screenOptions={{ headerShown: false, tabBarActiveTintColor: colors.brand, tabBarInactiveTintColor: colors.textMuted }}>
       <Tabs.Screen name="(beranda)" options={{ title: 'Beranda', tabBarIcon: icon('home') }} />
       <Tabs.Screen name="riwayat" options={{ title: 'Riwayat', tabBarIcon: icon('receipt') }} />
       <Tabs.Screen name="stok" options={{ title: 'Stok', tabBarIcon: icon('cube') }} />

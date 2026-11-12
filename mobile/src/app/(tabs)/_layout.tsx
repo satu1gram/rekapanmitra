@@ -3,7 +3,7 @@ import { colors } from '~/ui/theme';
 
 export default function TabsLayout() {
   return (
-    <NativeTabs tintColor={colors.brand} iconColor={{ default: colors.textSubtle, selected: colors.brand }} labelStyle={{ selected: { color: colors.brandDark } }} indicatorColor={colors.brandSoft}>
+    <NativeTabs tintColor={colors.brand} iconColor={{ default: colors.textMuted, selected: colors.brand }} labelStyle={{ default: { color: colors.textMuted }, selected: { color: colors.brandDark } }} indicatorColor={colors.brandSoft}>
       <NativeTabs.Trigger name="(beranda)">
         <NativeTabs.Trigger.Label>Beranda</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon sf={{ default: 'house', selected: 'house.fill' }} md="home" />

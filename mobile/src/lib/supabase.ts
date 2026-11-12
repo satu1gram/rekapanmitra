@@ -7,6 +7,9 @@ import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from './config';
 import { secureSessionStorage } from './secureSessionStorage';
 
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+  // React Query already retries failed reads once (src/app/_layout.tsx). PostgREST's own retry
+  // (3 attempts with 1s/2s/4s backoff) stacked on top made an offline user wait ~15s for an error.
+  db: { retry: false },
   auth: {
     storage: Platform.OS === 'web' ? undefined : secureSessionStorage,
     persistSession: true,

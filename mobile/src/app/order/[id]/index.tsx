@@ -55,7 +55,7 @@ export default function OrderStatusScreen() {
 
   const shareReceipt = () => {
     const lines = [
-      `Nota pesanan — ${formatDate(order.created_at)}`,
+      `Nota pesanan, ${formatDate(order.created_at)}`,
       `Pelanggan: ${order.customer_name}`,
       '',
       ...items.map(i => `${productDisplayName(i.productName)} × ${i.quantity} = ${formatRupiah(i.subtotal)}`),

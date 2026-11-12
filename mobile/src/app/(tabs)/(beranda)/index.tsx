@@ -1,35 +1,27 @@
-import { useMemo, useState } from 'react';
-import { Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { AccessibilityInfo, Animated, Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { router, type Href } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LOW_STOCK_THRESHOLD, type OrderStatus } from '@/types';
 
-import type { OrderRow as Order } from '~/data/db';
+import type { OrderRow } from '~/data/db';
 import { updateOrderStatus } from '~/data/orders';
 import { useGeneralExpenses, useGeneralIncome, useOrders, useProfile, useRefreshingMutation, useStock, useTargets } from '~/hooks/queries';
 import { summarizeMonth, targetProgress } from '~/lib/dashboard';
-import { currentMonth, formatTime, greeting, isInMonth, monthLabel, shiftMonth, type MonthRef } from '~/lib/dates';
+import { currentMonth, formatTime, greeting, isInMonth, MONTH_NAMES, monthLabel, shiftMonth, type MonthRef } from '~/lib/dates';
 import { formatRupiah } from '~/lib/money';
 import { errorMessage } from '~/lib/supabase';
-import { AppText, Divider, ErrorState, Icon, LoadingState, Notice, Row, type IconName } from '~/ui/components';
-import { OrderRow } from '~/ui/OrderRow';
-import { ProgressBar } from '~/ui/ProgressBar';
+import { AppText, Row } from '~/ui/components';
+import { BoxIcon, ChatIcon, ChevronIcon, FlagIcon, ListIcon, MoreIcon, OfflineIcon, PeopleIcon, PlusIcon, SearchIcon, StoreIcon, WalletIcon, type IconProps } from '~/ui/icons';
 import { colors, radius, space } from '~/ui/theme';
 
-const SERVICES: { label: string; href: Href; icon: IconName; bg: string; fg: string }[] = [
-  { label: 'Order', href: '/order/new', icon: 'add', bg: colors.brandSoft, fg: colors.brand },
-  { label: 'Restok', href: '/restok/new', icon: 'cube-outline', bg: colors.brandSoft, fg: colors.brand },
-  { label: 'Dari chat', href: '/asisten', icon: 'chatbubble-ellipses-outline', bg: colors.infoSoft, fg: colors.info },
-  { label: 'Pelanggan', href: '/pelanggan', icon: 'people-outline', bg: colors.infoSoft, fg: colors.info },
-  { label: 'Keuangan', href: '/keuangan', icon: 'wallet-outline', bg: colors.warningSoft, fg: '#B23C00' },
-  { label: 'Target', href: '/target', icon: 'flag-outline', bg: colors.warningSoft, fg: '#B23C00' },
-  { label: 'Toko', href: '/toko', icon: 'storefront-outline', bg: colors.violetSoft, fg: colors.violet },
-  { label: 'Lainnya', href: '/akun', icon: 'ellipsis-horizontal', bg: colors.fill, fg: '#3A3A3C' },
-];
+/** Light green text on the brand card: 4.67:1 on #0A7A52 and 5.86:1 on the darker band. */
+const ON_BRAND_MUTED = '#E4F3EA';
+const BAND = '#096947';
 
-const NEXT_STATUS: Record<string, { status: OrderStatus; label: string; step: number }> = {
-  pending: { status: 'terkirim', label: 'Tandai terkirim', step: 1 },
-  terkirim: { status: 'selesai', label: 'Tandai selesai', step: 2 },
+const NEXT_STATUS: Record<string, { status: OrderStatus; label: string; stage: number }> = {
+  pending: { status: 'terkirim', label: 'Tandai terkirim', stage: 0 },
+  terkirim: { status: 'selesai', label: 'Tandai selesai', stage: 1 },
 };
 
 export default function HomeScreen() {
@@ -42,7 +34,6 @@ export default function HomeScreen() {
   const [month, setMonth] = useState<MonthRef>(currentMonth());
   const advance = useRefreshingMutation((input: { id: string; status: OrderStatus }) => updateOrderStatus(input.id, input.status), ['orders', 'order']);
 
-  const core = [orders, stock];
   const refreshing = [orders, stock, expenses, income, targets].some(q => q.isRefetching);
   const refresh = () => [profile, orders, stock, expenses, income, targets].forEach(q => q.refetch());
 
@@ -51,210 +42,378 @@ export default function HomeScreen() {
     return summarizeMonth(month, orders.data, expenses.data ?? [], income.data ?? [], stock.data.entries);
   }, [month, orders.data, stock.data, expenses.data, income.data]);
 
-  if (core.some(q => q.isPending)) return <LoadingState />;
-  const coreError = core.find(q => q.isError)?.error;
-  if (coreError || !summary || !stock.data || !orders.data) return <ErrorState message={errorMessage(coreError)} onRetry={refresh} />;
+  const name = profile.data?.name?.split(' ')[0] || 'Mitra';
+  const header = <Header salutation={orders.data?.length === 0 ? 'Selamat datang,' : `${greeting()},`} name={name} />;
+
+  if (orders.isPending || stock.isPending) return <Shell>{header}<LoadingBody /></Shell>;
+  const coreError = orders.error ?? stock.error;
+  if (coreError || !summary || !stock.data || !orders.data) {
+    return <Shell>{header}<ErrorBody message={errorMessage(coreError)} onRetry={refresh} retrying={refreshing} /></Shell>;
+  }
+  if (orders.data.length === 0) return <Shell refreshing={refreshing} onRefresh={refresh}>{header}<EmptyBody /></Shell>;
 
   const now = currentMonth();
   const isCurrent = month.year === now.year && month.month === now.month;
+  const monthName = MONTH_NAMES[month.month];
   const financeMissing = expenses.isError || income.isError;
   const open = orders.data.filter(o => o.status === 'pending' || o.status === 'terkirim').slice(0, 3);
-  const recent = orders.data.filter(o => isInMonth(o.created_at, month)).slice(0, 5);
   const lowStock = stock.data.currentStock <= LOW_STOCK_THRESHOLD;
+  const recent = orders.data.filter(o => isInMonth(o.created_at, month)).slice(0, 3);
   const target = targets.data?.find(t => t.year === month.year && t.month === month.month) ?? null;
   const progress = targetProgress(summary, target, false);
-  const name = profile.data?.name || 'Mitra';
+  const taskCount = open.length + (lowStock ? 1 : 0);
 
   return (
-    <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: colors.white }}>
-      <ScrollView contentContainerStyle={styles.content} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.brand} />}>
-        <Row>
-          <Pressable onPress={() => router.push('/pelanggan')} accessibilityRole="search" accessibilityLabel="Cari pelanggan" style={styles.search}>
-            <Icon name="search" size={18} color={colors.textMuted} />
-            <AppText variant="body" color={colors.textMuted}>Cari pelanggan</AppText>
-          </Pressable>
-          <Pressable onPress={() => router.navigate('/akun')} accessibilityRole="button" accessibilityLabel="Akun" style={styles.avatar}>
-            <AppText variant="bodyStrong" color={colors.brand}>{name.slice(0, 1).toUpperCase()}</AppText>
+    <Shell refreshing={refreshing} onRefresh={refresh}>
+      {header}
+
+      <View style={styles.card} accessibilityLabel={`Omset ${monthLabel(month)} ${formatRupiah(summary.revenue)}`}>
+        <View style={styles.cardTop}>
+          <Row style={{ justifyContent: 'space-between', marginHorizontal: -8, marginTop: -6 }}>
+            <Pressable onPress={() => setMonth(shiftMonth(month, -1))} accessibilityRole="button" accessibilityLabel="Bulan sebelumnya" style={styles.monthBtn}>
+              <ChevronIcon direction="left" color={colors.white} />
+            </Pressable>
+            <Pressable onPress={() => setMonth(now)} accessibilityRole="button" accessibilityLabel={`${monthLabel(month)}. Ketuk untuk kembali ke bulan ini.`} style={styles.monthLabel}>
+              <AppText variant="small" color={ON_BRAND_MUTED} style={{ fontWeight: '600' }}>{monthLabel(month)}</AppText>
+            </Pressable>
+            <Pressable onPress={() => setMonth(shiftMonth(month, 1))} disabled={isCurrent} accessibilityRole="button" accessibilityLabel="Bulan berikutnya" accessibilityState={{ disabled: isCurrent }} style={[styles.monthBtn, isCurrent && { opacity: 0.35 }]}>
+              <ChevronIcon direction="right" color={colors.white} />
+            </Pressable>
+          </Row>
+          <AppText variant="small" color={ON_BRAND_MUTED}>Omset {monthName}</AppText>
+          <AppText variant="hero" color={colors.white} style={{ fontSize: 36, lineHeight: 40 }} selectable>{formatRupiah(summary.revenue)}</AppText>
+          <AppText variant="small" color={ON_BRAND_MUTED}>{summary.orderCount} order · <AppText variant="small" color={colors.white} style={{ fontWeight: '700' }}>{summary.quantity} botol</AppText> terjual</AppText>
+        </View>
+        <View style={styles.band}>
+          <View style={styles.bandCell}>
+            <AppText variant="caption" color={ON_BRAND_MUTED} style={styles.bandLabel}>Untung kotor</AppText>
+            <AppText variant="heading" color={colors.white}>{formatRupiah(summary.grossProfit)}</AppText>
+            <AppText variant="caption" color={ON_BRAND_MUTED} style={styles.bandNote}>omset dikurangi modal</AppText>
+          </View>
+          <View style={[styles.bandCell, styles.bandDivider]}>
+            <AppText variant="caption" color={ON_BRAND_MUTED} style={styles.bandLabel}>Untung bersih</AppText>
+            <AppText variant="heading" color={colors.white}>{financeMissing ? 'Belum lengkap' : formatRupiah(summary.netProfit)}</AppText>
+            <AppText variant="caption" color={ON_BRAND_MUTED} style={styles.bandNote}>setelah ongkir & biaya</AppText>
+          </View>
+        </View>
+      </View>
+      {financeMissing ? <AppText variant="small" color={colors.textMuted}>Data pengeluaran belum termuat, jadi untung bersih belum bisa dihitung. Tarik layar ke bawah untuk memuat ulang.</AppText> : null}
+
+      <View style={styles.tray} accessibilityRole="toolbar" accessibilityLabel="Catat cepat">
+        <QuickAction label="Catat order" href="/order/new" primary Icon={PlusIcon} />
+        <QuickAction label="Catat restok" href="/restok/new" Icon={BoxIcon} />
+        <QuickAction label="Isi dari chat" href="/asisten" Icon={ChatIcon} />
+        <QuickAction label="Riwayat" href="/riwayat" navigate Icon={ListIcon} />
+      </View>
+
+      {taskCount > 0 ? (
+        <View style={{ gap: space.md }}>
+          <Row style={{ justifyContent: 'space-between' }}>
+            <AppText variant="heading" style={styles.h2}>Perlu dikerjakan</AppText>
+            <AppText variant="small" color={colors.textMuted}>{taskCount} hal</AppText>
+          </Row>
+          {open.map(order => (
+            <TaskCard
+              key={order.id}
+              order={order}
+              busy={advance.isPending && advance.variables?.id === order.id}
+              onAdvance={() => {
+                const next = NEXT_STATUS[order.status];
+                if (next) advance.mutate({ id: order.id, status: next.status });
+              }}
+            />
+          ))}
+          {lowStock ? (
+            <Pressable onPress={() => router.push('/restok/new')} accessibilityRole="button" accessibilityLabel={`Stok tinggal ${stock.data.currentStock} botol. Catat restok.`} style={({ pressed }) => [styles.stockAlert, pressed && styles.pressed]}>
+              <View style={[styles.iconBox, { backgroundColor: colors.white }]}><BoxIcon color={colors.warning} size={22} /></View>
+              <View style={{ flex: 1, gap: 2 }}>
+                <AppText variant="bodyStrong">Stok tinggal {stock.data.currentStock} botol</AppText>
+                <AppText variant="small" color={colors.textMuted}>Catat restok begitu barang datang</AppText>
+              </View>
+              <AppText variant="small" color={colors.warning} style={{ fontWeight: '700' }}>Catat restok</AppText>
+            </Pressable>
+          ) : null}
+        </View>
+      ) : null}
+
+      <View style={styles.grid} accessibilityRole="toolbar" accessibilityLabel="Fitur lain">
+        <MoreFeature label="Pelanggan" href="/pelanggan" Icon={PeopleIcon} />
+        <MoreFeature label="Keuangan" href="/keuangan" Icon={WalletIcon} />
+        <MoreFeature label="Target" href="/target" Icon={FlagIcon} />
+        <MoreFeature label="Toko" href="/toko" Icon={StoreIcon} />
+        <MoreFeature label="Lainnya" href="/akun" navigate Icon={MoreIcon} />
+      </View>
+
+      {progress ? (
+        <View style={styles.target}>
+          <Row style={{ justifyContent: 'space-between' }}>
+            <AppText variant="heading" style={{ fontWeight: '800', fontSize: 16 }}>Target {monthName}</AppText>
+            <Pressable onPress={() => router.push('/target')} accessibilityRole="button" style={styles.textBtn}>
+              <AppText variant="small" color={colors.brand} style={{ fontWeight: '700' }}>Ubah target</AppText>
+            </Pressable>
+          </Row>
+          <View style={{ flexDirection: 'row', gap: space.md }}>
+            <TargetCell label="Untung kotor" pct={progress.profit.pct} />
+            <TargetCell label="Botol terjual" pct={progress.qty.pct} />
+            <TargetCell label="Restok" pct={progress.stock.pct} />
+          </View>
+        </View>
+      ) : (
+        <Pressable onPress={() => router.push('/target')} accessibilityRole="button" style={[styles.target, { flexDirection: 'row', alignItems: 'center' }]}>
+          <View style={[styles.iconBox, { backgroundColor: colors.white }]}><FlagIcon color={colors.brand} size={22} /></View>
+          <AppText variant="body" style={{ flex: 1, fontSize: 15 }}>Belum ada target untuk {monthName}</AppText>
+          <AppText variant="small" color={colors.brand} style={{ fontWeight: '700' }}>Buat target</AppText>
+        </Pressable>
+      )}
+
+      <View style={{ gap: 4 }}>
+        <Row style={{ justifyContent: 'space-between' }}>
+          <AppText variant="heading" style={styles.h2}>Order terbaru</AppText>
+          <Pressable onPress={() => router.navigate('/riwayat')} accessibilityRole="button" style={styles.textBtn}>
+            <AppText variant="small" color={colors.brand} style={{ fontWeight: '700' }}>Semua order</AppText>
           </Pressable>
         </Row>
+        {recent.length === 0 ? (
+          <AppText variant="small" color={colors.textMuted}>Belum ada order di {monthName}.</AppText>
+        ) : (
+          recent.map((order, i) => <RecentRow key={order.id} order={order} first={i === 0} />)
+        )}
+      </View>
+    </Shell>
+  );
+}
 
-        <AppText variant="title">{greeting()}, {name.split(' ')[0]}</AppText>
-
-        <View style={styles.wallet}>
-          <Row style={{ justifyContent: 'space-between' }}>
-            <Pressable onPress={() => setMonth(shiftMonth(month, -1))} accessibilityRole="button" accessibilityLabel="Bulan sebelumnya" hitSlop={8} style={styles.monthBtn}>
-              <Icon name="chevron-back" size={18} color={colors.white} />
-            </Pressable>
-            <Pressable onPress={() => setMonth(now)} accessibilityRole="button" accessibilityLabel={`${monthLabel(month)}. Ketuk untuk bulan ini.`}>
-              <AppText variant="small" color="#CDEBDD" style={{ fontWeight: '600' }}>{monthLabel(month)}</AppText>
-            </Pressable>
-            <Pressable onPress={() => setMonth(shiftMonth(month, 1))} disabled={isCurrent} accessibilityRole="button" accessibilityLabel="Bulan berikutnya" hitSlop={8} style={[styles.monthBtn, isCurrent && { opacity: 0.3 }]}>
-              <Icon name="chevron-forward" size={18} color={colors.white} />
-            </Pressable>
-          </Row>
-          <Row style={{ justifyContent: 'space-between', alignItems: 'flex-end' }}>
-            <View style={{ gap: 2 }}>
-              <AppText variant="small" color="#CDEBDD">Omset</AppText>
-              <AppText variant="title" color={colors.white} style={{ fontSize: 28 }} selectable>{formatRupiah(summary.revenue)}</AppText>
-              <AppText variant="small" color="#CDEBDD">{summary.orderCount} order · {summary.quantity} botol</AppText>
-            </View>
-          </Row>
-          <View style={styles.walletStats}>
-            <Stat label="Untung kotor" value={formatRupiah(summary.grossProfit)} />
-            <View style={styles.walletDivider} />
-            <Stat label="Setelah biaya" value={financeMissing ? '—' : formatRupiah(summary.netProfit)} />
-          </View>
-          <View style={styles.walletActions}>
-            <WalletAction icon="add" label="Order" onPress={() => router.push('/order/new')} />
-            <WalletAction icon="cube-outline" label="Restok" onPress={() => router.push('/restok/new')} />
-            <WalletAction icon="chatbubble-ellipses-outline" label="Dari chat" onPress={() => router.push('/asisten')} />
-            <WalletAction icon="receipt-outline" label="Riwayat" onPress={() => router.navigate('/riwayat')} />
-          </View>
-        </View>
-        {financeMissing ? <Notice tone="warning">Pengeluaran/pemasukan gagal dimuat, untung setelah biaya belum bisa dihitung. Tarik ke bawah untuk memuat ulang.</Notice> : null}
-
-        <View style={styles.grid}>
-          {SERVICES.map(s => (
-            <Pressable key={s.label} onPress={() => router.push(s.href)} accessibilityRole="button" accessibilityLabel={s.label} style={styles.service}>
-              <View style={[styles.serviceIcon, { backgroundColor: s.bg }]}><Icon name={s.icon} size={26} color={s.fg} /></View>
-              <AppText variant="caption" style={{ textAlign: 'center', letterSpacing: 0 }}>{s.label}</AppText>
-            </Pressable>
-          ))}
-        </View>
-
-        {open.length > 0 || lowStock ? (
-          <View style={{ gap: space.md }}>
-            <AppText variant="heading" style={{ fontWeight: '800' }}>Perlu ditindaklanjuti</AppText>
-            {open.map(order => (
-              <OpenOrderCard
-                key={order.id}
-                order={order}
-                busy={advance.isPending && advance.variables?.id === order.id}
-                onAdvance={() => {
-                  const next = NEXT_STATUS[order.status];
-                  if (next) advance.mutate({ id: order.id, status: next.status });
-                }}
-              />
-            ))}
-            {lowStock ? (
-              <Pressable onPress={() => router.push('/restok/new')} accessibilityRole="button" accessibilityLabel={`Stok tinggal ${stock.data.currentStock} botol. Catat restok.`} style={[styles.taskCard, { backgroundColor: colors.warningSoft }]}>
-                <View style={[styles.taskIcon, { backgroundColor: colors.white }]}><Icon name="alert-circle" size={22} color={colors.warning} /></View>
-                <View style={{ flex: 1, gap: 2 }}>
-                  <AppText variant="bodyStrong">Stok tinggal {stock.data.currentStock} botol</AppText>
-                  <AppText variant="small" color={colors.textMuted}>Catat restok setelah barang datang.</AppText>
-                </View>
-                <AppText variant="small" color={colors.brand} style={{ fontWeight: '700' }}>Restok</AppText>
-              </Pressable>
-            ) : null}
-          </View>
-        ) : null}
-
-        <Pressable onPress={() => router.navigate('/stok')} accessibilityRole="button" accessibilityLabel={`Stok ${stock.data.currentStock} botol`} style={[styles.taskCard, { backgroundColor: colors.fill }]}>
-          <View style={[styles.taskIcon, { backgroundColor: colors.white }]}><Icon name="cube-outline" size={22} color={colors.brand} /></View>
-          <View style={{ flex: 1, gap: 2 }}>
-            <AppText variant="bodyStrong">Stok {stock.data.currentStock} botol</AppText>
-            <AppText variant="small" color={colors.textMuted}>
-              Restok {monthLabel(month)}: {summary.restockQuantity} botol{target ? ` dari ${target.targetStock}` : ''}
-            </AppText>
-          </View>
-          <Icon name="chevron-forward" size={18} color="#C4C4C7" />
-        </Pressable>
-
-        {progress ? (
-          <Pressable onPress={() => router.push('/target')} accessibilityRole="button" accessibilityLabel="Target bulan ini. Ketuk untuk mengubah." style={styles.targetCard}>
-            <Row style={{ justifyContent: 'space-between' }}>
-              <AppText variant="heading" style={{ fontWeight: '800' }}>Target {monthLabel(month)}</AppText>
-              <AppText variant="small" color={colors.brand} style={{ fontWeight: '700' }}>Ubah</AppText>
-            </Row>
-            <ProgressBar label="Untung kotor" valueText={`${formatRupiah(progress.profit.value)} / ${formatRupiah(progress.profit.target)}`} pct={progress.profit.pct} />
-            <ProgressBar label="Botol terjual" valueText={`${progress.qty.value} / ${progress.qty.target}`} pct={progress.qty.pct} />
-            <ProgressBar label="Restok" valueText={`${progress.stock.value} / ${progress.stock.target}`} pct={progress.stock.pct} />
-          </Pressable>
-        ) : null}
-
-        <View style={{ gap: space.sm }}>
-          <Row style={{ justifyContent: 'space-between' }}>
-            <AppText variant="heading" style={{ fontWeight: '800' }}>Order {monthLabel(month)}</AppText>
-            <Pressable onPress={() => router.navigate('/riwayat')} accessibilityRole="button" hitSlop={8}>
-              <AppText variant="small" color={colors.brand} style={{ fontWeight: '700' }}>Lihat semua</AppText>
-            </Pressable>
-          </Row>
-          {recent.length === 0 ? (
-            <AppText variant="small" color={colors.textMuted}>Belum ada order di bulan ini. Ketuk Order untuk mencatat.</AppText>
-          ) : (
-            recent.map((order, i) => (
-              <View key={order.id}>
-                {i > 0 ? <Divider /> : null}
-                <OrderRow order={order} />
-              </View>
-            ))
-          )}
-        </View>
+function Shell({ children, refreshing, onRefresh }: { children: ReactNode; refreshing?: boolean; onRefresh?: () => void }) {
+  return (
+    <SafeAreaView edges={['top']} style={{ flex: 1, backgroundColor: colors.white }}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        refreshControl={onRefresh ? <RefreshControl refreshing={!!refreshing} onRefresh={onRefresh} tintColor={colors.brand} /> : undefined}
+      >
+        {children}
       </ScrollView>
     </SafeAreaView>
   );
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
+function Header({ salutation, name }: { salutation: string; name: string }) {
   return (
-    <View style={{ flex: 1, gap: 2 }}>
-      <AppText variant="caption" color="#CDEBDD" style={{ letterSpacing: 0, fontWeight: '500' }}>{label}</AppText>
-      <AppText variant="bodyStrong" color={colors.white} style={{ fontSize: 17, fontWeight: '700' }}>{value}</AppText>
+    <Row style={{ gap: space.sm }}>
+      <View style={{ flex: 1, gap: 2 }}>
+        <AppText variant="body" color={colors.textMuted} style={{ fontSize: 15 }}>{salutation}</AppText>
+        <AppText variant="title" style={{ fontSize: 24 }} numberOfLines={1}>{name}</AppText>
+      </View>
+      <Pressable onPress={() => router.push('/pelanggan')} accessibilityRole="button" accessibilityLabel="Cari pelanggan" style={({ pressed }) => [styles.iconBox, { backgroundColor: colors.fill }, pressed && styles.pressed]}>
+        <SearchIcon color={colors.text} />
+      </Pressable>
+      <Pressable onPress={() => router.navigate('/akun')} accessibilityRole="button" accessibilityLabel={`Akun ${name}`} style={({ pressed }) => [styles.iconBox, styles.avatar, pressed && styles.pressed]}>
+        <AppText variant="bodyStrong" color={colors.brandDark} style={{ fontSize: 17, fontWeight: '800' }}>{name.slice(0, 1).toUpperCase()}</AppText>
+      </Pressable>
+    </Row>
+  );
+}
+
+function go(href: Href, navigate?: boolean) {
+  if (navigate) router.navigate(href);
+  else router.push(href);
+}
+
+function QuickAction({ label, href, Icon, primary, navigate }: { label: string; href: Href; Icon: (p: IconProps) => ReactNode; primary?: boolean; navigate?: boolean }) {
+  return (
+    <Pressable onPress={() => go(href, navigate)} accessibilityRole="button" accessibilityLabel={label} style={({ pressed }) => [styles.quick, pressed && styles.pressed]}>
+      <View style={[styles.iconBox, { backgroundColor: primary ? colors.brand : colors.brandSoft }]}>
+        <Icon color={primary ? colors.white : colors.brand} />
+      </View>
+      <AppText variant="caption" style={styles.quickLabel} numberOfLines={1}>{label}</AppText>
+    </Pressable>
+  );
+}
+
+function MoreFeature({ label, href, Icon, navigate }: { label: string; href: Href; Icon: (p: IconProps) => ReactNode; navigate?: boolean }) {
+  return (
+    <Pressable onPress={() => go(href, navigate)} accessibilityRole="button" accessibilityLabel={label} style={({ pressed }) => [styles.more, pressed && styles.pressed]}>
+      <View style={styles.moreIcon}><Icon color={colors.brand} /></View>
+      <AppText variant="caption" style={styles.moreLabel} numberOfLines={1}>{label}</AppText>
+    </Pressable>
+  );
+}
+
+/** Identity motif: the three order stages (dicatat, terkirim, selesai) as dots, same as the order status screen. */
+function StageDots({ stage }: { stage: number }) {
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center' }} accessibilityLabel={`Tahap ${stage + 1} dari 3`}>
+      {[0, 1, 2].map(i => (
+        <View key={i} style={{ flexDirection: 'row', alignItems: 'center' }}>
+          {i > 0 ? <View style={{ width: 22, height: 2, backgroundColor: colors.border }} /> : null}
+          <View
+            style={[
+              { width: 10, height: 10, borderRadius: 5 },
+              i <= stage ? { backgroundColor: colors.warning } : i === stage + 1 ? { borderWidth: 2, borderColor: colors.warning } : { backgroundColor: colors.border },
+            ]}
+          />
+        </View>
+      ))}
     </View>
   );
 }
 
-function WalletAction({ icon, label, onPress }: { icon: IconName; label: string; onPress: () => void }) {
+function TaskCard({ order, onAdvance, busy }: { order: OrderRow; onAdvance: () => void; busy: boolean }) {
+  const next = NEXT_STATUS[order.status];
   return (
-    <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={label} style={({ pressed }) => [styles.walletAction, pressed && { opacity: 0.7 }]}>
-      <View style={styles.walletActionIcon}><Icon name={icon} size={22} color={colors.white} /></View>
-      <AppText variant="caption" color={colors.white} style={{ letterSpacing: 0 }}>{label}</AppText>
+    <View style={styles.task}>
+      <Pressable onPress={() => router.push({ pathname: '/order/[id]', params: { id: order.id } })} accessibilityRole="button" accessibilityLabel={`Buka order ${order.customer_name}`} style={({ pressed }) => [{ flexDirection: 'row', alignItems: 'center', gap: space.md }, pressed && styles.pressed]}>
+        <View style={styles.taskAvatar}><AppText variant="bodyStrong" color={colors.warning} style={{ fontWeight: '800' }}>{(order.customer_name || '?').slice(0, 1).toUpperCase()}</AppText></View>
+        <View style={{ flex: 1, gap: 2 }}>
+          <AppText variant="bodyStrong" numberOfLines={1}>{order.customer_name} · {order.quantity} botol</AppText>
+          <AppText variant="small" color={colors.textMuted}>{order.status === 'pending' ? 'Belum dikirim' : 'Sedang dikirim'} sejak {formatTime(order.created_at)}</AppText>
+        </View>
+        <AppText variant="bodyStrong">{formatRupiah(Number(order.total_price))}</AppText>
+      </Pressable>
+      {next ? (
+        <Row style={{ justifyContent: 'space-between' }}>
+          <StageDots stage={next.stage} />
+          <Pressable onPress={onAdvance} disabled={busy} accessibilityRole="button" accessibilityLabel={`${next.label}: ${order.customer_name}`} accessibilityState={{ disabled: busy, busy }} style={({ pressed }) => [styles.smallBtn, (pressed || busy) && styles.pressed]}>
+            <AppText variant="small" color={colors.brand} style={{ fontWeight: '700' }}>{busy ? 'Menyimpan' : next.label}</AppText>
+          </Pressable>
+        </Row>
+      ) : null}
+    </View>
+  );
+}
+
+function TargetCell({ label, pct }: { label: string; pct: number }) {
+  return (
+    <View style={{ flex: 1, gap: 6 }} accessibilityLabel={`${label} ${pct} persen`}>
+      <AppText variant="caption" color={colors.textMuted} style={{ fontSize: 13, fontWeight: '500', letterSpacing: 0 }} numberOfLines={1}>{label}</AppText>
+      <AppText variant="bodyStrong">{pct}%</AppText>
+      <View style={styles.bar}><View style={[styles.barFill, { width: `${pct}%` }]} /></View>
+    </View>
+  );
+}
+
+function RecentRow({ order, first }: { order: OrderRow; first: boolean }) {
+  const margin = Number(order.margin);
+  const status = order.status === 'pending' ? ' · belum dikirim' : order.status === 'terkirim' ? ' · sedang dikirim' : '';
+  return (
+    <Pressable onPress={() => router.push({ pathname: '/order/[id]', params: { id: order.id } })} accessibilityRole="button" style={({ pressed }) => [styles.recent, !first && styles.recentSep, pressed && styles.pressed]}>
+      <View style={{ flex: 1, gap: 2 }}>
+        <AppText variant="bodyStrong" style={{ fontWeight: '600' }} numberOfLines={1}>{order.customer_name || 'Tanpa nama'}</AppText>
+        <AppText variant="small" color={colors.textMuted} numberOfLines={1}>{order.quantity} botol · {formatTime(order.created_at)}{status}</AppText>
+      </View>
+      <View style={{ alignItems: 'flex-end', gap: 2 }}>
+        <AppText variant="bodyStrong" style={{ fontWeight: '600' }}>{formatRupiah(Number(order.total_price))}</AppText>
+        <AppText variant="small" color={margin < 0 ? colors.danger : colors.brand} style={{ fontWeight: '600' }}>{margin < 0 ? 'Rugi' : 'Untung'} {formatRupiah(Math.abs(margin))}</AppText>
+      </View>
     </Pressable>
   );
 }
 
-function OpenOrderCard({ order, onAdvance, busy }: { order: Order; onAdvance: () => void; busy: boolean }) {
-  const next = NEXT_STATUS[order.status];
+function EmptyBody() {
+  const steps: { label: string; note: string; href: Href; Icon: (p: IconProps) => ReactNode }[] = [
+    { label: 'Isi stok yang kamu pegang', note: 'Supaya peringatan stok menipis bekerja', href: '/restok/new', Icon: BoxIcon },
+    { label: 'Buka toko online', note: 'Pelanggan bisa pesan sendiri lewat link', href: '/toko', Icon: StoreIcon },
+    { label: 'Coba isi order dari chat', note: 'Tempel pesan WhatsApp, draf terisi sendiri', href: '/asisten', Icon: ChatIcon },
+  ];
   return (
-    <Pressable onPress={() => router.push({ pathname: '/order/[id]', params: { id: order.id } })} accessibilityRole="button" accessibilityLabel={`Order ${order.customer_name}, ${order.status}`} style={styles.openCard}>
-      <Row>
-        <View style={[styles.taskIcon, { borderRadius: 22, backgroundColor: colors.warningSoft }]}>
-          <AppText variant="bodyStrong" color={colors.warning}>{(order.customer_name || '?').slice(0, 1).toUpperCase()}</AppText>
-        </View>
-        <View style={{ flex: 1, gap: 2 }}>
-          <AppText variant="bodyStrong" numberOfLines={1}>{order.customer_name} · {order.quantity} botol</AppText>
-          <AppText variant="small" color={colors.textMuted}>{order.status === 'pending' ? 'Belum dikirim' : 'Sedang dikirim'} · {formatTime(order.created_at)}</AppText>
-        </View>
-        <AppText variant="bodyStrong">{formatRupiah(Number(order.total_price))}</AppText>
-      </Row>
-      <View style={{ flexDirection: 'row', gap: 4 }}>
-        {[0, 1, 2].map(i => <View key={i} style={{ flex: 1, height: 4, borderRadius: 2, backgroundColor: i < (next?.step ?? 3) ? colors.warning : colors.border }} />)}
-      </View>
-      {next ? (
-        <Pressable onPress={onAdvance} disabled={busy} accessibilityRole="button" accessibilityLabel={`${next.label} untuk ${order.customer_name}`} hitSlop={6} style={{ alignSelf: 'flex-start', opacity: busy ? 0.5 : 1 }}>
-          <AppText variant="small" color={colors.brand} style={{ fontWeight: '700' }}>{busy ? 'Menyimpan…' : `${next.label} ›`}</AppText>
+    <>
+      <View style={[styles.card, { padding: space.lg, gap: space.md }]}>
+        <AppText variant="title" color={colors.white} style={{ fontSize: 22 }}>Catat order pertamamu</AppText>
+        <AppText variant="body" color={ON_BRAND_MUTED} style={{ fontSize: 15, lineHeight: 22 }}>Omset, untung, dan stok di halaman ini terisi otomatis dari order dan restok yang kamu catat.</AppText>
+        <Pressable onPress={() => router.push('/order/new')} accessibilityRole="button" style={({ pressed }) => [styles.whiteBtn, pressed && styles.pressed]}>
+          <AppText variant="bodyStrong" color={colors.brandDark} style={{ fontWeight: '800' }}>Tambah order</AppText>
         </Pressable>
-      ) : null}
-    </Pressable>
+      </View>
+      <View style={{ gap: 4 }}>
+        <AppText variant="heading" style={[styles.h2, { marginBottom: 4 }]}>Lengkapi dulu</AppText>
+        {steps.map((s, i) => (
+          <Pressable key={s.label} onPress={() => router.push(s.href)} accessibilityRole="button" style={({ pressed }) => [styles.recent, i > 0 && styles.recentSep, { minHeight: 64 }, pressed && styles.pressed]}>
+            <View style={[styles.iconBox, { backgroundColor: colors.brandSoft }]}><s.Icon color={colors.brand} /></View>
+            <View style={{ flex: 1, gap: 2 }}>
+              <AppText variant="bodyStrong">{s.label}</AppText>
+              <AppText variant="small" color={colors.textMuted}>{s.note}</AppText>
+            </View>
+          </Pressable>
+        ))}
+      </View>
+    </>
+  );
+}
+
+function ErrorBody({ message, onRetry, retrying }: { message: string; onRetry: () => void; retrying: boolean }) {
+  return (
+    <View style={styles.errorCard} accessibilityRole="alert">
+      <View style={[styles.iconBox, { backgroundColor: colors.warningSoft }]}><OfflineIcon color={colors.warning} /></View>
+      <AppText variant="title" style={{ fontSize: 20 }}>Data belum bisa dimuat</AppText>
+      <AppText variant="body" color={colors.textMuted} style={{ fontSize: 15, lineHeight: 22 }}>
+        {/network|koneksi|internet/i.test(message) ? 'Periksa sinyal atau Wi-Fi, lalu coba lagi.' : message}
+      </AppText>
+      <Pressable onPress={onRetry} disabled={retrying} accessibilityRole="button" accessibilityState={{ busy: retrying }} style={({ pressed }) => [styles.primaryBtn, (pressed || retrying) && styles.pressed]}>
+        <AppText variant="bodyStrong" color={colors.white} style={{ fontWeight: '800' }}>{retrying ? 'Memuat ulang' : 'Coba lagi'}</AppText>
+      </Pressable>
+    </View>
+  );
+}
+
+function LoadingBody() {
+  const [opacity] = useState(() => new Animated.Value(1));
+  useEffect(() => {
+    let loop: Animated.CompositeAnimation | null = null;
+    AccessibilityInfo.isReduceMotionEnabled().then(reduce => {
+      if (reduce) return;
+      loop = Animated.loop(Animated.sequence([
+        Animated.timing(opacity, { toValue: 0.55, duration: 700, useNativeDriver: true }),
+        Animated.timing(opacity, { toValue: 1, duration: 700, useNativeDriver: true }),
+      ]));
+      loop.start();
+    });
+    return () => loop?.stop();
+  }, [opacity]);
+  const bone = (style: object) => <Animated.View style={[styles.bone, style, { opacity }]} />;
+  return (
+    <View style={{ gap: space.xl }} accessibilityRole="progressbar" accessibilityLabel="Memuat data usaha">
+      {bone({ height: 210, borderRadius: radius.xl })}
+      <View style={{ flexDirection: 'row', gap: 10 }}>{[0, 1, 2, 3].map(i => <View key={i} style={{ flex: 1 }}>{bone({ height: 76, borderRadius: radius.lg })}</View>)}</View>
+      {bone({ height: 18, width: '50%' })}
+      {bone({ height: 96, borderRadius: radius.lg })}
+      <AppText variant="small" color={colors.textMuted} style={{ textAlign: 'center' }}>Memuat data usaha…</AppText>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  content: { padding: space.lg, gap: space.lg, paddingBottom: space.xxxl * 2 },
-  search: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: space.sm, height: 44, paddingHorizontal: 14, borderRadius: radius.pill, backgroundColor: colors.fill },
-  avatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.brandSoft, alignItems: 'center', justifyContent: 'center' },
-  wallet: { backgroundColor: colors.brand, borderRadius: radius.xl, padding: space.lg, gap: space.md },
-  monthBtn: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
-  walletStats: { flexDirection: 'row', alignItems: 'center', gap: space.md, backgroundColor: 'rgba(255,255,255,0.12)', borderRadius: 14, padding: space.md },
-  walletDivider: { width: StyleSheet.hairlineWidth, alignSelf: 'stretch', backgroundColor: 'rgba(255,255,255,0.4)' },
-  walletActions: { flexDirection: 'row', backgroundColor: 'rgba(0,0,0,0.14)', borderRadius: 14, paddingVertical: space.sm },
-  walletAction: { flex: 1, alignItems: 'center', gap: 4, minHeight: 64, justifyContent: 'center' },
-  walletActionIcon: { width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.18)', alignItems: 'center', justifyContent: 'center' },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', rowGap: space.lg },
-  service: { width: '25%', alignItems: 'center', gap: 6 },
-  serviceIcon: { width: 56, height: 56, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
-  taskCard: { flexDirection: 'row', alignItems: 'center', gap: space.md, padding: 14, borderRadius: 18 },
-  taskIcon: { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  openCard: { gap: space.md, padding: 14, borderRadius: 18, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.white, shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 2 },
-  targetCard: { gap: space.md, padding: space.lg, borderRadius: 18, borderWidth: 1, borderColor: colors.border },
+  content: { paddingHorizontal: space.lg, paddingTop: 14, paddingBottom: space.xxxl * 2, gap: space.xl },
+  pressed: { opacity: 0.6 },
+  h2: { fontSize: 18, fontWeight: '800' },
+  iconBox: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  avatar: { borderRadius: 22, backgroundColor: colors.brandSoft },
+  card: { borderRadius: radius.xl, overflow: 'hidden', backgroundColor: colors.brand },
+  cardTop: { paddingHorizontal: space.lg, paddingTop: space.lg, paddingBottom: 18, gap: 8 },
+  monthBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  monthLabel: { minHeight: 44, justifyContent: 'center', paddingHorizontal: space.sm },
+  band: { flexDirection: 'row', backgroundColor: BAND },
+  bandCell: { flex: 1, paddingHorizontal: space.lg, paddingVertical: space.md, gap: 2 },
+  bandDivider: { borderLeftWidth: 1, borderColor: 'rgba(255,255,255,0.18)' },
+  bandLabel: { fontSize: 13, fontWeight: '500', letterSpacing: 0 },
+  bandNote: { fontSize: 12, fontWeight: '400', letterSpacing: 0 },
+  tray: { flexDirection: 'row', marginTop: -6, borderWidth: 1, borderColor: colors.border, borderRadius: radius.lg, paddingVertical: 6, paddingHorizontal: 4 },
+  quick: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 6, minHeight: 76 },
+  quickLabel: { fontSize: 13, fontWeight: '600', letterSpacing: 0, textAlign: 'center' },
+  task: { borderWidth: 1, borderColor: colors.border, borderRadius: radius.lg, padding: 14, gap: space.md },
+  taskAvatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.warningSoft, alignItems: 'center', justifyContent: 'center' },
+  smallBtn: { minHeight: 44, paddingHorizontal: 14, borderRadius: 10, borderWidth: 1.5, borderColor: colors.brand, justifyContent: 'center' },
+  stockAlert: { flexDirection: 'row', alignItems: 'center', gap: space.md, padding: 14, borderRadius: radius.lg, backgroundColor: colors.warningSoft },
+  grid: { flexDirection: 'row' },
+  more: { flex: 1, alignItems: 'center', gap: 6, minHeight: 72 },
+  moreIcon: { width: 48, height: 48, borderRadius: 16, backgroundColor: colors.fill, alignItems: 'center', justifyContent: 'center' },
+  moreLabel: { fontSize: 12, fontWeight: '600', letterSpacing: 0, textAlign: 'center' },
+  target: { backgroundColor: colors.fill, borderRadius: radius.lg, paddingHorizontal: space.lg, paddingVertical: 14, gap: space.md },
+  textBtn: { minHeight: 44, justifyContent: 'center' },
+  bar: { height: 6, borderRadius: 3, backgroundColor: '#DADAE0', overflow: 'hidden' },
+  barFill: { height: '100%', backgroundColor: colors.brand },
+  recent: { flexDirection: 'row', alignItems: 'center', gap: space.md, minHeight: 60 },
+  recentSep: { borderTopWidth: 1, borderColor: colors.border },
+  whiteBtn: { alignSelf: 'flex-start', minHeight: 48, paddingHorizontal: 20, borderRadius: 12, backgroundColor: colors.white, justifyContent: 'center' },
+  primaryBtn: { alignSelf: 'flex-start', minHeight: 48, paddingHorizontal: 20, borderRadius: 12, backgroundColor: colors.brand, justifyContent: 'center' },
+  errorCard: { borderWidth: 1.5, borderColor: colors.border, borderRadius: radius.xl, paddingHorizontal: space.lg, paddingVertical: 20, gap: space.md },
+  bone: { backgroundColor: '#ECECF1', borderRadius: 8 },
 });
