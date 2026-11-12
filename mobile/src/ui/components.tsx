@@ -31,6 +31,7 @@ export function AppText({
   children,
   numberOfLines,
   selectable,
+  accessibilityLabel,
 }: {
   variant?: TextVariant;
   color?: string;
@@ -38,9 +39,10 @@ export function AppText({
   children: ReactNode;
   numberOfLines?: number;
   selectable?: boolean;
+  accessibilityLabel?: string;
 }) {
   return (
-    <Text style={[type[variant], { color }, style]} numberOfLines={numberOfLines} selectable={selectable}>
+    <Text style={[type[variant], { color }, style]} numberOfLines={numberOfLines} selectable={selectable} accessibilityLabel={accessibilityLabel}>
       {children}
     </Text>
   );

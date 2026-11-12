@@ -67,6 +67,16 @@ npm test            # tes logika harga, order, dashboard, tanggal
 
 Metro hanya mengawasi `../src` dan selalu mengambil paket dari `mobile/node_modules` (`metro.config.js`), jadi dependensi web dan mobile tidak tercampur.
 
+## Desain
+
+Gaya super app (pola dari aplikasi ride/kirim, dengan identitas Rekapan Mitra sendiri):
+- **Beranda:** kolom cari, kartu omset dengan aksi cepat, grid fitur, dan "Perlu ditindaklanjuti" (order pending/terkirim, stok menipis).
+- **Tambah/Ubah order:** satu lembar dengan kartu Pelanggan → Tanggal, produk berfoto (`assets/products`), **Pilih harga** berisi total per level harga pelanggan (`src/lib/priceOptions.ts`), biaya order, bukti transfer, dan tombol kapsul berisi total.
+- **Detail order:** layar status (Dicatat → Terkirim → Selesai) dengan satu tombol untuk maju ke tahap berikutnya.
+- **Restok:** pola kirim (dari upline → stok kamu) dengan pilihan cepat 5/10/20/40 botol.
+
+Rancangan visualnya ada di kanvas desain (baris "Alternatif: pola UX super app").
+
 ## Fitur dan kesetaraan dengan web
 
 | Fitur | Status di aplikasi |
