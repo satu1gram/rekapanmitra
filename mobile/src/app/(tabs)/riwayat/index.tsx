@@ -138,10 +138,10 @@ export default function HistoryScreen() {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.white },
   pad: { paddingHorizontal: space.lg, paddingTop: 14, paddingBottom: space.xxxl * 2 },
-  search: { flexDirection: 'row', alignItems: 'center', gap: space.sm, minHeight: 48, paddingHorizontal: 14, borderRadius: radius.md, backgroundColor: colors.fill },
-  searchInput: { flex: 1, minWidth: 0, fontSize: 16, color: colors.text, paddingVertical: space.sm },
+  search: { flexDirection: 'row', alignItems: 'center', gap: space.sm, minHeight: 40, paddingHorizontal: 14, borderRadius: radius.md, backgroundColor: colors.fill },
+  searchInput: { flex: 1, minWidth: 0, fontSize: 16, color: colors.text, paddingVertical: 6 },
   clear: { width: 28, height: 28, borderRadius: 14, backgroundColor: '#E3E3E8', alignItems: 'center', justifyContent: 'center' },
-  sectionHeader: { marginTop: space.lg, marginBottom: 2 },
+  sectionHeader: { marginTop: space.md, marginBottom: 0 },
   empty: { alignItems: 'center', gap: space.md, paddingVertical: space.xxxl },
   emptyIcon: { width: 56, height: 56, borderRadius: 18, backgroundColor: colors.brandSoft, alignItems: 'center', justifyContent: 'center' },
   primaryBtn: { minHeight: 48, paddingHorizontal: 20, borderRadius: 12, backgroundColor: colors.brand, justifyContent: 'center' },

@@ -11,6 +11,7 @@ import { formatRupiah } from '~/lib/money';
 import { productDisplayName } from '~/lib/orderMath';
 import { TIER_LABEL } from '~/lib/priceOptions';
 import { errorMessage } from '~/lib/supabase';
+import { ON_BRAND_MUTED } from '~/ui/brand';
 import { AppText, Divider, ErrorState, LoadingState, Row } from '~/ui/components';
 import { CameraIcon, ChatIcon, CheckIcon, ChevronIcon, ShareIcon, TrashIcon, type IconProps } from '~/ui/icons';
 import { productImage } from '~/ui/productMedia';
@@ -75,13 +76,13 @@ export default function OrderStatusScreen() {
             <Pressable onPress={() => router.back()} accessibilityRole="button" accessibilityLabel="Kembali" hitSlop={8} style={styles.heroBtn}>
               <ChevronIcon direction="left" size={26} color={colors.white} />
             </Pressable>
-            <AppText variant="small" color="#CDEBDD">{formatDate(order.created_at)} · {formatTime(order.created_at)}</AppText>
+            <AppText variant="small" color={ON_BRAND_MUTED}>{formatDate(order.created_at)} · {formatTime(order.created_at)}</AppText>
             <Pressable onPress={() => router.push({ pathname: '/order/[id]/edit', params: { id } })} accessibilityRole="button" accessibilityLabel="Ubah order" style={styles.heroBtn}>
               <AppText variant="bodyStrong" color={colors.white}>Ubah</AppText>
             </Pressable>
           </Row>
-          <AppText variant="title" color={colors.white} style={{ fontSize: 26 }}>{stage.headline}</AppText>
-          <AppText variant="body" color="#CDEBDD" style={{ fontSize: 15 }}>{stage.hint}</AppText>
+          <AppText variant="title" color={colors.white} style={{ fontSize: 24 }}>{stage.headline}</AppText>
+          <AppText variant="body" color={ON_BRAND_MUTED} style={{ fontSize: 15 }}>{stage.hint}</AppText>
           <View style={styles.progress} accessibilityLabel={`Tahap ${stageIndex + 1} dari 3`}>
             {STAGES.map((s, i) => <View key={s.status} style={[styles.progressPart, { backgroundColor: i <= stageIndex ? colors.white : 'rgba(255,255,255,0.3)' }]} />)}
           </View>
@@ -107,13 +108,13 @@ export default function OrderStatusScreen() {
               const current = i === stageIndex + 1;
               return (
                 <Pressable key={s.status} onPress={() => i !== stageIndex && changeStatus(s.status)} accessibilityRole="radio" accessibilityState={{ selected: i === stageIndex }} accessibilityLabel={`${s.title}${i === stageIndex ? ', status sekarang' : ''}`} style={{ flexDirection: 'row', gap: 14 }}>
-                  <View style={{ width: 28, alignItems: 'center' }}>
+                  <View style={{ width: 24, alignItems: 'center' }}>
                     <View style={[styles.stageDot, done ? { backgroundColor: colors.brand } : current ? { borderWidth: 2, borderColor: colors.brand, backgroundColor: colors.white } : { backgroundColor: colors.border }]}>
                       {done ? <CheckIcon color={colors.white} /> : null}
                     </View>
                     {i < STAGES.length - 1 ? <View style={[styles.stageLine, { backgroundColor: i < stageIndex ? colors.brand : colors.border }]} /> : null}
                   </View>
-                  <View style={{ paddingTop: 3, paddingBottom: i < STAGES.length - 1 ? 18 : 0, gap: 2 }}>
+                  <View style={{ paddingTop: 1, paddingBottom: i < STAGES.length - 1 ? 12 : 0, gap: 1 }}>
                     <AppText variant="bodyStrong" color={done || current ? colors.text : colors.textMuted}>{s.title}</AppText>
                     {i === 0 ? <AppText variant="small" color={colors.textMuted}>{formatDate(order.created_at)}, {formatTime(order.created_at)}</AppText> : current ? <AppText variant="small" color={colors.textMuted}>Langkah berikutnya</AppText> : null}
                   </View>
@@ -189,18 +190,18 @@ function Tile({ Icon, label, onPress, danger }: { Icon: (p: IconProps) => ReactN
 }
 
 const styles = StyleSheet.create({
-  hero: { backgroundColor: colors.brand, paddingHorizontal: space.lg, paddingBottom: 56, gap: space.md },
+  hero: { backgroundColor: colors.brand, paddingHorizontal: space.lg, paddingBottom: 44, gap: 10 },
   heroBtn: { minWidth: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   progress: { flexDirection: 'row', gap: 6 },
   progressPart: { flex: 1, height: 5, borderRadius: 3 },
-  body: { marginTop: -36, paddingHorizontal: space.lg, gap: space.md },
-  card: { backgroundColor: colors.white, borderRadius: radius.xl, padding: space.lg, gap: space.md },
+  body: { marginTop: -30, paddingHorizontal: space.lg, gap: 10 },
+  card: { backgroundColor: colors.white, borderRadius: radius.lg, paddingHorizontal: 14, paddingVertical: 12, gap: 10 },
   raised: { shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 16, shadowOffset: { width: 0, height: 6 }, elevation: 3 },
-  avatar: { width: 52, height: 52, borderRadius: 26, backgroundColor: colors.warningSoft, alignItems: 'center', justifyContent: 'center' },
-  round: { width: 48, height: 48, borderRadius: 24, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
-  stageDot: { width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-  stageLine: { width: 2, flex: 1, minHeight: 22 },
-  thumb: { width: 48, height: 48, borderRadius: 12 },
+  avatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.warningSoft, alignItems: 'center', justifyContent: 'center' },
+  round: { width: 40, height: 40, borderRadius: 20, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
+  stageDot: { width: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  stageLine: { width: 2, flex: 1, minHeight: 14 },
+  thumb: { width: 40, height: 40, borderRadius: 10 },
   tiles: { flexDirection: 'row', gap: space.sm },
-  tile: { flex: 1, alignItems: 'center', gap: 6, paddingVertical: space.md, borderRadius: radius.lg, backgroundColor: colors.white },
+  tile: { flex: 1, alignItems: 'center', gap: 4, paddingVertical: 10, borderRadius: radius.lg, backgroundColor: colors.white },
 });

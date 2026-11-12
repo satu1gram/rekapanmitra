@@ -37,6 +37,6 @@ export function LevelPicker({ value, onChange }: { value: MitraLevel; onChange: 
 }
 
 const styles = StyleSheet.create({
-  option: { flexDirection: 'row', alignItems: 'center', gap: space.md, minHeight: 60, padding: space.md, borderRadius: radius.md, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.white },
+  option: { flexDirection: 'row', alignItems: 'center', gap: space.md, minHeight: 50, paddingVertical: space.sm, paddingHorizontal: space.md, borderRadius: radius.md, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.white },
   optionSelected: { borderColor: colors.brand, backgroundColor: colors.brandSoft },
 });

@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Alert, Image, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { router, Stack } from 'expo-router';
-import type { TierType } from '@/types';
+import { MITRA_LEVELS, type TierType } from '@/types';
 import { getFallbackUnitPrice } from '@/lib/catalogPricing';
 
 import type { CustomerRow } from '~/data/db';
@@ -10,7 +10,7 @@ import { createOrder, updateOrder } from '~/data/orders';
 import { useCatalog, useCustomers, useProfile, useRefreshingMutation, useStock } from '~/hooks/queries';
 import { businessDateToISO, formatDate, sameDay } from '~/lib/dates';
 import { formatNumberInput, formatRupiah, formatRupiahShort, parseRupiahInput } from '~/lib/money';
-import { buyPricePerBottle, computeOrderTotals, priceItems, productCategories, productDisplayName, type DraftExpense, type DraftItem } from '~/lib/orderMath';
+import { computeOrderTotals, mitraCostLookup, priceItems, productCategories, productDisplayName, type DraftExpense, type DraftItem } from '~/lib/orderMath';
 import { priceOptions, selectedOption, TIER_LABEL, TIER_MIN_BOTTLES } from '~/lib/priceOptions';
 import { errorMessage } from '~/lib/supabase';
 import { AppText, Button, ErrorState, LoadingState, Notice, Row, TextField } from './components';
@@ -23,6 +23,8 @@ import { CapsuleButton, RouteCard, SheetHeader, SheetRow, StickyFooter } from '.
 import { colors, radius, space } from './theme';
 
 const TIERS: TierType[] = ['satuan', 'reseller', 'agen', 'agen_plus', 'sap', 'se'];
+/** How a customer's level reads in the form; 'satuan' is an end consumer. */
+const TIER_DISPLAY: Record<TierType, string> = { satuan: 'Konsumen', reseller: 'Reseller', agen: 'Agen', agen_plus: 'Agen Plus', sap: 'SAP', se: 'SE' };
 
 /** A line from an existing order that does not match any catalog category; it keeps its saved price. */
 export interface FixedLine {
@@ -96,12 +98,25 @@ export function OrderForm({ initial = {}, orderId }: { initial?: OrderFormInitia
   const pricedItems = keepSaved && initial.savedItems ? initial.savedItems : [...(priced?.items ?? items), ...fixedItems];
   const activeItems = pricedItems.filter(i => i.quantity > 0);
   const level = profile.data?.mitra_level ?? 'reseller';
-  const costPerBottle = buyPricePerBottle(level, profile.data?.custom_buy_price);
-  const totals = computeOrderTotals(pricedItems, expenses, costPerBottle);
+  const customBuyPrice = profile.data?.custom_buy_price ?? null;
+  const costOf = useMemo(() => mitraCostLookup(level, customBuyPrice, catalog.data), [level, customBuyPrice, catalog.data]);
+  const totals = computeOrderTotals(pricedItems, expenses, costOf);
+  const noCost = activeItems.length > 0 && totals.buyPrice === 0;
+  const levelLabel = level === 'custom' ? (profile.data?.custom_level_name || 'Kustom') : MITRA_LEVELS[level]?.label ?? level;
+  const fixedNames = new Set(fixedLines.map(l => l.productName));
   const missingPrices = priced?.missing.filter(name => activeItems.some(i => i.productName === name)) ?? [];
   const dirty = isEdit || !!customerName || activeItems.length > 0;
   const savedTotal = initial.savedItems?.reduce((s, i) => s + i.subtotal, 0);
   const currentOption = selectedOption(tier, activeItems);
+  const qtyTier = selectedOption('satuan', activeItems);
+  const priceReason =
+    currentOption === 'satuan'
+      ? 'Harga eceran per botol'
+      : currentOption === qtyTier
+        ? `Otomatis karena ${totals.totalQuantity} botol (min. ${TIER_MIN_BOTTLES[currentOption]})`
+        : `Jenjang pelanggan ${TIER_LABEL[currentOption]}`;
+  // The next quantity step that would make the price cheaper than what the order gets now.
+  const nextTier = TIERS.find(t => TIER_MIN_BOTTLES[t] > totals.totalQuantity && TIERS.indexOf(t) > TIERS.indexOf(currentOption));
 
   const suggestions = useMemo(() => {
     const q = customerName.trim().toLowerCase();
@@ -165,7 +180,8 @@ export function OrderForm({ initial = {}, orderId }: { initial?: OrderFormInitia
       items: activeItems,
       expenses,
       mitraLevel: level,
-      customBuyPrice: profile.data?.custom_buy_price ?? null,
+      customBuyPrice,
+      cost: costOf,
       createdAt: isEdit && initial.date && date.getTime() === initial.date.getTime() ? initial.date.toISOString() : businessDateToISO(date),
       transferProofUrl: proofUrl,
     };
@@ -207,7 +223,7 @@ export function OrderForm({ initial = {}, orderId }: { initial?: OrderFormInitia
           stops={[
             {
               label: 'Pelanggan',
-              value: customerName ? `${customerName}${customerId ? '' : ' · baru'}` : 'Pilih atau ketik nama',
+              value: customerName ? `${customerName} · ${TIER_DISPLAY[tier]}${customerId ? '' : ' · baru'}` : 'Pilih atau ketik nama',
               marker: 'dot',
               action: customerName ? 'Ganti' : 'Isi',
               onPress: () => setCustomerOpen(true),
@@ -221,74 +237,91 @@ export function OrderForm({ initial = {}, orderId }: { initial?: OrderFormInitia
             },
           ]}
         />
-        {panel === 'date' ? <DateField label="Tanggal transaksi" value={date} onChange={d => { setDate(d); setPanel('none'); }} /> : null}
+        {panel === 'date' ? <DateField label="Tanggal transaksi" value={date} initiallyOpen onChange={d => { setDate(d); setPanel('none'); }} /> : null}
 
-        <View style={{ gap: space.md }}>
+        <View style={styles.section}>
           <Row style={{ justifyContent: 'space-between' }}>
             <AppText variant="heading" style={{ fontWeight: '800' }}>Produk</AppText>
             <AppText variant="small" color={colors.textMuted}>{totals.totalQuantity} botol</AppText>
           </Row>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
-            {activeItems.map(item => (
-              <Pressable key={item.productName} onPress={() => setProductsOpen(true)} accessibilityRole="button" accessibilityLabel={`${productDisplayName(item.productName)}, ${item.quantity} botol. Ketuk untuk mengubah.`} style={styles.chip}>
-                <View>
-                  <ProductThumb name={item.productName} size={72} />
-                  <View style={styles.badge}><AppText variant="caption" color={colors.white} style={{ fontSize: 13, fontWeight: '800', letterSpacing: 0 }}>{item.quantity}</AppText></View>
+          <View style={styles.box}>
+            {activeItems.map((item, i) => {
+              const fixed = fixedNames.has(item.productName);
+              const change = (q: number) => (fixed ? setFixedQty(item.productName, q) : setQty(item.productName, q));
+              const name = productDisplayName(item.productName);
+              return (
+                <View key={item.productName} style={[styles.line, i > 0 && styles.sep]}>
+                  <ProductThumb name={item.productName} size={40} />
+                  <Pressable style={{ flex: 1, gap: 1 }} onPress={() => !fixed && setProductsOpen(true)} accessibilityRole="button" accessibilityLabel={`${name}, ${item.quantity} × ${formatRupiah(item.pricePerBottle)}`}>
+                    <AppText variant="bodyStrong" style={{ fontSize: 15 }} numberOfLines={1}>{name}</AppText>
+                    <AppText variant="small" color={colors.textMuted} style={{ fontSize: 13 }} numberOfLines={1}>
+                      {formatRupiah(item.pricePerBottle)}/botol{fixed ? ' · harga tersimpan' : ''}
+                    </AppText>
+                  </Pressable>
+                  <View style={styles.stepper}>
+                    <Pressable onPress={() => change(item.quantity - 1)} hitSlop={6} accessibilityRole="button" accessibilityLabel={`Kurangi ${name}`} style={styles.stepBtn}><MinusIcon size={16} color={colors.brand} /></Pressable>
+                    <AppText variant="bodyStrong" style={{ minWidth: 26, textAlign: 'center' }} accessibilityLabel={`${item.quantity} botol`}>{item.quantity}</AppText>
+                    <Pressable onPress={() => change(item.quantity + 1)} hitSlop={6} accessibilityRole="button" accessibilityLabel={`Tambah ${name}`} style={styles.stepBtn}><PlusIcon size={16} color={colors.brand} /></Pressable>
+                  </View>
                 </View>
-                <AppText variant="caption" style={{ textAlign: 'center', letterSpacing: 0 }} numberOfLines={2}>{productDisplayName(item.productName)}</AppText>
-              </Pressable>
-            ))}
-            <Pressable onPress={() => setProductsOpen(true)} accessibilityRole="button" accessibilityLabel="Tambah produk" style={styles.chip}>
-              <View style={styles.addTile}><PlusIcon size={28} color={colors.brand} /></View>
-              <AppText variant="caption" color={colors.brand} style={{ textAlign: 'center', letterSpacing: 0 }}>{activeItems.length ? 'Tambah' : 'Pilih produk'}</AppText>
+              );
+            })}
+            <Pressable onPress={() => setProductsOpen(true)} accessibilityRole="button" accessibilityLabel={activeItems.length ? 'Tambah produk lain' : 'Pilih produk'} style={({ pressed }) => [styles.line, activeItems.length > 0 && styles.sep, pressed && { opacity: 0.6 }]}>
+              <View style={styles.addTile}><PlusIcon size={20} color={colors.brand} /></View>
+              <AppText variant="bodyStrong" color={colors.brand} style={{ fontSize: 15 }}>{activeItems.length ? 'Tambah produk lain' : 'Pilih produk'}</AppText>
             </Pressable>
-          </ScrollView>
-          {fixedLines.length > 0 ? (
-            <View style={{ gap: space.sm }}>
-              <AppText variant="small" color={colors.textMuted}>Produk lain di order ini (harga tersimpan)</AppText>
-              {fixedLines.map(line => (
-                <Row key={line.productName} style={{ justifyContent: 'space-between' }}>
-                  <AppText variant="body" style={{ flex: 1 }}>{line.productName} · {formatRupiah(line.pricePerBottle)}</AppText>
-                  <Pressable onPress={() => setFixedQty(line.productName, line.quantity - 1)} accessibilityRole="button" accessibilityLabel={`Kurangi ${line.productName}`} style={styles.miniBtn}><MinusIcon size={18} color={colors.brand} /></Pressable>
-                  <AppText variant="bodyStrong">{line.quantity}</AppText>
-                  <Pressable onPress={() => setFixedQty(line.productName, line.quantity + 1)} accessibilityRole="button" accessibilityLabel={`Tambah ${line.productName}`} style={styles.miniBtn}><PlusIcon size={18} color={colors.brand} /></Pressable>
-                </Row>
-              ))}
-            </View>
-          ) : null}
+          </View>
           {missingPrices.length > 0 ? (
             <Notice tone="warning" title="Harga katalog belum ada">{missingPrices.map(productDisplayName).join(', ')} memakai harga cadangan. Periksa nominalnya.</Notice>
           ) : null}
         </View>
 
-        {options.length > 0 ? (
-          <View style={{ gap: space.sm }} accessibilityRole="radiogroup">
-            <AppText variant="heading" style={{ fontWeight: '800' }}>Pilih harga</AppText>
-            {keepSaved ? <Notice tone="info">Harga tersimpan dipakai. Mengubah produk atau harga akan menghitung ulang dari katalog.</Notice> : null}
-            {options.map(option => {
-              const selected = !keepSaved && option.tier === currentOption;
-              return (
-                <Pressable
-                  key={option.tier}
-                  onPress={() => pickTier(option.tier)}
-                  accessibilityRole="radio"
-                  accessibilityState={{ selected }}
-                  accessibilityLabel={`Harga ${option.label}, ${formatRupiah(option.total)}`}
-                  style={[styles.option, selected && styles.optionSelected]}
-                >
-                  <View style={[styles.optionIcon, selected && { backgroundColor: colors.brand }]}>
-                    <AppText variant="caption" color={selected ? colors.white : '#3A3A3C'} style={{ fontSize: 13, fontWeight: '800', letterSpacing: 0 }}>{TIER_MIN_BOTTLES[option.tier]}+</AppText>
-                  </View>
-                  <View style={{ flex: 1, gap: 2 }}>
-                    <AppText variant="bodyStrong">{option.label}</AppText>
-                    <AppText variant="small" color={option.byQuantity ? colors.brand : colors.textMuted} style={{ fontSize: 13, fontWeight: option.byQuantity ? '600' : '400' }}>
-                      {option.byQuantity ? 'Sesuai jumlah botol' : `Untuk pelanggan level ${option.label}`}
-                    </AppText>
-                  </View>
-                  <AppText variant="bodyStrong" style={{ fontWeight: selected ? '800' : '600' }}>{formatRupiah(option.total)}</AppText>
-                </Pressable>
-              );
-            })}
+        {activeItems.length > 0 ? (
+          <View style={styles.section}>
+            <AppText variant="heading" style={{ fontWeight: '800' }}>Harga</AppText>
+            <View style={[styles.box, styles.priceBox]}>
+              {keepSaved ? (
+                <AppText variant="small" color={colors.textMuted}>Harga tersimpan dipakai. Mengubah produk, jumlah, atau jenjang akan menghitung ulang dari katalog.</AppText>
+              ) : (
+                <>
+                  <Row style={{ justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <View style={{ flex: 1, gap: 1 }}>
+                      <AppText variant="bodyStrong">Harga {TIER_LABEL[currentOption]}</AppText>
+                      <AppText variant="small" color={colors.textMuted} style={{ fontSize: 13 }}>{priceReason}</AppText>
+                    </View>
+                    <AppText variant="bodyStrong" style={{ fontWeight: '800' }}>{formatRupiah(totals.totalPrice)}</AppText>
+                  </Row>
+                  {nextTier ? (
+                    <View style={{ gap: 6 }}>
+                      <View style={styles.track}><View style={[styles.trackFill, { width: `${Math.min(100, Math.round((totals.totalQuantity / TIER_MIN_BOTTLES[nextTier]) * 100))}%` }]} /></View>
+                      <AppText variant="small" color={colors.brandDark} style={{ fontSize: 13, fontWeight: '600' }}>
+                        Tambah {TIER_MIN_BOTTLES[nextTier] - totals.totalQuantity} botol lagi untuk harga {TIER_LABEL[nextTier]}
+                      </AppText>
+                    </View>
+                  ) : null}
+                </>
+              )}
+              {options.length > 1 ? (
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: space.sm }} accessibilityRole="radiogroup">
+                  {options.map(option => {
+                    const selected = !keepSaved && option.tier === currentOption;
+                    return (
+                      <Pressable
+                        key={option.tier}
+                        onPress={() => pickTier(option.tier)}
+                        accessibilityRole="radio"
+                        accessibilityState={{ selected }}
+                        accessibilityLabel={`Harga ${option.label}, ${formatRupiah(option.total)}`}
+                        style={[styles.option, selected && styles.optionSelected]}
+                      >
+                        <AppText variant="small" color={selected ? colors.brandDark : colors.textMuted} style={{ fontSize: 12, fontWeight: '700' }}>{option.label} · {TIER_MIN_BOTTLES[option.tier]}+</AppText>
+                        <AppText variant="small" color={colors.text} style={{ fontSize: 14, fontWeight: selected ? '800' : '600' }}>{formatRupiah(option.total)}</AppText>
+                      </Pressable>
+                    );
+                  })}
+                </ScrollView>
+              ) : null}
+            </View>
           </View>
         ) : null}
 
@@ -321,14 +354,14 @@ export function OrderForm({ initial = {}, orderId }: { initial?: OrderFormInitia
           <Notice tone="info">Total berubah dari {formatRupiah(savedTotal)} menjadi {formatRupiah(totals.totalPrice)}.</Notice>
         ) : null}
         {totals.margin < 0 && activeItems.length ? <Notice tone="warning">Order ini rugi {formatRupiah(-totals.margin)}. Periksa harga atau biaya.</Notice> : null}
-        {costPerBottle === 0 ? <Notice tone="warning">Harga modal level kamu belum diisi. Atur di menu Akun.</Notice> : null}
+        {noCost ? <Notice tone="warning">Harga modal level kamu belum diisi. Atur di menu Akun.</Notice> : null}
         {stock.data && totals.totalQuantity > stock.data.currentStock ? <Notice tone="info">Stok tercatat {stock.data.currentStock} botol, lebih sedikit dari order ini.</Notice> : null}
       </ScrollView>
 
       <StickyFooter>
         <Row style={{ justifyContent: 'space-between' }}>
           <AppText variant="small" color={colors.textMuted} numberOfLines={1} style={{ flex: 1 }}>
-            {activeItems.length ? `Modal ${formatRupiahShort(totals.buyPrice)} · Biaya ${formatRupiahShort(totals.totalExpenses)}` : 'Pilih produk untuk melihat untung'}
+            {activeItems.length ? `Modal ${levelLabel} ${formatRupiahShort(totals.buyPrice)} · Biaya ${formatRupiahShort(totals.totalExpenses)}` : 'Pilih produk untuk melihat untung'}
           </AppText>
           {activeItems.length ? (
             <AppText variant="small" color={totals.margin < 0 ? colors.danger : colors.brand} style={{ fontWeight: '700' }} numberOfLines={1}>
@@ -368,6 +401,20 @@ export function OrderForm({ initial = {}, orderId }: { initial?: OrderFormInitia
                 </View>
               </Pressable>
             ))}
+            <View style={{ gap: 6 }}>
+              <AppText variant="small" color={colors.textMuted} style={{ fontWeight: '600' }}>Jenjang pelanggan</AppText>
+              <View style={styles.tierWrap} accessibilityRole="radiogroup">
+                {TIERS.map(t => {
+                  const on = tier === t;
+                  return (
+                    <Pressable key={t} onPress={() => pickTier(t)} accessibilityRole="radio" accessibilityState={{ selected: on }} accessibilityLabel={`Jenjang ${TIER_DISPLAY[t]}`} style={[styles.tierChip, on && styles.tierChipOn]}>
+                      <AppText variant="small" color={on ? colors.white : colors.text} style={{ fontWeight: '700', fontSize: 14 }}>{TIER_DISPLAY[t]}</AppText>
+                    </Pressable>
+                  );
+                })}
+              </View>
+              <AppText variant="small" color={colors.textMuted} style={{ fontSize: 13 }}>Pelanggan yang juga mitra dapat harga sesuai jenjangnya, meski belinya sedikit.</AppText>
+            </View>
             {customerName.trim() && !customerId && suggestions.length === 0 ? (
               <Notice tone="info">Pelanggan baru “{customerName.trim()}” akan disimpan bersama order.</Notice>
             ) : null}
@@ -384,25 +431,32 @@ export function OrderForm({ initial = {}, orderId }: { initial?: OrderFormInitia
 
 function ProductThumb({ name, size }: { name: string; size: number }) {
   const image = productImage(name);
-  if (image) return <Image source={image} style={{ width: size, height: size, borderRadius: 16 }} accessibilityIgnoresInvertColors />;
+  if (image) return <Image source={image} style={{ width: size, height: size, borderRadius: size / 4 }} accessibilityIgnoresInvertColors />;
   return (
-    <View style={{ width: size, height: size, borderRadius: 16, backgroundColor: colors.fill, alignItems: 'center', justifyContent: 'center' }}>
-      <AppText variant="heading" color={colors.textMuted}>{productDisplayName(name).slice(0, 2).toUpperCase()}</AppText>
+    <View style={{ width: size, height: size, borderRadius: size / 4, backgroundColor: colors.fill, alignItems: 'center', justifyContent: 'center' }}>
+      <AppText variant="small" color={colors.textMuted} style={{ fontWeight: '700' }}>{productDisplayName(name).slice(0, 2).toUpperCase()}</AppText>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  content: { padding: space.lg, gap: space.xl, paddingBottom: space.xxxl },
-  chips: { gap: space.sm, paddingTop: 6 },
-  chip: { width: 84, alignItems: 'center', gap: 6 },
-  badge: { position: 'absolute', top: -6, right: -6, minWidth: 26, height: 26, paddingHorizontal: 6, borderRadius: 13, backgroundColor: colors.brand, borderWidth: 2, borderColor: colors.white, alignItems: 'center', justifyContent: 'center' },
-  addTile: { width: 72, height: 72, borderRadius: 16, borderWidth: 1.5, borderStyle: 'dashed', borderColor: '#9DB3A8', alignItems: 'center', justifyContent: 'center' },
-  miniBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.brandSoft, alignItems: 'center', justifyContent: 'center' },
-  option: { flexDirection: 'row', alignItems: 'center', gap: space.md, padding: space.md, borderRadius: radius.lg, borderWidth: 1.5, borderColor: colors.border, backgroundColor: colors.white },
+  content: { paddingHorizontal: space.lg, paddingTop: space.xs, gap: space.lg, paddingBottom: space.xxl },
+  section: { gap: space.sm },
+  box: { borderWidth: 1, borderColor: colors.border, borderRadius: radius.lg, paddingHorizontal: 12, backgroundColor: colors.white },
+  priceBox: { paddingVertical: 12, gap: 10 },
+  line: { flexDirection: 'row', alignItems: 'center', gap: space.md, minHeight: 56, paddingVertical: 8 },
+  sep: { borderTopWidth: StyleSheet.hairlineWidth, borderColor: colors.border },
+  stepper: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: colors.brandTint, borderRadius: radius.pill, padding: 3 },
+  stepBtn: { width: 30, height: 30, borderRadius: 15, backgroundColor: colors.white, alignItems: 'center', justifyContent: 'center' },
+  addTile: { width: 40, height: 40, borderRadius: 10, borderWidth: 1.5, borderStyle: 'dashed', borderColor: '#9DB3A8', alignItems: 'center', justifyContent: 'center' },
+  track: { height: 6, borderRadius: 3, backgroundColor: colors.fill, overflow: 'hidden' },
+  trackFill: { height: 6, borderRadius: 3, backgroundColor: colors.brand },
+  option: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: radius.md, borderWidth: 1.5, borderColor: colors.border, backgroundColor: colors.white, gap: 1 },
   optionSelected: { borderColor: colors.brand, backgroundColor: colors.brandTint },
-  optionIcon: { width: 44, height: 44, borderRadius: 12, backgroundColor: colors.fill, alignItems: 'center', justifyContent: 'center' },
-  panel: { gap: space.md, paddingBottom: space.md },
-  suggestion: { flexDirection: 'row', alignItems: 'center', gap: space.md, minHeight: 60, paddingHorizontal: space.sm, borderRadius: radius.md },
-  avatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.brandSoft, alignItems: 'center', justifyContent: 'center' },
+  panel: { gap: space.sm, paddingBottom: space.sm },
+  tierWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  tierChip: { paddingHorizontal: 12, minHeight: 34, justifyContent: 'center', borderRadius: radius.pill, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.white },
+  tierChipOn: { backgroundColor: colors.brand, borderColor: colors.brand },
+  suggestion: { flexDirection: 'row', alignItems: 'center', gap: space.md, minHeight: 52, paddingHorizontal: space.sm, borderRadius: radius.md },
+  avatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: colors.brandSoft, alignItems: 'center', justifyContent: 'center' },
 });

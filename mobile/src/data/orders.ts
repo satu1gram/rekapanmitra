@@ -2,7 +2,7 @@ import type { MitraLevel, OrderStatus, TierType } from '@/types';
 import { getCanonicalProductLabel } from '@/lib/productNames';
 import { calculateOrderStockReversal } from '@/lib/orderDeletion';
 import { supabase } from '~/lib/supabase';
-import { buyPricePerBottle, computeOrderTotals, type DraftExpense, type DraftItem } from '~/lib/orderMath';
+import { buyPricePerBottle, computeOrderTotals, type CostRule, type DraftExpense, type DraftItem } from '~/lib/orderMath';
 import { fetchAllPages, requireUserId, untyped, type OrderExpenseRow, type OrderRow } from './db';
 
 export async function listOrders(userId: string): Promise<OrderRow[]> {
@@ -58,6 +58,8 @@ export interface NewOrderInput {
   expenses: DraftExpense[];
   mitraLevel: MitraLevel;
   customBuyPrice: number | null;
+  /** Cost per bottle per product (mitraCostLookup); defaults to the single profile cost. */
+  cost?: CostRule;
   createdAt: string;
   transferProofUrl?: string | null;
 }
@@ -73,7 +75,7 @@ export async function createOrder(input: NewOrderInput): Promise<OrderRow> {
   if (items.length === 0) throw new Error('Pilih minimal satu produk.');
   if (items.some(item => !Number.isInteger(item.quantity) || item.quantity <= 0)) throw new Error('Jumlah produk harus bilangan bulat positif.');
 
-  const totals = computeOrderTotals(items, input.expenses, buyPricePerBottle(input.mitraLevel, input.customBuyPrice));
+  const totals = computeOrderTotals(items, input.expenses, input.cost ?? buyPricePerBottle(input.mitraLevel, input.customBuyPrice));
 
   const { data: order, error } = await supabase
     .from('orders')
@@ -191,7 +193,7 @@ export async function updateOrder(orderId: string, input: NewOrderInput) {
   const userId = await requireUserId();
   const items = input.items.filter(item => item.quantity > 0);
   if (items.length === 0) throw new Error('Pilih minimal satu produk.');
-  const totals = computeOrderTotals(items, input.expenses, buyPricePerBottle(input.mitraLevel, input.customBuyPrice));
+  const totals = computeOrderTotals(items, input.expenses, input.cost ?? buyPricePerBottle(input.mitraLevel, input.customBuyPrice));
 
   const [oldItems, oldExpenses] = await Promise.all([
     supabase.from('order_items').select('id').eq('order_id', orderId),

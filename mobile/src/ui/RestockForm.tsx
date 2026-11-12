@@ -143,7 +143,7 @@ const styles = StyleSheet.create({
   sizes: { flexDirection: 'row', gap: space.sm },
   size: { flex: 1, alignItems: 'center', paddingVertical: space.md, borderRadius: radius.lg, borderWidth: 1.5, borderColor: colors.border },
   sizeSelected: { borderColor: colors.brand, backgroundColor: colors.brandTint },
-  field: { flexDirection: 'row', alignItems: 'center', gap: space.md, minHeight: 56, paddingHorizontal: 14, borderRadius: 14, backgroundColor: colors.fill },
+  field: { flexDirection: 'row', alignItems: 'center', gap: space.md, minHeight: 46, paddingHorizontal: 14, borderRadius: 12, backgroundColor: colors.fill },
   fieldLabel: { width: 96, fontSize: 15 },
   input: { flex: 1, minWidth: 0, width: 0, fontSize: 16, color: colors.text, paddingVertical: space.sm },
 });

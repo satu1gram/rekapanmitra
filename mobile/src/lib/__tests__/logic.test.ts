@@ -4,7 +4,7 @@ import type { CatalogProduct } from '@/lib/catalogPricing';
 import { summarizeMonth, targetProgress } from '../dashboard';
 import { businessDateToISO, isInMonth, shiftMonth } from '../dates';
 import { formatRupiah, formatRupiahShort, parseRupiahInput } from '../money';
-import { buyPricePerBottle, computeOrderTotals, priceItems, productCategories, productDisplayName, toCatalog } from '../orderMath';
+import { buyPricePerBottle, computeOrderTotals, mitraCostLookup, priceItems, productCategories, productDisplayName, toCatalog } from '../orderMath';
 
 const row = (category: string, package_type: string, qty: number, price: number): CatalogProduct => ({
   id: `${category}-${package_type}`,
@@ -144,5 +144,29 @@ describe('formatting and dates', () => {
     expect(isInMonth(iso, { year: 2026, month: 9 })).toBe(true);
     expect(new Date(iso).getDate()).toBe(31);
     expect(businessDateToISO(new Date(2026, 10, 11, 8), now)).toBe(now.toISOString());
+  });
+});
+
+describe('cost follows the mitra level', () => {
+  it('uses the package price of the level for each product', () => {
+    const cost = mitraCostLookup('reseller', null, catalog);
+    expect(cost('BP')).toBe(240000);
+    expect(cost('BLUE')).toBe(260000);
+    const agen = mitraCostLookup('agen', null, catalog);
+    expect(agen('BP')).toBe(225000);
+    expect(agen('BLUE')).toBe(245000);
+  });
+
+  it('falls back to the profile cost when the level has no catalog package', () => {
+    expect(mitraCostLookup('sap', null, catalog)('BP')).toBe(195000);
+    expect(mitraCostLookup('custom', 200000, catalog)('BLUE')).toBe(200000);
+  });
+
+  it('adds cost per line in the order totals', () => {
+    const { items } = priceItems([item('BP', 2), item('BLUE', 1)], 'satuan', catalog);
+    const totals = computeOrderTotals(items, [], mitraCostLookup('reseller', null, catalog));
+    expect(totals.totalPrice).toBe(740000);
+    expect(totals.buyPrice).toBe(240000 * 2 + 260000);
+    expect(totals.margin).toBe(740000 - 740000);
   });
 });

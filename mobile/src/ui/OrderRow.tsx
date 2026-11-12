@@ -39,6 +39,6 @@ export function OrderRow({ order, showTime = true }: { order: Order; showTime?: 
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'center', gap: space.md, paddingVertical: space.md, minHeight: 64 },
+  row: { flexDirection: 'row', alignItems: 'center', gap: space.md, paddingVertical: space.sm, minHeight: 54 },
   meta: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
 });
