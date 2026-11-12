@@ -11,7 +11,7 @@ import { errorMessage } from '~/lib/supabase';
 import { AppText, LoadingState, Row } from '~/ui/components';
 import { brandStyles, ErrorPanel, IconButton, MonthCard, OrderListRow } from '~/ui/brand';
 import { ChatIcon, CloseIcon, ListIcon, PlusIcon, SearchIcon } from '~/ui/icons';
-import { colors, radius, space } from '~/ui/theme';
+import { colors, radius, space, TAB_BAR_SPACE } from '~/ui/theme';
 
 interface DaySection {
   key: string;
@@ -53,7 +53,7 @@ export default function HistoryScreen() {
   const monthName = MONTH_NAMES[month.month];
   const header = (
     <Row style={{ gap: space.sm }}>
-      <AppText variant="title" style={{ flex: 1, fontSize: 24 }}>Riwayat order</AppText>
+      <AppText variant="title" style={{ flex: 1, fontSize: 22 }}>Riwayat order</AppText>
       <IconButton label="Isi order dari chat" tone="soft" onPress={() => router.push('/asisten')}><ChatIcon color={colors.brand} /></IconButton>
       <IconButton label="Catat order" tone="brand" onPress={() => router.push('/order/new')}><PlusIcon color={colors.white} /></IconButton>
     </Row>
@@ -137,9 +137,9 @@ export default function HistoryScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.white },
-  pad: { paddingHorizontal: space.lg, paddingTop: 14, paddingBottom: space.xxxl * 2 },
+  pad: { paddingHorizontal: space.lg, paddingTop: 14, paddingBottom: TAB_BAR_SPACE },
   search: { flexDirection: 'row', alignItems: 'center', gap: space.sm, minHeight: 40, paddingHorizontal: 14, borderRadius: radius.md, backgroundColor: colors.fill },
-  searchInput: { flex: 1, minWidth: 0, fontSize: 16, color: colors.text, paddingVertical: 6 },
+  searchInput: { flex: 1, minWidth: 0, fontSize: 15, color: colors.text, paddingVertical: 6 },
   clear: { width: 28, height: 28, borderRadius: 14, backgroundColor: '#E3E3E8', alignItems: 'center', justifyContent: 'center' },
   sectionHeader: { marginTop: space.md, marginBottom: 0 },
   empty: { alignItems: 'center', gap: space.md, paddingVertical: space.xxxl },

@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { Alert, KeyboardAvoidingView, Platform, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, View } from 'react-native';
 import { useQueryClient } from '@tanstack/react-query';
 
 import { DELETE_CONFIRM_TEXT, deleteMyAccount } from '~/data/account';
 import { useAuth } from '~/providers/AuthProvider';
 import { AppText, Button, Card, Icon, Notice, Row, Screen, TextField } from '~/ui/components';
 import { colors, space } from '~/ui/theme';
+import { showDialog } from '~/ui/dialog';
 
 const DELETED = [
   'Profil dan akun login',
@@ -33,7 +34,7 @@ export default function DeleteAccountScreen() {
     try {
       await deleteMyAccount(email ?? '', password, confirmText);
       queryClient.clear();
-      Alert.alert('Akun dihapus', 'Akun dan semua data usahamu sudah dihapus permanen.');
+      showDialog('Akun dihapus', 'Akun dan semua data usahamu sudah dihapus permanen.');
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Akun gagal dihapus.');
     } finally {

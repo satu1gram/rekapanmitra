@@ -46,7 +46,7 @@ function ProductCard({ line, onChange }: { line: PickerLine; onChange: (q: numbe
   return (
     <View style={styles.card}>
       <View style={[styles.photo, selected && styles.photoSelected]}>
-        {image ? <Image source={image} style={StyleSheet.absoluteFill} resizeMode="cover" accessibilityIgnoresInvertColors /> : (
+        {image ? <Image source={image} style={styles.img} resizeMode="cover" accessibilityIgnoresInvertColors /> : (
           <View style={[StyleSheet.absoluteFill, { alignItems: 'center', justifyContent: 'center' }]}>
             <AppText variant="title" color={colors.textMuted}>{name.slice(0, 2).toUpperCase()}</AppText>
           </View>
@@ -81,6 +81,7 @@ const styles = StyleSheet.create({
   grid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: space.lg, paddingTop: space.xs, paddingBottom: space.xxl, columnGap: 10, rowGap: 14 },
   card: { width: '31%', flexGrow: 0, gap: 6 },
   photo: { width: '100%', aspectRatio: 1, borderRadius: 14, overflow: 'hidden', backgroundColor: '#E5E5EA' },
+  img: { position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' },
   photoSelected: { borderWidth: 2.5, borderColor: colors.brand },
   add: { position: 'absolute', right: 6, bottom: 6, width: 34, height: 34, borderRadius: 17, backgroundColor: 'rgba(255,255,255,0.94)', alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 3 },
   qty: { position: 'absolute', left: 4, right: 4, bottom: 4, height: 34, borderRadius: radius.pill, backgroundColor: colors.brand, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },

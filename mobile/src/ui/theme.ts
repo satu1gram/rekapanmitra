@@ -27,13 +27,14 @@ export const space = { xs: 4, sm: 8, md: 12, lg: 16, xl: 20, xxl: 24, xxxl: 32 }
 export const radius = { sm: 8, md: 12, lg: 16, xl: 20, pill: 999 } as const;
 
 export const type = {
-  hero: { fontSize: 30, fontWeight: '800' as const, letterSpacing: -0.5 },
-  title: { fontSize: 22, fontWeight: '800' as const, letterSpacing: -0.3 },
-  heading: { fontSize: 17, fontWeight: '700' as const },
-  body: { fontSize: 16, fontWeight: '400' as const },
-  bodyStrong: { fontSize: 16, fontWeight: '600' as const },
-  small: { fontSize: 14, fontWeight: '400' as const },
-  caption: { fontSize: 12, fontWeight: '600' as const, letterSpacing: 0.3 },
+  // Density follows the Gojek reference screens: 14 body, 15–16 row titles, 18–20 page titles.
+  hero: { fontSize: 26, fontWeight: '800' as const, letterSpacing: -0.4 },
+  title: { fontSize: 20, fontWeight: '800' as const, letterSpacing: -0.2 },
+  heading: { fontSize: 16, fontWeight: '700' as const },
+  body: { fontSize: 14, fontWeight: '400' as const },
+  bodyStrong: { fontSize: 15, fontWeight: '600' as const },
+  small: { fontSize: 13, fontWeight: '400' as const },
+  caption: { fontSize: 11, fontWeight: '600' as const, letterSpacing: 0.2 },
 };
 
 export const shadow = {
@@ -43,3 +44,6 @@ export const shadow = {
   shadowOffset: { width: 0, height: 4 },
   elevation: 2,
 } as const;
+
+/** Room a tab screen leaves at the bottom for the floating tab bar (bar 64 + gap + home indicator). */
+export const TAB_BAR_SPACE = 120;

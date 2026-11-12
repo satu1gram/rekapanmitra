@@ -101,10 +101,10 @@ export function SearchIcon({ size = 22, color }: IconProps) {
   );
 }
 
-export function ChevronIcon({ size = 18, color, direction }: IconProps & { direction: 'left' | 'right' }) {
+export function ChevronIcon({ size = 18, color, direction }: IconProps & { direction: 'left' | 'right' | 'up' | 'down' }) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2.6} strokeLinecap="round">
-      <Path d={direction === 'left' ? 'm15 6-6 6 6 6' : 'm9 6 6 6-6 6'} />
+      <Path d={{ left: 'm15 6-6 6 6 6', right: 'm9 6 6 6-6 6', up: 'm6 15 6-6 6 6', down: 'm6 9 6 6 6-6' }[direction]} />
     </Svg>
   );
 }

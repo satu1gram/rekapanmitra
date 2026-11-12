@@ -61,5 +61,5 @@ export default function CustomersScreen() {
 
 const styles = StyleSheet.create({
   search: { flexDirection: 'row', alignItems: 'center', gap: space.sm, backgroundColor: colors.white, borderRadius: radius.md, borderWidth: 1, borderColor: colors.border, paddingHorizontal: space.md, minHeight: 48 },
-  searchInput: { flex: 1, fontSize: 16, color: colors.text, paddingVertical: space.sm },
+  searchInput: { flex: 1, fontSize: 15, color: colors.text, paddingVertical: space.sm },
 });

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Alert, KeyboardAvoidingView, Platform } from 'react-native';
+import { KeyboardAvoidingView, Platform } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES, deleteMoneyEntry, saveMoneyEntry, type MoneyInput, type MoneyKind } from '~/data/finance';
@@ -12,6 +12,7 @@ import { Chips } from '~/ui/Chips';
 import { DateField } from '~/ui/DateField';
 import { SheetHeader } from '~/ui/sheet';
 import { colors } from '~/ui/theme';
+import { showDialog } from '~/ui/dialog';
 
 export default function MoneyFormScreen() {
   const params = useLocalSearchParams<{ kind?: string; id?: string }>();
@@ -52,7 +53,7 @@ function MoneyForm({ kind, entry }: { kind: MoneyKind; entry?: { id: string; nam
   };
 
   const confirmDelete = () =>
-    Alert.alert('Hapus catatan ini?', undefined, [
+    showDialog('Hapus catatan ini?', undefined, [
       { text: 'Batal', style: 'cancel' },
       { text: 'Hapus', style: 'destructive', onPress: () => remove.mutate(undefined, { onSuccess: () => router.back(), onError: e => setError(errorMessage(e)) }) },
     ]);

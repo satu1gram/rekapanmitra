@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Alert, View } from 'react-native';
+import { View } from 'react-native';
 import Constants from 'expo-constants';
 import { router } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
@@ -15,6 +15,7 @@ import { useAuth } from '~/providers/AuthProvider';
 import { AppText, Badge, Button, Card, Divider, ErrorState, ListItem, LoadingState, Notice, Screen, SectionTitle, TextField, type IconName } from '~/ui/components';
 import { LevelPicker } from '~/ui/LevelPicker';
 import { colors } from '~/ui/theme';
+import { showDialog } from '~/ui/dialog';
 
 const FEATURES: { title: string; subtitle: string; icon: IconName; href: '/keuangan' | '/target' | '/pelanggan' | '/toko' | '/asisten' }[] = [
   { title: 'Pengeluaran & pemasukan', subtitle: 'Biaya umum dan pemasukan di luar penjualan', icon: 'wallet-outline', href: '/keuangan' },
@@ -69,7 +70,7 @@ export default function AccountScreen() {
   };
 
   const confirmSignOut = () =>
-    Alert.alert('Keluar dari akun?', 'Kamu perlu masuk lagi untuk melihat data.', [
+    showDialog('Keluar dari akun?', 'Kamu perlu masuk lagi untuk melihat data.', [
       { text: 'Batal', style: 'cancel' },
       { text: 'Keluar', style: 'destructive', onPress: () => signOut() },
     ]);

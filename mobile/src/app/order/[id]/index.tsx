@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react';
-import { Alert, Image, Linking, Pressable, ScrollView, Share, StyleSheet, View } from 'react-native';
+import { Image, Linking, Pressable, ScrollView, Share, StyleSheet, View } from 'react-native';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { OrderStatus } from '@/types';
@@ -18,6 +18,7 @@ import { productImage } from '~/ui/productMedia';
 import { ProofPicker } from '~/ui/ProofPicker';
 import { CapsuleButton, StickyFooter } from '~/ui/sheet';
 import { colors, radius, space } from '~/ui/theme';
+import { showDialog } from '~/ui/dialog';
 
 const STAGES: { status: OrderStatus; title: string; headline: string; hint: string }[] = [
   { status: 'pending', title: 'Order dicatat', headline: 'Siap dikirim', hint: 'Tandai terkirim setelah barang diserahkan ke kurir atau pelanggan.' },
@@ -47,12 +48,12 @@ export default function OrderStatusScreen() {
   const otherCost = expenses.length === 0 ? totalPrice - buyPrice - margin : 0;
   const waNumber = (order.customer_phone ?? '').replace(/\D/g, '').replace(/^0/, '62');
 
-  const changeStatus = (status: OrderStatus) => setStatus.mutate(status, { onError: e => Alert.alert('Gagal mengubah status', errorMessage(e)) });
+  const changeStatus = (status: OrderStatus) => setStatus.mutate(status, { onError: e => showDialog('Gagal mengubah status', errorMessage(e)) });
 
   const confirmDelete = () =>
-    Alert.alert('Hapus order ini?', `Order ${order.customer_name} senilai ${formatRupiah(totalPrice)} akan dihapus permanen.`, [
+    showDialog('Hapus order ini?', `Order ${order.customer_name} senilai ${formatRupiah(totalPrice)} akan dihapus permanen.`, [
       { text: 'Batal', style: 'cancel' },
-      { text: 'Hapus', style: 'destructive', onPress: () => remove.mutate(undefined, { onSuccess: () => router.back(), onError: e => Alert.alert('Gagal menghapus', errorMessage(e)) }) },
+      { text: 'Hapus', style: 'destructive', onPress: () => remove.mutate(undefined, { onSuccess: () => router.back(), onError: e => showDialog('Gagal menghapus', errorMessage(e)) }) },
     ]);
 
   const shareReceipt = () => {
@@ -81,8 +82,8 @@ export default function OrderStatusScreen() {
               <AppText variant="bodyStrong" color={colors.white}>Ubah</AppText>
             </Pressable>
           </Row>
-          <AppText variant="title" color={colors.white} style={{ fontSize: 24 }}>{stage.headline}</AppText>
-          <AppText variant="body" color={ON_BRAND_MUTED} style={{ fontSize: 15 }}>{stage.hint}</AppText>
+          <AppText variant="title" color={colors.white} style={{ fontSize: 22 }}>{stage.headline}</AppText>
+          <AppText variant="body" color={ON_BRAND_MUTED} style={{ fontSize: 14 }}>{stage.hint}</AppText>
           <View style={styles.progress} accessibilityLabel={`Tahap ${stageIndex + 1} dari 3`}>
             {STAGES.map((s, i) => <View key={s.status} style={[styles.progressPart, { backgroundColor: i <= stageIndex ? colors.white : 'rgba(255,255,255,0.3)' }]} />)}
           </View>
@@ -156,7 +157,7 @@ export default function OrderStatusScreen() {
           </View>
           {showProof ? (
             <View style={styles.card}>
-              <ProofPicker value={order.transfer_proof_url} onChange={url => proof.mutate(url, { onError: e => Alert.alert('Bukti gagal disimpan', errorMessage(e)) })} label="Bukti transfer" />
+              <ProofPicker value={order.transfer_proof_url} onChange={url => proof.mutate(url, { onError: e => showDialog('Bukti gagal disimpan', errorMessage(e)) })} label="Bukti transfer" />
             </View>
           ) : null}
         </View>
@@ -174,8 +175,8 @@ export default function OrderStatusScreen() {
 function Line({ label, value }: { label: string; value: string }) {
   return (
     <Row style={{ justifyContent: 'space-between' }}>
-      <AppText variant="body" color={colors.textMuted} style={{ flex: 1, fontSize: 15 }}>{label}</AppText>
-      <AppText variant="body" style={{ fontSize: 15 }}>{value}</AppText>
+      <AppText variant="body" color={colors.textMuted} style={{ flex: 1, fontSize: 14 }}>{label}</AppText>
+      <AppText variant="body" style={{ fontSize: 14 }}>{value}</AppText>
     </Row>
   );
 }

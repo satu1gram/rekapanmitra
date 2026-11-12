@@ -11,6 +11,7 @@ import { errorMessage } from '~/lib/supabase';
 import { AuthProvider, useAuth } from '~/providers/AuthProvider';
 import { ErrorState, LoadingState } from '~/ui/components';
 import { colors } from '~/ui/theme';
+import { DialogHost } from '~/ui/dialog';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -30,6 +31,7 @@ export default function RootLayout() {
         <AuthProvider>
           <StatusBar style="dark" />
           <RootNavigator />
+          <DialogHost />
         </AuthProvider>
       </QueryClientProvider>
     </SafeAreaProvider>

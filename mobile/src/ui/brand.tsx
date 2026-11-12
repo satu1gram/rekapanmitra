@@ -42,7 +42,7 @@ export function MonthCard({ month, onMonthChange, label, value, caption, band }:
           </Pressable>
         </Row>
         <AppText variant="small" color={ON_BRAND_MUTED}>{label}</AppText>
-        <AppText variant="hero" color={colors.white} style={{ fontSize: 36, lineHeight: 40 }} selectable>{value}</AppText>
+        <AppText variant="hero" color={colors.white} style={{ fontSize: 32, lineHeight: 40 }} selectable>{value}</AppText>
         {caption ? <AppText variant="small" color={ON_BRAND_MUTED}>{caption}</AppText> : null}
       </View>
       <View style={styles.band}>
@@ -99,7 +99,7 @@ export function ErrorPanel({ message, onRetry, retrying }: { message: string; on
     <View style={styles.errorCard} accessibilityRole="alert">
       <View style={[styles.iconBox, { backgroundColor: colors.warningSoft }]}><OfflineIcon color={colors.warning} /></View>
       <AppText variant="title" style={{ fontSize: 20 }}>Data belum bisa dimuat</AppText>
-      <AppText variant="body" color={colors.textMuted} style={{ fontSize: 15, lineHeight: 22 }}>
+      <AppText variant="body" color={colors.textMuted} style={{ fontSize: 14, lineHeight: 22 }}>
         {/network|koneksi|internet/i.test(message) ? 'Periksa sinyal atau Wi-Fi, lalu coba lagi.' : message}
       </AppText>
       <Pressable onPress={onRetry} disabled={retrying} accessibilityRole="button" accessibilityState={{ busy: retrying }} style={({ pressed }) => [styles.primaryBtn, (pressed || retrying) && styles.pressed]}>

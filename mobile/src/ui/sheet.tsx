@@ -79,8 +79,8 @@ export function CapsuleButton({ label, value, onPress, loading, disabled, tone =
         <ActivityIndicator color={colors.white} style={{ flex: 1 }} />
       ) : (
         <>
-          <AppText variant="bodyStrong" color={colors.white} style={{ fontSize: 17, fontWeight: '700' }}>{label}</AppText>
-          {value ? <AppText variant="bodyStrong" color={colors.white} style={{ fontSize: 17, fontWeight: '700' }}>{value}</AppText> : null}
+          <AppText variant="bodyStrong" color={colors.white} style={{ fontSize: 16, fontWeight: '700' }}>{label}</AppText>
+          {value ? <AppText variant="bodyStrong" color={colors.white} style={{ fontSize: 16, fontWeight: '700' }}>{value}</AppText> : null}
         </>
       )}
     </Pressable>
@@ -97,8 +97,8 @@ export function StickyFooter({ children, style }: { children: ReactNode; style?:
 export function SheetRow({ label, value, valueColor = colors.text, onPress, first }: { label: string; value: string; valueColor?: string; onPress?: () => void; first?: boolean }) {
   return (
     <Pressable onPress={onPress} disabled={!onPress} accessibilityRole={onPress ? 'button' : undefined} accessibilityLabel={`${label}: ${value}`} style={({ pressed }) => [styles.sheetRow, !first && styles.sheetRowSep, pressed && { opacity: 0.6 }]}>
-      <AppText variant="body" style={{ flex: 1, fontSize: 15 }}>{label}</AppText>
-      <AppText variant="body" color={valueColor} style={{ fontSize: 15, fontWeight: '700' }}>{value}</AppText>
+      <AppText variant="body" style={{ flex: 1, fontSize: 14 }}>{label}</AppText>
+      <AppText variant="body" color={valueColor} style={{ fontSize: 14, fontWeight: '700' }}>{value}</AppText>
       {onPress ? <ChevronIcon direction="right" size={16} color="#AEAEB2" /> : null}
     </Pressable>
   );
@@ -110,7 +110,7 @@ const styles = StyleSheet.create({
   grabber: { width: 36, height: 5, borderRadius: 3, backgroundColor: '#C7C7CC' },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
   close: { width: 34, height: 34, borderRadius: 17, backgroundColor: colors.fill, alignItems: 'center', justifyContent: 'center' },
-  route: { borderWidth: 1, borderColor: colors.border, borderRadius: radius.lg, paddingHorizontal: 14, backgroundColor: colors.white },
+  route: { borderRadius: 18, paddingHorizontal: 14, backgroundColor: colors.white },
   routeLine: { position: 'absolute', left: 23, top: 30, bottom: 30, borderLeftWidth: 2, borderStyle: 'dotted', borderColor: '#B7C7BF' },
   routeSep: { height: StyleSheet.hairlineWidth, backgroundColor: colors.border, marginLeft: 32 },
   routeRow: { flexDirection: 'row', alignItems: 'center', gap: space.md, minHeight: 50, paddingVertical: 6 },

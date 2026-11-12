@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { router, Stack } from 'expo-router';
 import type { TierType } from '@/types';
 
@@ -12,10 +12,11 @@ import { formatNumberInput, formatRupiah, parseRupiahInput } from '~/lib/money';
 import { buyPricePerBottle } from '~/lib/orderMath';
 import { errorMessage } from '~/lib/supabase';
 import { AppText, Notice, Row } from './components';
-import { DateField } from './DateField';
+import { DateCalendar } from './DateField';
 import { ProofPicker } from './ProofPicker';
 import { CapsuleButton, RouteCard, SheetHeader, SheetRow, StickyFooter } from './sheet';
-import { colors, radius, space } from './theme';
+import { colors, space } from './theme';
+import { showDialog } from './dialog';
 
 const QUICK_SIZES = [5, 10, 20, 40];
 type Panel = 'none' | 'date' | 'proof';
@@ -56,7 +57,7 @@ export function RestockForm({ entry, initialQuantity }: { entry?: StockEntryRow;
 
   const close = () => {
     if (!entry && quantity === (initialQuantity ?? 10) && !notes && !proofUrl) return router.back();
-    Alert.alert('Batalkan?', 'Isian yang belum disimpan akan hilang.', [
+    showDialog('Batalkan?', 'Isian yang belum disimpan akan hilang.', [
       { text: 'Lanjut mengisi', style: 'cancel' },
       { text: 'Batalkan', style: 'destructive', onPress: () => router.back() },
     ]);
@@ -68,7 +69,7 @@ export function RestockForm({ entry, initialQuantity }: { entry?: StockEntryRow;
   const toggle = (p: Panel) => setPanel(prev => (prev === p ? 'none' : p));
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: colors.white }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: colors.bg }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <Stack.Screen options={{ headerShown: false }} />
       <SheetHeader title={entry ? 'Ubah restok' : 'Catat restok'} onClose={close} />
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
@@ -118,11 +119,11 @@ export function RestockForm({ entry, initialQuantity }: { entry?: StockEntryRow;
             <AppText variant="body" color={colors.textMuted} style={styles.fieldLabel}>Catatan</AppText>
             <TextInput value={notes} onChangeText={setNotes} placeholder="Opsional" placeholderTextColor={colors.textSubtle} accessibilityLabel="Catatan" style={styles.input} />
           </View>
-          <View>
+          <View style={styles.group}>
             <SheetRow first label="Tanggal terima" value={today ? `Hari ini, ${formatDate(date.toISOString())}` : formatDate(date.toISOString())} onPress={() => toggle('date')} />
-            {panel === 'date' ? <DateField label="Tanggal barang diterima" value={date} onChange={d => { setDate(d); setPanel('none'); }} /> : null}
+            {panel === 'date' ? <View style={{ paddingBottom: space.md }}><DateCalendar value={date} onChange={d => { setDate(d); setPanel('none'); }} /></View> : null}
             <SheetRow label="Bukti / nota" value={proofUrl ? 'Terlampir' : 'Tambah foto'} valueColor={colors.brand} onPress={() => toggle('proof')} />
-            {panel === 'proof' ? <ProofPicker value={proofUrl} onChange={setProofUrl} label="Foto bukti transfer atau nota" /> : null}
+            {panel === 'proof' ? <View style={{ paddingBottom: space.md }}><ProofPicker value={proofUrl} onChange={setProofUrl} label="Foto bukti transfer atau nota" /></View> : null}
           </View>
         </View>
       </ScrollView>
@@ -139,11 +140,12 @@ export function RestockForm({ entry, initialQuantity }: { entry?: StockEntryRow;
 }
 
 const styles = StyleSheet.create({
-  content: { padding: space.lg, gap: space.xl, paddingBottom: space.xxxl },
+  content: { padding: space.lg, gap: space.lg, paddingBottom: space.xxl },
+  group: { borderRadius: 18, paddingHorizontal: 14, backgroundColor: colors.white },
   sizes: { flexDirection: 'row', gap: space.sm },
-  size: { flex: 1, alignItems: 'center', paddingVertical: space.md, borderRadius: radius.lg, borderWidth: 1.5, borderColor: colors.border },
+  size: { flex: 1, alignItems: 'center', paddingVertical: 10, borderRadius: 16, borderWidth: 1.5, borderColor: colors.white, backgroundColor: colors.white },
   sizeSelected: { borderColor: colors.brand, backgroundColor: colors.brandTint },
-  field: { flexDirection: 'row', alignItems: 'center', gap: space.md, minHeight: 46, paddingHorizontal: 14, borderRadius: 12, backgroundColor: colors.fill },
-  fieldLabel: { width: 96, fontSize: 15 },
-  input: { flex: 1, minWidth: 0, width: 0, fontSize: 16, color: colors.text, paddingVertical: space.sm },
+  field: { flexDirection: 'row', alignItems: 'center', gap: space.md, minHeight: 46, paddingHorizontal: 14, borderRadius: 14, backgroundColor: colors.white },
+  fieldLabel: { width: 96, fontSize: 14 },
+  input: { flex: 1, minWidth: 0, width: 0, fontSize: 15, color: colors.text, paddingVertical: space.sm },
 });

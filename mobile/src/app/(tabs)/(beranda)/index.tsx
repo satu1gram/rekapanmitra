@@ -9,12 +9,12 @@ import { updateOrderStatus } from '~/data/orders';
 import { useGeneralExpenses, useGeneralIncome, useOrders, useProfile, useRefreshingMutation, useStock, useTargets } from '~/hooks/queries';
 import { summarizeMonth, targetProgress } from '~/lib/dashboard';
 import { currentMonth, formatTime, greeting, isInMonth, MONTH_NAMES, type MonthRef } from '~/lib/dates';
-import { formatRupiah } from '~/lib/money';
+import { formatRupiah, formatRupiahShort } from '~/lib/money';
 import { errorMessage } from '~/lib/supabase';
 import { AppText, Row } from '~/ui/components';
 import { ErrorPanel, MonthCard, ON_BRAND_MUTED, OrderListRow } from '~/ui/brand';
 import { BoxIcon, ChatIcon, FlagIcon, ListIcon, MoreIcon, PeopleIcon, PlusIcon, SearchIcon, StoreIcon, WalletIcon, type IconProps } from '~/ui/icons';
-import { colors, radius, space } from '~/ui/theme';
+import { colors, radius, space, TAB_BAR_SPACE } from '~/ui/theme';
 
 
 const NEXT_STATUS: Record<string, { status: OrderStatus; label: string; stage: number }> = {
@@ -124,21 +124,21 @@ export default function HomeScreen() {
       {progress ? (
         <View style={styles.target}>
           <Row style={{ justifyContent: 'space-between' }}>
-            <AppText variant="heading" style={{ fontWeight: '800', fontSize: 16 }}>Target {monthName}</AppText>
+            <AppText variant="heading" style={{ fontWeight: '800', fontSize: 15 }}>Target {monthName}</AppText>
             <Pressable onPress={() => router.push('/target')} accessibilityRole="button" style={styles.textBtn}>
               <AppText variant="small" color={colors.brand} style={{ fontWeight: '700' }}>Ubah target</AppText>
             </Pressable>
           </Row>
-          <View style={{ flexDirection: 'row', gap: space.md }}>
-            <TargetCell label="Untung kotor" pct={progress.profit.pct} />
-            <TargetCell label="Botol terjual" pct={progress.qty.pct} />
-            <TargetCell label="Restok" pct={progress.stock.pct} />
+          <View style={{ gap: 12 }}>
+            <TargetCell label="Untung kotor" pct={progress.profit.pct} value={formatRupiahShort(progress.profit.value)} target={formatRupiahShort(progress.profit.target)} />
+            <TargetCell label="Botol terjual" pct={progress.qty.pct} value={`${progress.qty.value}`} target={`${progress.qty.target} botol`} />
+            <TargetCell label="Restok" pct={progress.stock.pct} value={`${progress.stock.value}`} target={`${progress.stock.target} botol`} />
           </View>
         </View>
       ) : (
         <Pressable onPress={() => router.push('/target')} accessibilityRole="button" style={[styles.target, { flexDirection: 'row', alignItems: 'center' }]}>
           <View style={[styles.iconBox, { backgroundColor: colors.white }]}><FlagIcon color={colors.brand} size={22} /></View>
-          <AppText variant="body" style={{ flex: 1, fontSize: 15 }}>Belum ada target untuk {monthName}</AppText>
+          <AppText variant="body" style={{ flex: 1, fontSize: 14 }}>Belum ada target untuk {monthName}</AppText>
           <AppText variant="small" color={colors.brand} style={{ fontWeight: '700' }}>Buat target</AppText>
         </Pressable>
       )}
@@ -177,14 +177,14 @@ function Header({ salutation, name }: { salutation: string; name: string }) {
   return (
     <Row style={{ gap: space.sm }}>
       <View style={{ flex: 1, gap: 2 }}>
-        <AppText variant="body" color={colors.textMuted} style={{ fontSize: 15 }}>{salutation}</AppText>
-        <AppText variant="title" style={{ fontSize: 24 }} numberOfLines={1}>{name}</AppText>
+        <AppText variant="body" color={colors.textMuted} style={{ fontSize: 14 }}>{salutation}</AppText>
+        <AppText variant="title" style={{ fontSize: 22 }} numberOfLines={1}>{name}</AppText>
       </View>
       <Pressable onPress={() => router.push('/pelanggan')} accessibilityRole="button" accessibilityLabel="Cari pelanggan" style={({ pressed }) => [styles.iconBox, { backgroundColor: colors.fill }, pressed && styles.pressed]}>
         <SearchIcon color={colors.text} />
       </Pressable>
       <Pressable onPress={() => router.navigate('/akun')} accessibilityRole="button" accessibilityLabel={`Akun ${name}`} style={({ pressed }) => [styles.iconBox, styles.avatar, pressed && styles.pressed]}>
-        <AppText variant="bodyStrong" color={colors.brandDark} style={{ fontSize: 17, fontWeight: '800' }}>{name.slice(0, 1).toUpperCase()}</AppText>
+        <AppText variant="bodyStrong" color={colors.brandDark} style={{ fontSize: 16, fontWeight: '800' }}>{name.slice(0, 1).toUpperCase()}</AppText>
       </Pressable>
     </Row>
   );
@@ -258,12 +258,16 @@ function TaskCard({ order, onAdvance, busy }: { order: OrderRow; onAdvance: () =
   );
 }
 
-function TargetCell({ label, pct }: { label: string; pct: number }) {
+function TargetCell({ label, pct, value, target }: { label: string; pct: number; value: string; target: string }) {
   return (
-    <View style={{ flex: 1, gap: 6 }} accessibilityLabel={`${label} ${pct} persen`}>
-      <AppText variant="caption" color={colors.textMuted} style={{ fontSize: 13, fontWeight: '500', letterSpacing: 0 }} numberOfLines={1}>{label}</AppText>
-      <AppText variant="bodyStrong">{pct}%</AppText>
-      <View style={styles.bar}><View style={[styles.barFill, { width: `${pct}%` }]} /></View>
+    <View style={{ gap: 6 }} accessibilityLabel={`${label}: ${value} dari ${target}, ${pct} persen`}>
+      <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6 }}>
+        <AppText variant="small" color={colors.textMuted} style={{ flex: 1, fontSize: 13 }} numberOfLines={1}>{label}</AppText>
+        <AppText variant="small" style={{ fontSize: 14, fontWeight: '700' }}>{value}</AppText>
+        <AppText variant="small" color={colors.textMuted} style={{ fontSize: 13 }}>/ {target}</AppText>
+        <AppText variant="small" color={colors.brandDark} style={{ fontSize: 13, fontWeight: '700', minWidth: 38, textAlign: 'right' }}>{pct}%</AppText>
+      </View>
+      <View style={styles.bar}><View style={[styles.barFill, { width: `${Math.min(100, pct)}%` }]} /></View>
     </View>
   );
 }
@@ -278,8 +282,8 @@ function EmptyBody() {
   return (
     <>
       <View style={[styles.card, { padding: space.lg, gap: space.md }]}>
-        <AppText variant="title" color={colors.white} style={{ fontSize: 22 }}>Catat order pertamamu</AppText>
-        <AppText variant="body" color={ON_BRAND_MUTED} style={{ fontSize: 15, lineHeight: 22 }}>Omset, untung, dan stok di halaman ini terisi otomatis dari order dan restok yang kamu catat.</AppText>
+        <AppText variant="title" color={colors.white} style={{ fontSize: 20 }}>Catat order pertamamu</AppText>
+        <AppText variant="body" color={ON_BRAND_MUTED} style={{ fontSize: 14, lineHeight: 22 }}>Omset, untung, dan stok di halaman ini terisi otomatis dari order dan restok yang kamu catat.</AppText>
         <Pressable onPress={() => router.push('/order/new')} accessibilityRole="button" style={({ pressed }) => [styles.whiteBtn, pressed && styles.pressed]}>
           <AppText variant="bodyStrong" color={colors.brandDark} style={{ fontWeight: '800' }}>Tambah order</AppText>
         </Pressable>
@@ -328,7 +332,7 @@ function LoadingBody() {
 }
 
 const styles = StyleSheet.create({
-  content: { paddingHorizontal: space.lg, paddingTop: 14, paddingBottom: space.xxxl * 2, gap: space.xl },
+  content: { paddingHorizontal: space.lg, paddingTop: 14, paddingBottom: TAB_BAR_SPACE, gap: space.xl },
   pressed: { opacity: 0.6 },
   h2: { fontSize: 18, fontWeight: '800' },
   iconBox: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },

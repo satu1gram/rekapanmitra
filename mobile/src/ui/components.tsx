@@ -15,7 +15,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-import { colors, radius, shadow, space, type } from './theme';
+import { colors, radius, shadow, space, type, TAB_BAR_SPACE } from './theme';
 
 export type IconName = ComponentProps<typeof Ionicons>['name'];
 
@@ -325,13 +325,13 @@ export function ListItem({
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bg },
-  screenContent: { padding: space.lg, gap: space.lg, paddingBottom: space.xxxl * 2 },
+  screenContent: { padding: space.lg, gap: space.lg, paddingBottom: TAB_BAR_SPACE },
   card: { backgroundColor: colors.card, borderRadius: radius.lg, padding: space.lg, gap: space.md, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, ...shadow },
   sectionTitle: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: space.sm },
   button: { minHeight: 46, borderRadius: radius.md, borderWidth: 1, paddingHorizontal: space.lg, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: space.sm },
   field: { gap: space.xs },
   fieldLabel: { fontWeight: '600' },
-  input: { minHeight: 44, borderRadius: radius.md, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.white, paddingHorizontal: space.md, paddingVertical: 10, fontSize: 16, color: colors.text },
+  input: { minHeight: 44, borderRadius: radius.md, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.white, paddingHorizontal: space.md, paddingVertical: 10, fontSize: 15, color: colors.text },
   stepper: { flexDirection: 'row', alignItems: 'center', borderRadius: radius.md, borderWidth: 1, borderColor: colors.brandBorder, backgroundColor: colors.brandSoft },
   stepperButton: { width: 48, height: 48, alignItems: 'center', justifyContent: 'center' },
   stepperValue: { width: 56, textAlign: 'center', fontSize: 18, fontWeight: '700', color: colors.text, paddingVertical: 0 },

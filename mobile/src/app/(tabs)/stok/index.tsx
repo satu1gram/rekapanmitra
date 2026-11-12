@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Alert, View } from 'react-native';
+import { View } from 'react-native';
 import { router } from 'expo-router';
 import { LOW_STOCK_THRESHOLD } from '@/types';
 
@@ -12,6 +12,7 @@ import { errorMessage } from '~/lib/supabase';
 import { AppText, Badge, Button, Card, Divider, EmptyState, ErrorState, Icon, LoadingState, Notice, Row, Screen, SectionTitle, Segmented } from '~/ui/components';
 import { MonthSwitcher } from '~/ui/MonthSwitcher';
 import { colors, space } from '~/ui/theme';
+import { showDialog } from '~/ui/dialog';
 
 export default function StockScreen() {
   const stock = useStock();
@@ -34,12 +35,12 @@ export default function StockScreen() {
   const low = currentStock <= LOW_STOCK_THRESHOLD;
 
   const confirmDelete = (entry: StockEntryRow) =>
-    Alert.alert(
+    showDialog(
       'Hapus catatan stok?',
       `${entry.type === 'in' ? 'Restok' : 'Stok keluar'} ${entry.quantity} botol pada ${formatDate(entry.created_at)}. Saldo stok akan disesuaikan.`,
       [
         { text: 'Batal', style: 'cancel' },
-        { text: 'Hapus', style: 'destructive', onPress: () => remove.mutate(entry, { onError: e => Alert.alert('Gagal menghapus', errorMessage(e)) }) },
+        { text: 'Hapus', style: 'destructive', onPress: () => remove.mutate(entry, { onError: e => showDialog('Gagal menghapus', errorMessage(e)) }) },
       ],
     );
 

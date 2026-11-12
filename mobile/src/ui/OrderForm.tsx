@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Alert, Image, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Image, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { router, Stack } from 'expo-router';
 import { MITRA_LEVELS, type TierType } from '@/types';
 import { getFallbackUnitPrice } from '@/lib/catalogPricing';
@@ -14,13 +14,14 @@ import { computeOrderTotals, mitraCostLookup, priceItems, productCategories, pro
 import { priceOptions, selectedOption, TIER_LABEL, TIER_MIN_BOTTLES } from '~/lib/priceOptions';
 import { errorMessage } from '~/lib/supabase';
 import { AppText, Button, ErrorState, LoadingState, Notice, Row, TextField } from './components';
-import { DateField } from './DateField';
+import { DateCalendar } from './DateField';
 import { MinusCircleIcon, MinusIcon, PlusIcon } from './icons';
 import { ProductPicker } from './ProductPicker';
 import { productImage } from './productMedia';
 import { ProofPicker } from './ProofPicker';
 import { CapsuleButton, RouteCard, SheetHeader, SheetRow, StickyFooter } from './sheet';
 import { colors, radius, space } from './theme';
+import { showDialog } from './dialog';
 
 const TIERS: TierType[] = ['satuan', 'reseller', 'agen', 'agen_plus', 'sap', 'se'];
 /** How a customer's level reads in the form; 'satuan' is an end consumer. */
@@ -201,7 +202,7 @@ export function OrderForm({ initial = {}, orderId }: { initial?: OrderFormInitia
 
   const confirmLeave = () => {
     if (!dirty) return router.back();
-    Alert.alert(isEdit ? 'Batalkan perubahan?' : 'Batalkan order ini?', 'Isian yang belum disimpan akan hilang.', [
+    showDialog(isEdit ? 'Batalkan perubahan?' : 'Batalkan order ini?', 'Isian yang belum disimpan akan hilang.', [
       { text: 'Lanjut mengisi', style: 'cancel' },
       { text: 'Batalkan', style: 'destructive', onPress: () => router.back() },
     ]);
@@ -211,7 +212,7 @@ export function OrderForm({ initial = {}, orderId }: { initial?: OrderFormInitia
   const pickerLines = (priced?.items ?? items).map(i => ({ productName: i.productName, quantity: i.quantity, pricePerBottle: i.pricePerBottle }));
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: colors.white }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: colors.bg }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <Stack.Screen options={{ headerShown: false, gestureEnabled: !dirty }} />
       <SheetHeader title={isEdit ? 'Ubah order' : 'Order baru'} onClose={confirmLeave} />
 
@@ -237,7 +238,7 @@ export function OrderForm({ initial = {}, orderId }: { initial?: OrderFormInitia
             },
           ]}
         />
-        {panel === 'date' ? <DateField label="Tanggal transaksi" value={date} initiallyOpen onChange={d => { setDate(d); setPanel('none'); }} /> : null}
+        {panel === 'date' ? <DateCalendar value={date} onChange={d => { setDate(d); setPanel('none'); }} /> : null}
 
         <View style={styles.section}>
           <Row style={{ justifyContent: 'space-between' }}>
@@ -253,7 +254,7 @@ export function OrderForm({ initial = {}, orderId }: { initial?: OrderFormInitia
                 <View key={item.productName} style={[styles.line, i > 0 && styles.sep]}>
                   <ProductThumb name={item.productName} size={40} />
                   <Pressable style={{ flex: 1, gap: 1 }} onPress={() => !fixed && setProductsOpen(true)} accessibilityRole="button" accessibilityLabel={`${name}, ${item.quantity} × ${formatRupiah(item.pricePerBottle)}`}>
-                    <AppText variant="bodyStrong" style={{ fontSize: 15 }} numberOfLines={1}>{name}</AppText>
+                    <AppText variant="bodyStrong" style={{ fontSize: 14 }} numberOfLines={1}>{name}</AppText>
                     <AppText variant="small" color={colors.textMuted} style={{ fontSize: 13 }} numberOfLines={1}>
                       {formatRupiah(item.pricePerBottle)}/botol{fixed ? ' · harga tersimpan' : ''}
                     </AppText>
@@ -268,7 +269,7 @@ export function OrderForm({ initial = {}, orderId }: { initial?: OrderFormInitia
             })}
             <Pressable onPress={() => setProductsOpen(true)} accessibilityRole="button" accessibilityLabel={activeItems.length ? 'Tambah produk lain' : 'Pilih produk'} style={({ pressed }) => [styles.line, activeItems.length > 0 && styles.sep, pressed && { opacity: 0.6 }]}>
               <View style={styles.addTile}><PlusIcon size={20} color={colors.brand} /></View>
-              <AppText variant="bodyStrong" color={colors.brand} style={{ fontSize: 15 }}>{activeItems.length ? 'Tambah produk lain' : 'Pilih produk'}</AppText>
+              <AppText variant="bodyStrong" color={colors.brand} style={{ fontSize: 14 }}>{activeItems.length ? 'Tambah produk lain' : 'Pilih produk'}</AppText>
             </Pressable>
           </View>
           {missingPrices.length > 0 ? (
@@ -325,7 +326,7 @@ export function OrderForm({ initial = {}, orderId }: { initial?: OrderFormInitia
           </View>
         ) : null}
 
-        <View>
+        <View style={[styles.box, { paddingHorizontal: 16 }]}>
           <SheetRow first label="Biaya order" value={expenses.length ? `${expenses.length > 1 ? `${expenses.length} biaya` : expenses[0].name} ${formatRupiah(totals.totalExpenses)}` : 'Tidak ada'} valueColor={expenses.length ? colors.text : colors.textMuted} onPress={() => togglePanel('expenses')} />
           {panel === 'expenses' ? (
             <View style={styles.panel}>
@@ -350,6 +351,22 @@ export function OrderForm({ initial = {}, orderId }: { initial?: OrderFormInitia
           {panel === 'proof' ? <View style={styles.panel}><ProofPicker value={proofUrl} onChange={setProofUrl} label="Foto bukti transfer" /></View> : null}
         </View>
 
+        {activeItems.length > 0 ? (
+          <View style={styles.section}>
+            <AppText variant="heading" style={{ fontWeight: '800', fontSize: 18 }}>Ringkasan</AppText>
+            <View style={[styles.box, styles.summary]}>
+              <SummaryLine label={`Omset · ${totals.totalQuantity} botol`} value={formatRupiah(totals.totalPrice)} />
+              <SummaryLine label={`Modal (level ${levelLabel})`} value={`−${formatRupiah(totals.buyPrice)}`} />
+              <SummaryLine label="Biaya order" value={totals.totalExpenses ? `−${formatRupiah(totals.totalExpenses)}` : 'Rp0'} />
+              <View style={styles.summarySep} />
+              <Row style={{ justifyContent: 'space-between' }}>
+                <AppText variant="heading" style={{ fontWeight: '800' }}>{totals.margin < 0 ? 'Rugi' : 'Untung kamu'}</AppText>
+                <AppText variant="heading" color={totals.margin < 0 ? colors.danger : colors.brand} style={{ fontWeight: '800', fontSize: 18 }}>{formatRupiah(Math.abs(totals.margin))}</AppText>
+              </Row>
+            </View>
+          </View>
+        ) : null}
+
         {isEdit && savedTotal != null && savedTotal !== totals.totalPrice ? (
           <Notice tone="info">Total berubah dari {formatRupiah(savedTotal)} menjadi {formatRupiah(totals.totalPrice)}.</Notice>
         ) : null}
@@ -361,11 +378,11 @@ export function OrderForm({ initial = {}, orderId }: { initial?: OrderFormInitia
       <StickyFooter>
         <Row style={{ justifyContent: 'space-between' }}>
           <AppText variant="small" color={colors.textMuted} numberOfLines={1} style={{ flex: 1 }}>
-            {activeItems.length ? `Modal ${levelLabel} ${formatRupiahShort(totals.buyPrice)} · Biaya ${formatRupiahShort(totals.totalExpenses)}` : 'Pilih produk untuk melihat untung'}
+            {activeItems.length ? `${totals.totalQuantity} botol · harga ${TIER_LABEL[currentOption]}` : 'Pilih produk untuk melihat untung'}
           </AppText>
           {activeItems.length ? (
             <AppText variant="small" color={totals.margin < 0 ? colors.danger : colors.brand} style={{ fontWeight: '700' }} numberOfLines={1}>
-              {totals.margin < 0 ? 'Rugi ' : 'Untung '}{formatRupiah(Math.abs(totals.margin))}
+              {totals.margin < 0 ? 'Rugi ' : 'Untung '}{formatRupiahShort(Math.abs(totals.margin))}
             </AppText>
           ) : null}
         </Row>
@@ -429,6 +446,15 @@ export function OrderForm({ initial = {}, orderId }: { initial?: OrderFormInitia
   );
 }
 
+function SummaryLine({ label, value }: { label: string; value: string }) {
+  return (
+    <Row style={{ justifyContent: 'space-between' }}>
+      <AppText variant="body" color={colors.textMuted} style={{ flex: 1 }}>{label}</AppText>
+      <AppText variant="body">{value}</AppText>
+    </Row>
+  );
+}
+
 function ProductThumb({ name, size }: { name: string; size: number }) {
   const image = productImage(name);
   if (image) return <Image source={image} style={{ width: size, height: size, borderRadius: size / 4 }} accessibilityIgnoresInvertColors />;
@@ -440,10 +466,12 @@ function ProductThumb({ name, size }: { name: string; size: number }) {
 }
 
 const styles = StyleSheet.create({
-  content: { paddingHorizontal: space.lg, paddingTop: space.xs, gap: space.lg, paddingBottom: space.xxl },
+  content: { paddingHorizontal: space.lg, paddingTop: space.md, gap: space.lg, paddingBottom: space.xxl },
   section: { gap: space.sm },
-  box: { borderWidth: 1, borderColor: colors.border, borderRadius: radius.lg, paddingHorizontal: 12, backgroundColor: colors.white },
-  priceBox: { paddingVertical: 12, gap: 10 },
+  box: { borderRadius: 18, paddingHorizontal: 14, backgroundColor: colors.white },
+  summary: { paddingVertical: 14, gap: 10 },
+  summarySep: { height: StyleSheet.hairlineWidth, backgroundColor: colors.borderStrong, marginVertical: 2 },
+  priceBox: { paddingVertical: 14, gap: 10 },
   line: { flexDirection: 'row', alignItems: 'center', gap: space.md, minHeight: 56, paddingVertical: 8 },
   sep: { borderTopWidth: StyleSheet.hairlineWidth, borderColor: colors.border },
   stepper: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: colors.brandTint, borderRadius: radius.pill, padding: 3 },
