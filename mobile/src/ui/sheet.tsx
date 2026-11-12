@@ -2,7 +2,8 @@ import type { ReactNode } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { AppText, Icon } from './components';
+import { AppText } from './components';
+import { ChevronIcon, CloseIcon } from './icons';
 import { colors, radius, space } from './theme';
 
 /** Grabber, title and close button at the top of a full-height sheet. */
@@ -13,8 +14,8 @@ export function SheetHeader({ title, onClose, right }: { title: string; onClose:
       <View style={styles.titleRow}>
         <AppText variant="title" style={{ flex: 1 }}>{title}</AppText>
         {right}
-        <Pressable onPress={onClose} accessibilityRole="button" accessibilityLabel="Tutup" hitSlop={8} style={styles.close}>
-          <Icon name="close" size={18} color="#3A3A3C" />
+        <Pressable onPress={onClose} accessibilityRole="button" accessibilityLabel="Tutup" hitSlop={10} style={({ pressed }) => [styles.close, pressed && { opacity: 0.6 }]}>
+          <CloseIcon color="#3A3A3C" />
         </Pressable>
       </View>
     </View>
@@ -98,7 +99,7 @@ export function SheetRow({ label, value, valueColor = colors.text, onPress, firs
     <Pressable onPress={onPress} disabled={!onPress} accessibilityRole={onPress ? 'button' : undefined} accessibilityLabel={`${label}: ${value}`} style={({ pressed }) => [styles.sheetRow, !first && styles.sheetRowSep, pressed && { opacity: 0.6 }]}>
       <AppText variant="body" style={{ flex: 1, fontSize: 15 }}>{label}</AppText>
       <AppText variant="body" color={valueColor} style={{ fontSize: 15, fontWeight: '700' }}>{value}</AppText>
-      {onPress ? <Icon name="chevron-forward" size={16} color="#C4C4C7" /> : null}
+      {onPress ? <ChevronIcon direction="right" size={16} color="#AEAEB2" /> : null}
     </Pressable>
   );
 }
@@ -108,7 +109,7 @@ const styles = StyleSheet.create({
   grabberRow: { alignItems: 'center', paddingTop: 8, paddingBottom: 10 },
   grabber: { width: 36, height: 5, borderRadius: 3, backgroundColor: '#C7C7CC' },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
-  close: { width: 36, height: 36, borderRadius: 18, backgroundColor: colors.fill, alignItems: 'center', justifyContent: 'center' },
+  close: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.fill, alignItems: 'center', justifyContent: 'center' },
   route: { borderWidth: 1, borderColor: colors.border, borderRadius: radius.lg, paddingHorizontal: 14, backgroundColor: colors.white },
   routeLine: { position: 'absolute', left: 23, top: 36, bottom: 36, borderLeftWidth: 2, borderStyle: 'dotted', borderColor: '#B7C7BF' },
   routeSep: { height: StyleSheet.hairlineWidth, backgroundColor: colors.border, marginLeft: 32 },

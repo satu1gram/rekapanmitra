@@ -3,7 +3,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { formatRupiah } from '~/lib/money';
 import { productDisplayName } from '~/lib/orderMath';
-import { AppText, Icon } from './components';
+import { AppText } from './components';
+import { MinusIcon, PlusIcon } from './icons';
 import { productImage } from './productMedia';
 import { CapsuleButton, SheetHeader } from './sheet';
 import { colors, radius, space } from './theme';
@@ -53,16 +54,16 @@ function ProductCard({ line, onChange }: { line: PickerLine; onChange: (q: numbe
         {selected ? (
           <View style={styles.qty}>
             <Pressable onPress={() => onChange(line.quantity - 1)} accessibilityRole="button" accessibilityLabel={`Kurangi ${name}`} style={styles.qtyBtn}>
-              <Icon name="remove" size={22} color={colors.white} />
+              <MinusIcon color={colors.white} />
             </Pressable>
             <AppText variant="heading" color={colors.white} accessibilityLabel={`${line.quantity} botol ${name}`}>{line.quantity}</AppText>
             <Pressable onPress={() => onChange(line.quantity + 1)} accessibilityRole="button" accessibilityLabel={`Tambah ${name}`} style={styles.qtyBtn}>
-              <Icon name="add" size={22} color={colors.white} />
+              <PlusIcon size={22} color={colors.white} />
             </Pressable>
           </View>
         ) : (
           <Pressable onPress={() => onChange(1)} accessibilityRole="button" accessibilityLabel={`Tambah ${name}`} style={styles.add}>
-            <Icon name="add" size={24} color={colors.brand} />
+            <PlusIcon color={colors.brand} />
           </Pressable>
         )}
       </View>

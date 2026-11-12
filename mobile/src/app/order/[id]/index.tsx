@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Alert, Image, Linking, Pressable, ScrollView, Share, StyleSheet, View } from 'react-native';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -11,7 +11,8 @@ import { formatRupiah } from '~/lib/money';
 import { productDisplayName } from '~/lib/orderMath';
 import { TIER_LABEL } from '~/lib/priceOptions';
 import { errorMessage } from '~/lib/supabase';
-import { AppText, Divider, ErrorState, Icon, LoadingState, Row, type IconName } from '~/ui/components';
+import { AppText, Divider, ErrorState, LoadingState, Row } from '~/ui/components';
+import { CameraIcon, ChatIcon, CheckIcon, ChevronIcon, ShareIcon, TrashIcon, type IconProps } from '~/ui/icons';
 import { productImage } from '~/ui/productMedia';
 import { ProofPicker } from '~/ui/ProofPicker';
 import { CapsuleButton, StickyFooter } from '~/ui/sheet';
@@ -72,7 +73,7 @@ export default function OrderStatusScreen() {
         <View style={[styles.hero, { paddingTop: insets.top + 4 }]}>
           <Row style={{ justifyContent: 'space-between' }}>
             <Pressable onPress={() => router.back()} accessibilityRole="button" accessibilityLabel="Kembali" hitSlop={8} style={styles.heroBtn}>
-              <Icon name="chevron-back" size={26} color={colors.white} />
+              <ChevronIcon direction="left" size={26} color={colors.white} />
             </Pressable>
             <AppText variant="small" color="#CDEBDD">{formatDate(order.created_at)} · {formatTime(order.created_at)}</AppText>
             <Pressable onPress={() => router.push({ pathname: '/order/[id]/edit', params: { id } })} accessibilityRole="button" accessibilityLabel="Ubah order" style={styles.heroBtn}>
@@ -95,7 +96,7 @@ export default function OrderStatusScreen() {
             </View>
             {waNumber ? (
               <Pressable onPress={() => Linking.openURL(`https://wa.me/${waNumber}`)} accessibilityRole="button" accessibilityLabel={`Chat WhatsApp ${order.customer_name}`} style={styles.round}>
-                <Icon name="logo-whatsapp" size={22} color={colors.brand} />
+                <ChatIcon size={22} color={colors.brand} />
               </Pressable>
             ) : null}
           </View>
@@ -108,7 +109,7 @@ export default function OrderStatusScreen() {
                 <Pressable key={s.status} onPress={() => i !== stageIndex && changeStatus(s.status)} accessibilityRole="radio" accessibilityState={{ selected: i === stageIndex }} accessibilityLabel={`${s.title}${i === stageIndex ? ', status sekarang' : ''}`} style={{ flexDirection: 'row', gap: 14 }}>
                   <View style={{ width: 28, alignItems: 'center' }}>
                     <View style={[styles.stageDot, done ? { backgroundColor: colors.brand } : current ? { borderWidth: 2, borderColor: colors.brand, backgroundColor: colors.white } : { backgroundColor: colors.border }]}>
-                      {done ? <Icon name="checkmark" size={16} color={colors.white} /> : null}
+                      {done ? <CheckIcon color={colors.white} /> : null}
                     </View>
                     {i < STAGES.length - 1 ? <View style={[styles.stageLine, { backgroundColor: i < stageIndex ? colors.brand : colors.border }]} /> : null}
                   </View>
@@ -148,9 +149,9 @@ export default function OrderStatusScreen() {
           </View>
 
           <View style={styles.tiles}>
-            <Tile icon={order.transfer_proof_url ? 'image' : 'camera-outline'} label={order.transfer_proof_url ? 'Bukti ✓' : 'Bukti'} onPress={() => setShowProof(v => !v)} />
-            <Tile icon="share-outline" label="Nota" onPress={shareReceipt} />
-            <Tile icon="trash-outline" label="Hapus" danger onPress={confirmDelete} />
+            <Tile Icon={CameraIcon} label={order.transfer_proof_url ? 'Bukti terlampir' : 'Bukti'} onPress={() => setShowProof(v => !v)} />
+            <Tile Icon={ShareIcon} label="Nota" onPress={shareReceipt} />
+            <Tile Icon={TrashIcon} label="Hapus" danger onPress={confirmDelete} />
           </View>
           {showProof ? (
             <View style={styles.card}>
@@ -178,10 +179,10 @@ function Line({ label, value }: { label: string; value: string }) {
   );
 }
 
-function Tile({ icon, label, onPress, danger }: { icon: IconName; label: string; onPress: () => void; danger?: boolean }) {
+function Tile({ Icon, label, onPress, danger }: { Icon: (p: IconProps) => ReactNode; label: string; onPress: () => void; danger?: boolean }) {
   return (
     <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={label} style={({ pressed }) => [styles.tile, pressed && { opacity: 0.7 }]}>
-      <Icon name={icon} size={22} color={danger ? colors.danger : colors.brand} />
+      <Icon size={22} color={danger ? colors.danger : colors.brand} />
       <AppText variant="small" color={danger ? colors.danger : colors.text} style={{ fontWeight: '600', fontSize: 13 }}>{label}</AppText>
     </Pressable>
   );

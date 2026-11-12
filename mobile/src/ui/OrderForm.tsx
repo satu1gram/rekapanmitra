@@ -13,8 +13,9 @@ import { formatNumberInput, formatRupiah, formatRupiahShort, parseRupiahInput } 
 import { buyPricePerBottle, computeOrderTotals, priceItems, productCategories, productDisplayName, type DraftExpense, type DraftItem } from '~/lib/orderMath';
 import { priceOptions, selectedOption, TIER_LABEL, TIER_MIN_BOTTLES } from '~/lib/priceOptions';
 import { errorMessage } from '~/lib/supabase';
-import { AppText, Button, ErrorState, Icon, LoadingState, Notice, Row, TextField } from './components';
+import { AppText, Button, ErrorState, LoadingState, Notice, Row, TextField } from './components';
 import { DateField } from './DateField';
+import { MinusCircleIcon, MinusIcon, PlusIcon } from './icons';
 import { ProductPicker } from './ProductPicker';
 import { productImage } from './productMedia';
 import { ProofPicker } from './ProofPicker';
@@ -70,7 +71,7 @@ export function OrderForm({ initial = {}, orderId }: { initial?: OrderFormInitia
   const [expenseName, setExpenseName] = useState('');
   const [expenseAmount, setExpenseAmount] = useState<number | null>(null);
   const [panel, setPanel] = useState<Panel>('none');
-  const [customerOpen, setCustomerOpen] = useState(!isEdit && !initial.customerName);
+  const [customerOpen, setCustomerOpen] = useState(false);
   const [productsOpen, setProductsOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -238,7 +239,7 @@ export function OrderForm({ initial = {}, orderId }: { initial?: OrderFormInitia
               </Pressable>
             ))}
             <Pressable onPress={() => setProductsOpen(true)} accessibilityRole="button" accessibilityLabel="Tambah produk" style={styles.chip}>
-              <View style={styles.addTile}><Icon name="add" size={28} color={colors.brand} /></View>
+              <View style={styles.addTile}><PlusIcon size={28} color={colors.brand} /></View>
               <AppText variant="caption" color={colors.brand} style={{ textAlign: 'center', letterSpacing: 0 }}>{activeItems.length ? 'Tambah' : 'Pilih produk'}</AppText>
             </Pressable>
           </ScrollView>
@@ -248,9 +249,9 @@ export function OrderForm({ initial = {}, orderId }: { initial?: OrderFormInitia
               {fixedLines.map(line => (
                 <Row key={line.productName} style={{ justifyContent: 'space-between' }}>
                   <AppText variant="body" style={{ flex: 1 }}>{line.productName} · {formatRupiah(line.pricePerBottle)}</AppText>
-                  <Pressable onPress={() => setFixedQty(line.productName, line.quantity - 1)} accessibilityRole="button" accessibilityLabel={`Kurangi ${line.productName}`} style={styles.miniBtn}><Icon name="remove" size={18} color={colors.brand} /></Pressable>
+                  <Pressable onPress={() => setFixedQty(line.productName, line.quantity - 1)} accessibilityRole="button" accessibilityLabel={`Kurangi ${line.productName}`} style={styles.miniBtn}><MinusIcon size={18} color={colors.brand} /></Pressable>
                   <AppText variant="bodyStrong">{line.quantity}</AppText>
-                  <Pressable onPress={() => setFixedQty(line.productName, line.quantity + 1)} accessibilityRole="button" accessibilityLabel={`Tambah ${line.productName}`} style={styles.miniBtn}><Icon name="add" size={18} color={colors.brand} /></Pressable>
+                  <Pressable onPress={() => setFixedQty(line.productName, line.quantity + 1)} accessibilityRole="button" accessibilityLabel={`Tambah ${line.productName}`} style={styles.miniBtn}><PlusIcon size={18} color={colors.brand} /></Pressable>
                 </Row>
               ))}
             </View>
@@ -301,7 +302,7 @@ export function OrderForm({ initial = {}, orderId }: { initial?: OrderFormInitia
                   <AppText variant="body" style={{ flex: 1 }}>{e.name}</AppText>
                   <AppText variant="bodyStrong">{formatRupiah(e.amount)}</AppText>
                   <Pressable onPress={() => setExpenses(prev => prev.filter((_, j) => j !== i))} accessibilityRole="button" accessibilityLabel={`Hapus biaya ${e.name}`} hitSlop={10} style={{ padding: 6 }}>
-                    <Icon name="remove-circle" size={22} color={colors.danger} />
+                    <MinusCircleIcon color={colors.danger} />
                   </Pressable>
                 </Row>
               ))}

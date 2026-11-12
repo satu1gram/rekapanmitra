@@ -118,3 +118,104 @@ export function OfflineIcon({ size = 24, color }: IconProps) {
     </Svg>
   );
 }
+
+/* Tab bar icons from the design's bottom navigation: filled when active, outlined otherwise. */
+
+export function HomeTabIcon({ size = 26, color, active }: IconProps & { active: boolean }) {
+  return active ? (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill={color}>
+      <Path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1v-9.5Z" />
+    </Svg>
+  ) : (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2} strokeLinejoin="round">
+      <Path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1v-9.5Z" />
+    </Svg>
+  );
+}
+
+export function HistoryTabIcon({ size = 26, color, active }: IconProps & { active: boolean }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2} strokeLinecap="round">
+      <Rect x={4} y={3} width={16} height={18} rx={3} fill={active ? color : 'none'} fillOpacity={active ? TINT : 0} />
+      <Path d="M8 8h8M8 12h8M8 16h5" />
+    </Svg>
+  );
+}
+
+export function StockTabIcon({ size = 26, color, active }: IconProps & { active: boolean }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2} strokeLinejoin="round">
+      <Path d="m21 8-9-5-9 5 9 5 9-5Z" fill={active ? color : 'none'} fillOpacity={active ? TINT : 0} />
+      <Path d="M3 8v8l9 5 9-5V8M12 13v8" />
+    </Svg>
+  );
+}
+
+export function AccountTabIcon({ size = 26, color, active }: IconProps & { active: boolean }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2} strokeLinecap="round">
+      <Circle cx={12} cy={8} r={4} fill={active ? color : 'none'} fillOpacity={active ? TINT : 0} />
+      <Path d="M4 21a8 8 0 0 1 16 0" />
+    </Svg>
+  );
+}
+
+export function CloseIcon({ size = 18, color }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2.8} strokeLinecap="round">
+      <Path d="M6 6l12 12M18 6 6 18" />
+    </Svg>
+  );
+}
+
+/* Icons from the design's order screens (Super app · Tambah order / Status order). */
+
+export function MinusIcon({ size = 22, color }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2.8} strokeLinecap="round">
+      <Path d="M5 12h14" />
+    </Svg>
+  );
+}
+
+export function CheckIcon({ size = 16, color }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={3.2} strokeLinecap="round" strokeLinejoin="round">
+      <Path d="m5 12 5 5 9-10" />
+    </Svg>
+  );
+}
+
+export function CameraIcon({ size = 22, color }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2.1} strokeLinejoin="round">
+      <Path d="M4 8h3l2-3h6l2 3h3v11H4V8Z" fill={color} fillOpacity={TINT} />
+      <Circle cx={12} cy={13} r={3.5} />
+    </Svg>
+  );
+}
+
+export function ShareIcon({ size = 22, color }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2.1} strokeLinecap="round" strokeLinejoin="round">
+      <Path d="M12 3v12M7.5 7.5 12 3l4.5 4.5M6 11H5v10h14V11h-1" />
+    </Svg>
+  );
+}
+
+export function TrashIcon({ size = 22, color }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2.1} strokeLinecap="round" strokeLinejoin="round">
+      <Path d="M6 7l1 13h10l1-13Z" fill={color} fillOpacity={TINT} />
+      <Path d="M4 7h16M10 11v6M14 11v6M9 7V4h6v3" />
+    </Svg>
+  );
+}
+
+export function MinusCircleIcon({ size = 22, color }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill={color}>
+      <Path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm-5 9h10v2H7v-2Z" />
+    </Svg>
+  );
+}

@@ -1,22 +1,22 @@
 import { useMemo, useState } from 'react';
-import { RefreshControl, SectionList, StyleSheet, TextInput, View } from 'react-native';
+import { Pressable, RefreshControl, SectionList, StyleSheet, TextInput, View } from 'react-native';
 import { router } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import type { OrderRow as Order } from '~/data/db';
 import { useOrders } from '~/hooks/queries';
-import { currentMonth, dayKey, formatDayHeading, isInMonth, type MonthRef } from '~/lib/dates';
-import { formatRupiah, formatRupiahShort } from '~/lib/money';
+import { currentMonth, dayKey, formatDayHeading, isInMonth, MONTH_NAMES, type MonthRef } from '~/lib/dates';
+import { formatRupiah } from '~/lib/money';
 import { errorMessage } from '~/lib/supabase';
-import { AppText, Button, Card, Divider, EmptyState, ErrorState, Icon, LoadingState, Row } from '~/ui/components';
-import { MonthSwitcher } from '~/ui/MonthSwitcher';
-import { OrderRow } from '~/ui/OrderRow';
+import { AppText, LoadingState, Row } from '~/ui/components';
+import { brandStyles, ErrorPanel, IconButton, MonthCard, OrderListRow } from '~/ui/brand';
+import { ChatIcon, CloseIcon, ListIcon, PlusIcon, SearchIcon } from '~/ui/icons';
 import { colors, radius, space } from '~/ui/theme';
 
 interface DaySection {
   key: string;
   title: string;
   revenue: number;
-  profit: number;
   data: Order[];
 }
 
@@ -33,99 +33,116 @@ export default function HistoryScreen() {
     const map = new Map<string, DaySection>();
     for (const o of list) {
       const key = dayKey(o.created_at);
-      if (!map.has(key)) map.set(key, { key, title: formatDayHeading(o.created_at), revenue: 0, profit: 0, data: [] });
+      if (!map.has(key)) map.set(key, { key, title: formatDayHeading(o.created_at), revenue: 0, data: [] });
       const day = map.get(key)!;
       day.revenue += Number(o.total_price);
-      day.profit += Number(o.margin);
       day.data.push(o);
     }
     return {
       sections: Array.from(map.values()).sort((a, b) => b.key.localeCompare(a.key)),
       totals: {
         count: list.length,
+        quantity: list.reduce((s, o) => s + o.quantity, 0),
         revenue: list.reduce((s, o) => s + Number(o.total_price), 0),
         profit: list.reduce((s, o) => s + Number(o.margin), 0),
+        open: list.filter(o => o.status === 'pending' || o.status === 'terkirim').length,
       },
     };
   }, [orders.data, month, query]);
 
-  if (orders.isPending) return <LoadingState />;
-  if (orders.isError) return <ErrorState message={errorMessage(orders.error)} onRetry={() => orders.refetch()} />;
-
-  return (
-    <SectionList
-      style={{ flex: 1, backgroundColor: colors.bg }}
-      contentInsetAdjustmentBehavior="automatic"
-      contentContainerStyle={{ padding: space.lg, paddingBottom: space.xxxl * 2 }}
-      keyboardShouldPersistTaps="handled"
-      sections={sections}
-      keyExtractor={item => item.id}
-      stickySectionHeadersEnabled={false}
-      refreshControl={<RefreshControl refreshing={orders.isRefetching} onRefresh={() => { orders.refetch(); }} tintColor={colors.brand} />}
-      ListHeaderComponent={
-        <View style={{ gap: space.md, marginBottom: space.md }}>
-          <MonthSwitcher value={month} onChange={setMonth} />
-          <View style={styles.search}>
-            <Icon name="search" size={18} color={colors.textSubtle} />
-            <TextInput
-              value={query}
-              onChangeText={setQuery}
-              placeholder="Cari nama atau nomor pelanggan"
-              placeholderTextColor={colors.textSubtle}
-              style={styles.searchInput}
-              accessibilityLabel="Cari order"
-              returnKeyType="search"
-              clearButtonMode="while-editing"
-            />
-          </View>
-          <Card style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-            <Total label="Order" value={String(totals.count)} />
-            <Total label="Omset" value={formatRupiahShort(totals.revenue)} />
-            <Total label="Untung" value={formatRupiahShort(totals.profit)} color={totals.profit < 0 ? colors.danger : colors.brandDark} />
-          </Card>
-          <Row>
-            <Button label="Tambah order" icon="add-circle" onPress={() => router.push('/order/new')} style={{ flex: 1 }} />
-            <Button label="Dari chat" icon="sparkles-outline" tone="secondary" onPress={() => router.push('/asisten')} style={{ flex: 1 }} />
-          </Row>
-        </View>
-      }
-      renderSectionHeader={({ section }) => (
-        <Row style={styles.sectionHeader}>
-          <AppText variant="bodyStrong" style={{ flex: 1 }}>{section.title}</AppText>
-          <AppText variant="small" color={colors.textMuted}>{formatRupiah(section.revenue)}</AppText>
-        </Row>
-      )}
-      renderItem={({ item, index, section }) => (
-        <View style={[styles.item, index === 0 && styles.itemFirst, index === section.data.length - 1 && styles.itemLast]}>
-          {index > 0 ? <Divider /> : null}
-          <OrderRow order={item} />
-        </View>
-      )}
-      ListEmptyComponent={
-        <EmptyState
-          icon="receipt-outline"
-          title={query ? 'Tidak ada order yang cocok' : 'Belum ada order di bulan ini'}
-          message={query ? 'Coba kata kunci lain.' : 'Ketuk “Tambah order” untuk mencatat penjualan.'}
-        />
-      }
-    />
+  const monthName = MONTH_NAMES[month.month];
+  const header = (
+    <Row style={{ gap: space.sm }}>
+      <AppText variant="title" style={{ flex: 1, fontSize: 24 }}>Riwayat order</AppText>
+      <IconButton label="Isi order dari chat" tone="soft" onPress={() => router.push('/asisten')}><ChatIcon color={colors.brand} /></IconButton>
+      <IconButton label="Catat order" tone="brand" onPress={() => router.push('/order/new')}><PlusIcon color={colors.white} /></IconButton>
+    </Row>
   );
-}
 
-function Total({ label, value, color = colors.text }: { label: string; value: string; color?: string }) {
+  if (orders.isPending) return <SafeAreaView edges={['top']} style={styles.safe}><View style={styles.pad}>{header}<LoadingState label="Memuat order…" /></View></SafeAreaView>;
+  if (orders.isError) {
+    return (
+      <SafeAreaView edges={['top']} style={styles.safe}>
+        <View style={[styles.pad, { gap: space.xl }]}>{header}<ErrorPanel message={errorMessage(orders.error)} onRetry={() => orders.refetch()} retrying={orders.isRefetching} /></View>
+      </SafeAreaView>
+    );
+  }
+
   return (
-    <View style={{ gap: 2 }}>
-      <AppText variant="caption" color={colors.textMuted}>{label.toUpperCase()}</AppText>
-      <AppText variant="heading" color={color}>{value}</AppText>
-    </View>
+    <SafeAreaView edges={['top']} style={styles.safe}>
+      <SectionList
+        contentContainerStyle={styles.pad}
+        keyboardShouldPersistTaps="handled"
+        sections={sections}
+        keyExtractor={item => item.id}
+        stickySectionHeadersEnabled={false}
+        refreshControl={<RefreshControl refreshing={orders.isRefetching} onRefresh={() => { orders.refetch(); }} tintColor={colors.brand} />}
+        ListHeaderComponent={
+          <View style={{ gap: space.xl, marginBottom: space.sm }}>
+            {header}
+            <MonthCard
+              month={month}
+              onMonthChange={setMonth}
+              label={`Omset ${monthName}`}
+              value={formatRupiah(totals.revenue)}
+              caption={`${totals.count} order · ${totals.quantity} botol${totals.open ? ` · ${totals.open} belum selesai` : ''}`}
+              band={[
+                { label: totals.profit < 0 ? 'Rugi dari order' : 'Untung dari order', value: formatRupiah(Math.abs(totals.profit)), note: 'setelah modal & biaya di order' },
+              ]}
+            />
+            <View style={styles.search}>
+              <SearchIcon color={colors.textMuted} size={20} />
+              <TextInput
+                value={query}
+                onChangeText={setQuery}
+                placeholder="Cari nama atau nomor pelanggan"
+                placeholderTextColor={colors.textMuted}
+                style={styles.searchInput}
+                accessibilityLabel="Cari order berdasarkan pelanggan"
+                returnKeyType="search"
+              />
+              {query ? (
+                <Pressable onPress={() => setQuery('')} accessibilityRole="button" accessibilityLabel="Hapus pencarian" hitSlop={8} style={styles.clear}>
+                  <CloseIcon color={colors.textMuted} size={14} />
+                </Pressable>
+              ) : null}
+            </View>
+          </View>
+        }
+        renderSectionHeader={({ section }) => (
+          <Row style={styles.sectionHeader}>
+            <AppText variant="heading" style={[brandStyles.h2, { flex: 1 }]}>{section.title}</AppText>
+            <AppText variant="small" color={colors.textMuted}>{formatRupiah(section.revenue)}</AppText>
+          </Row>
+        )}
+        renderItem={({ item, index }) => <OrderListRow order={item} first={index === 0} />}
+        ListEmptyComponent={
+          <View style={styles.empty}>
+            <View style={styles.emptyIcon}><ListIcon color={colors.brand} /></View>
+            <AppText variant="heading" style={{ textAlign: 'center' }}>{query ? 'Tidak ada order yang cocok' : `Belum ada order di ${monthName}`}</AppText>
+            <AppText variant="small" color={colors.textMuted} style={{ textAlign: 'center' }}>
+              {query ? 'Coba nama atau nomor lain.' : 'Order yang kamu catat akan muncul di sini, dikelompokkan per hari.'}
+            </AppText>
+            {!query ? (
+              <Pressable onPress={() => router.push('/order/new')} accessibilityRole="button" style={({ pressed }) => [styles.primaryBtn, pressed && { opacity: 0.6 }]}>
+                <AppText variant="bodyStrong" color={colors.white} style={{ fontWeight: '800' }}>Catat order</AppText>
+              </Pressable>
+            ) : null}
+          </View>
+        }
+      />
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  search: { flexDirection: 'row', alignItems: 'center', gap: space.sm, backgroundColor: colors.white, borderRadius: radius.md, borderWidth: 1, borderColor: colors.border, paddingHorizontal: space.md, minHeight: 48 },
-  searchInput: { flex: 1, fontSize: 16, color: colors.text, paddingVertical: space.sm },
-  sectionHeader: { marginTop: space.lg, marginBottom: space.sm },
-  item: { backgroundColor: colors.white, paddingHorizontal: space.lg, borderLeftWidth: StyleSheet.hairlineWidth, borderRightWidth: StyleSheet.hairlineWidth, borderColor: colors.border },
-  itemFirst: { borderTopLeftRadius: radius.lg, borderTopRightRadius: radius.lg, borderTopWidth: StyleSheet.hairlineWidth },
-  itemLast: { borderBottomLeftRadius: radius.lg, borderBottomRightRadius: radius.lg, borderBottomWidth: StyleSheet.hairlineWidth },
+  safe: { flex: 1, backgroundColor: colors.white },
+  pad: { paddingHorizontal: space.lg, paddingTop: 14, paddingBottom: space.xxxl * 2 },
+  search: { flexDirection: 'row', alignItems: 'center', gap: space.sm, minHeight: 48, paddingHorizontal: 14, borderRadius: radius.md, backgroundColor: colors.fill },
+  searchInput: { flex: 1, minWidth: 0, fontSize: 16, color: colors.text, paddingVertical: space.sm },
+  clear: { width: 28, height: 28, borderRadius: 14, backgroundColor: '#E3E3E8', alignItems: 'center', justifyContent: 'center' },
+  sectionHeader: { marginTop: space.lg, marginBottom: 2 },
+  empty: { alignItems: 'center', gap: space.md, paddingVertical: space.xxxl },
+  emptyIcon: { width: 56, height: 56, borderRadius: 18, backgroundColor: colors.brandSoft, alignItems: 'center', justifyContent: 'center' },
+  primaryBtn: { minHeight: 48, paddingHorizontal: 20, borderRadius: 12, backgroundColor: colors.brand, justifyContent: 'center' },
 });

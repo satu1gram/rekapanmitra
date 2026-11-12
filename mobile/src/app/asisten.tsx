@@ -9,6 +9,7 @@ import { productCategories, productDisplayName } from '~/lib/orderMath';
 import { errorMessage } from '~/lib/supabase';
 import { AppText, Button, Card, Notice, Screen, TextField } from '~/ui/components';
 import type { OrderFormInitial } from '~/ui/OrderForm';
+import { SheetHeader } from '~/ui/sheet';
 import { colors } from '~/ui/theme';
 
 export default function AssistantScreen() {
@@ -63,8 +64,9 @@ export default function AssistantScreen() {
   const example = catalog.data ? productCategories(catalog.data).slice(0, 2).map(productDisplayName) : ['British Propolis', 'BP Green'];
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <Screen>
+    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: colors.white }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <SheetHeader title="Isi dari chat" onClose={() => router.back()} />
+      <Screen contentStyle={{ backgroundColor: colors.white }}>
         <AppText variant="body" color={colors.textMuted}>
           Tempel chat pesanan dari pelanggan. Asisten mengisi draf order, lalu kamu periksa dan simpan sendiri. Harga dan untung tetap dihitung aplikasi, bukan oleh AI.
         </AppText>

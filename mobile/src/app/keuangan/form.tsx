@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Alert, KeyboardAvoidingView, Platform } from 'react-native';
-import { router, Stack, useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES, deleteMoneyEntry, saveMoneyEntry, type MoneyInput, type MoneyKind } from '~/data/finance';
 import { useGeneralExpenses, useGeneralIncome, useRefreshingMutation } from '~/hooks/queries';
@@ -10,6 +10,7 @@ import { errorMessage } from '~/lib/supabase';
 import { AppText, Button, Card, ErrorState, LoadingState, Notice, Screen, TextField } from '~/ui/components';
 import { Chips } from '~/ui/Chips';
 import { DateField } from '~/ui/DateField';
+import { SheetHeader } from '~/ui/sheet';
 import { colors } from '~/ui/theme';
 
 export default function MoneyFormScreen() {
@@ -57,9 +58,9 @@ function MoneyForm({ kind, entry }: { kind: MoneyKind; entry?: { id: string; nam
     ]);
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <Stack.Screen options={{ title }} />
-      <Screen>
+    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: colors.white }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <SheetHeader title={title} onClose={() => router.back()} />
+      <Screen contentStyle={{ backgroundColor: colors.white }}>
         {error ? <Notice tone="danger">{error}</Notice> : null}
         <Card>
           <TextField label="Keterangan" value={name} onChangeText={setName} placeholder={kind === 'expense' ? 'Contoh: Plastik kemasan' : 'Contoh: Bonus bulanan'} />

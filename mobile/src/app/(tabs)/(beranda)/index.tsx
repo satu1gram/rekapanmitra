@@ -8,16 +8,14 @@ import type { OrderRow } from '~/data/db';
 import { updateOrderStatus } from '~/data/orders';
 import { useGeneralExpenses, useGeneralIncome, useOrders, useProfile, useRefreshingMutation, useStock, useTargets } from '~/hooks/queries';
 import { summarizeMonth, targetProgress } from '~/lib/dashboard';
-import { currentMonth, formatTime, greeting, isInMonth, MONTH_NAMES, monthLabel, shiftMonth, type MonthRef } from '~/lib/dates';
+import { currentMonth, formatTime, greeting, isInMonth, MONTH_NAMES, type MonthRef } from '~/lib/dates';
 import { formatRupiah } from '~/lib/money';
 import { errorMessage } from '~/lib/supabase';
 import { AppText, Row } from '~/ui/components';
-import { BoxIcon, ChatIcon, ChevronIcon, FlagIcon, ListIcon, MoreIcon, OfflineIcon, PeopleIcon, PlusIcon, SearchIcon, StoreIcon, WalletIcon, type IconProps } from '~/ui/icons';
+import { ErrorPanel, MonthCard, ON_BRAND_MUTED, OrderListRow } from '~/ui/brand';
+import { BoxIcon, ChatIcon, FlagIcon, ListIcon, MoreIcon, PeopleIcon, PlusIcon, SearchIcon, StoreIcon, WalletIcon, type IconProps } from '~/ui/icons';
 import { colors, radius, space } from '~/ui/theme';
 
-/** Light green text on the brand card: 4.67:1 on #0A7A52 and 5.86:1 on the darker band. */
-const ON_BRAND_MUTED = '#E4F3EA';
-const BAND = '#096947';
 
 const NEXT_STATUS: Record<string, { status: OrderStatus; label: string; stage: number }> = {
   pending: { status: 'terkirim', label: 'Tandai terkirim', stage: 0 },
@@ -48,13 +46,11 @@ export default function HomeScreen() {
   if (orders.isPending || stock.isPending) return <Shell>{header}<LoadingBody /></Shell>;
   const coreError = orders.error ?? stock.error;
   if (coreError || !summary || !stock.data || !orders.data) {
-    return <Shell>{header}<ErrorBody message={errorMessage(coreError)} onRetry={refresh} retrying={refreshing} /></Shell>;
+    return <Shell>{header}<ErrorPanel message={errorMessage(coreError)} onRetry={refresh} retrying={refreshing} /></Shell>;
   }
   if (orders.data.length === 0) return <Shell refreshing={refreshing} onRefresh={refresh}>{header}<EmptyBody /></Shell>;
 
-  const now = currentMonth();
-  const isCurrent = month.year === now.year && month.month === now.month;
-  const monthName = MONTH_NAMES[month.month];
+    const monthName = MONTH_NAMES[month.month];
   const financeMissing = expenses.isError || income.isError;
   const open = orders.data.filter(o => o.status === 'pending' || o.status === 'terkirim').slice(0, 3);
   const lowStock = stock.data.currentStock <= LOW_STOCK_THRESHOLD;
@@ -67,36 +63,17 @@ export default function HomeScreen() {
     <Shell refreshing={refreshing} onRefresh={refresh}>
       {header}
 
-      <View style={styles.card} accessibilityLabel={`Omset ${monthLabel(month)} ${formatRupiah(summary.revenue)}`}>
-        <View style={styles.cardTop}>
-          <Row style={{ justifyContent: 'space-between', marginHorizontal: -8, marginTop: -6 }}>
-            <Pressable onPress={() => setMonth(shiftMonth(month, -1))} accessibilityRole="button" accessibilityLabel="Bulan sebelumnya" style={styles.monthBtn}>
-              <ChevronIcon direction="left" color={colors.white} />
-            </Pressable>
-            <Pressable onPress={() => setMonth(now)} accessibilityRole="button" accessibilityLabel={`${monthLabel(month)}. Ketuk untuk kembali ke bulan ini.`} style={styles.monthLabel}>
-              <AppText variant="small" color={ON_BRAND_MUTED} style={{ fontWeight: '600' }}>{monthLabel(month)}</AppText>
-            </Pressable>
-            <Pressable onPress={() => setMonth(shiftMonth(month, 1))} disabled={isCurrent} accessibilityRole="button" accessibilityLabel="Bulan berikutnya" accessibilityState={{ disabled: isCurrent }} style={[styles.monthBtn, isCurrent && { opacity: 0.35 }]}>
-              <ChevronIcon direction="right" color={colors.white} />
-            </Pressable>
-          </Row>
-          <AppText variant="small" color={ON_BRAND_MUTED}>Omset {monthName}</AppText>
-          <AppText variant="hero" color={colors.white} style={{ fontSize: 36, lineHeight: 40 }} selectable>{formatRupiah(summary.revenue)}</AppText>
-          <AppText variant="small" color={ON_BRAND_MUTED}>{summary.orderCount} order · <AppText variant="small" color={colors.white} style={{ fontWeight: '700' }}>{summary.quantity} botol</AppText> terjual</AppText>
-        </View>
-        <View style={styles.band}>
-          <View style={styles.bandCell}>
-            <AppText variant="caption" color={ON_BRAND_MUTED} style={styles.bandLabel}>Untung kotor</AppText>
-            <AppText variant="heading" color={colors.white}>{formatRupiah(summary.grossProfit)}</AppText>
-            <AppText variant="caption" color={ON_BRAND_MUTED} style={styles.bandNote}>omset dikurangi modal</AppText>
-          </View>
-          <View style={[styles.bandCell, styles.bandDivider]}>
-            <AppText variant="caption" color={ON_BRAND_MUTED} style={styles.bandLabel}>Untung bersih</AppText>
-            <AppText variant="heading" color={colors.white}>{financeMissing ? 'Belum lengkap' : formatRupiah(summary.netProfit)}</AppText>
-            <AppText variant="caption" color={ON_BRAND_MUTED} style={styles.bandNote}>setelah ongkir & biaya</AppText>
-          </View>
-        </View>
-      </View>
+      <MonthCard
+        month={month}
+        onMonthChange={setMonth}
+        label={`Omset ${monthName}`}
+        value={formatRupiah(summary.revenue)}
+        caption={<>{summary.orderCount} order · <AppText variant="small" color={colors.white} style={{ fontWeight: '700' }}>{summary.quantity} botol</AppText> terjual</>}
+        band={[
+          { label: 'Untung kotor', value: formatRupiah(summary.grossProfit), note: 'omset dikurangi modal' },
+          { label: 'Untung bersih', value: financeMissing ? 'Belum lengkap' : formatRupiah(summary.netProfit), note: 'setelah ongkir & biaya' },
+        ]}
+      />
       {financeMissing ? <AppText variant="small" color={colors.textMuted}>Data pengeluaran belum termuat, jadi untung bersih belum bisa dihitung. Tarik layar ke bawah untuk memuat ulang.</AppText> : null}
 
       <View style={styles.tray} accessibilityRole="toolbar" accessibilityLabel="Catat cepat">
@@ -176,7 +153,7 @@ export default function HomeScreen() {
         {recent.length === 0 ? (
           <AppText variant="small" color={colors.textMuted}>Belum ada order di {monthName}.</AppText>
         ) : (
-          recent.map((order, i) => <RecentRow key={order.id} order={order} first={i === 0} />)
+          recent.map((order, i) => <OrderListRow key={order.id} order={order} first={i === 0} />)
         )}
       </View>
     </Shell>
@@ -291,22 +268,6 @@ function TargetCell({ label, pct }: { label: string; pct: number }) {
   );
 }
 
-function RecentRow({ order, first }: { order: OrderRow; first: boolean }) {
-  const margin = Number(order.margin);
-  const status = order.status === 'pending' ? ' · belum dikirim' : order.status === 'terkirim' ? ' · sedang dikirim' : '';
-  return (
-    <Pressable onPress={() => router.push({ pathname: '/order/[id]', params: { id: order.id } })} accessibilityRole="button" style={({ pressed }) => [styles.recent, !first && styles.recentSep, pressed && styles.pressed]}>
-      <View style={{ flex: 1, gap: 2 }}>
-        <AppText variant="bodyStrong" style={{ fontWeight: '600' }} numberOfLines={1}>{order.customer_name || 'Tanpa nama'}</AppText>
-        <AppText variant="small" color={colors.textMuted} numberOfLines={1}>{order.quantity} botol · {formatTime(order.created_at)}{status}</AppText>
-      </View>
-      <View style={{ alignItems: 'flex-end', gap: 2 }}>
-        <AppText variant="bodyStrong" style={{ fontWeight: '600' }}>{formatRupiah(Number(order.total_price))}</AppText>
-        <AppText variant="small" color={margin < 0 ? colors.danger : colors.brand} style={{ fontWeight: '600' }}>{margin < 0 ? 'Rugi' : 'Untung'} {formatRupiah(Math.abs(margin))}</AppText>
-      </View>
-    </Pressable>
-  );
-}
 
 function EmptyBody() {
   const steps: { label: string; note: string; href: Href; Icon: (p: IconProps) => ReactNode }[] = [
@@ -339,20 +300,6 @@ function EmptyBody() {
   );
 }
 
-function ErrorBody({ message, onRetry, retrying }: { message: string; onRetry: () => void; retrying: boolean }) {
-  return (
-    <View style={styles.errorCard} accessibilityRole="alert">
-      <View style={[styles.iconBox, { backgroundColor: colors.warningSoft }]}><OfflineIcon color={colors.warning} /></View>
-      <AppText variant="title" style={{ fontSize: 20 }}>Data belum bisa dimuat</AppText>
-      <AppText variant="body" color={colors.textMuted} style={{ fontSize: 15, lineHeight: 22 }}>
-        {/network|koneksi|internet/i.test(message) ? 'Periksa sinyal atau Wi-Fi, lalu coba lagi.' : message}
-      </AppText>
-      <Pressable onPress={onRetry} disabled={retrying} accessibilityRole="button" accessibilityState={{ busy: retrying }} style={({ pressed }) => [styles.primaryBtn, (pressed || retrying) && styles.pressed]}>
-        <AppText variant="bodyStrong" color={colors.white} style={{ fontWeight: '800' }}>{retrying ? 'Memuat ulang' : 'Coba lagi'}</AppText>
-      </Pressable>
-    </View>
-  );
-}
 
 function LoadingBody() {
   const [opacity] = useState(() => new Animated.Value(1));
@@ -386,15 +333,6 @@ const styles = StyleSheet.create({
   h2: { fontSize: 18, fontWeight: '800' },
   iconBox: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   avatar: { borderRadius: 22, backgroundColor: colors.brandSoft },
-  card: { borderRadius: radius.xl, overflow: 'hidden', backgroundColor: colors.brand },
-  cardTop: { paddingHorizontal: space.lg, paddingTop: space.lg, paddingBottom: 18, gap: 8 },
-  monthBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
-  monthLabel: { minHeight: 44, justifyContent: 'center', paddingHorizontal: space.sm },
-  band: { flexDirection: 'row', backgroundColor: BAND },
-  bandCell: { flex: 1, paddingHorizontal: space.lg, paddingVertical: space.md, gap: 2 },
-  bandDivider: { borderLeftWidth: 1, borderColor: 'rgba(255,255,255,0.18)' },
-  bandLabel: { fontSize: 13, fontWeight: '500', letterSpacing: 0 },
-  bandNote: { fontSize: 12, fontWeight: '400', letterSpacing: 0 },
   tray: { flexDirection: 'row', marginTop: -6, borderWidth: 1, borderColor: colors.border, borderRadius: radius.lg, paddingVertical: 6, paddingHorizontal: 4 },
   quick: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 6, minHeight: 76 },
   quickLabel: { fontSize: 13, fontWeight: '600', letterSpacing: 0, textAlign: 'center' },
@@ -410,10 +348,9 @@ const styles = StyleSheet.create({
   textBtn: { minHeight: 44, justifyContent: 'center' },
   bar: { height: 6, borderRadius: 3, backgroundColor: '#DADAE0', overflow: 'hidden' },
   barFill: { height: '100%', backgroundColor: colors.brand },
+  whiteBtn: { alignSelf: 'flex-start', minHeight: 48, paddingHorizontal: 20, borderRadius: 12, backgroundColor: colors.white, justifyContent: 'center' },
+  bone: { backgroundColor: '#ECECF1', borderRadius: 8 },
+  card: { borderRadius: radius.xl, overflow: 'hidden', backgroundColor: colors.brand },
   recent: { flexDirection: 'row', alignItems: 'center', gap: space.md, minHeight: 60 },
   recentSep: { borderTopWidth: 1, borderColor: colors.border },
-  whiteBtn: { alignSelf: 'flex-start', minHeight: 48, paddingHorizontal: 20, borderRadius: 12, backgroundColor: colors.white, justifyContent: 'center' },
-  primaryBtn: { alignSelf: 'flex-start', minHeight: 48, paddingHorizontal: 20, borderRadius: 12, backgroundColor: colors.brand, justifyContent: 'center' },
-  errorCard: { borderWidth: 1.5, borderColor: colors.border, borderRadius: radius.xl, paddingHorizontal: space.lg, paddingVertical: 20, gap: space.md },
-  bone: { backgroundColor: '#ECECF1', borderRadius: 8 },
 });
