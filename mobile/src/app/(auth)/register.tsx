@@ -50,7 +50,7 @@ export default function RegisterScreen() {
         <AppText variant="body" color={colors.textMuted}>Akun yang sama bisa dipakai di aplikasi web Rekapan Mitra.</AppText>
         {error ? <Notice tone="danger">{error}</Notice> : null}
         <TextField label="Nama lengkap" value={name} onChangeText={setName} autoComplete="name" textContentType="name" />
-        <TextField label="No. WhatsApp (opsional)" value={phone} onChangeText={setPhone} keyboardType="phone-pad" autoComplete="tel" placeholder="08…" />
+        <TextField label="No. WhatsApp (opsional)" value={phone} onChangeText={setPhone} keyboardType="phone-pad" autoComplete="tel" placeholder="mis. 0812 3456 7890" />
         <TextField label="Email" value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" autoComplete="email" textContentType="emailAddress" />
         <TextField label="Kata sandi" value={password} onChangeText={setPassword} secureTextEntry autoComplete="new-password" textContentType="newPassword" hint="Minimal 6 karakter" />
         <Button label="Daftar" onPress={submit} loading={busy} />

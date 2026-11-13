@@ -62,13 +62,13 @@ export default function OnboardingScreen() {
           <LevelPicker value={level} onChange={setLevel} />
           {level === 'custom' ? (
             <>
-              <TextField label="Nama level" value={customName} onChangeText={setCustomName} placeholder="Contoh: Distributor" />
+              <TextField label="Nama level" value={customName} onChangeText={setCustomName} placeholder="mis. Distributor" />
               <TextField
                 label="Harga modal per botol"
                 value={formatNumberInput(customPrice)}
                 onChangeText={t => setCustomPrice(parseRupiahInput(t))}
                 keyboardType="number-pad"
-                placeholder="Contoh: 200.000"
+                placeholder="mis. 200.000"
               />
             </>
           ) : null}

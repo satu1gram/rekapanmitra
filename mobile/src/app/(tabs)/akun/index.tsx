@@ -18,14 +18,15 @@ import { showDialog } from '~/ui/dialog';
 import { ChatIcon, FlagIcon, GlobeIcon, LogoutIcon, PeopleIcon, PencilIcon, StoreIcon, TrashIcon, WalletIcon, type IconProps } from '~/ui/icons';
 import { Avatar, FieldRow, Group, kitStyles, MenuRow, PageHeader, PillButton, SectionLabel } from '~/ui/kit';
 import { LevelPicker } from '~/ui/LevelPicker';
-import { colors, space, TAB_BAR_SPACE } from '~/ui/theme';
+import { HeroDecor } from '~/ui/brand';
+import { colors, space, TAB_BAR_SPACE, featureAccent, type Accent } from '~/ui/theme';
 
-const FEATURES: { title: string; subtitle: string; Icon: (p: IconProps) => React.ReactNode; href: Href }[] = [
-  { title: 'Pelanggan', subtitle: 'Data dan riwayat belanja pelanggan', Icon: PeopleIcon, href: '/pelanggan' },
-  { title: 'Pengeluaran & pemasukan', subtitle: 'Biaya umum dan pemasukan di luar penjualan', Icon: WalletIcon, href: '/keuangan' },
-  { title: 'Target bulanan', subtitle: 'Target untung, botol terjual, dan restok', Icon: FlagIcon, href: '/target' },
-  { title: 'Toko online', subtitle: 'Link toko dan cara pembayaran', Icon: StoreIcon, href: '/toko' },
-  { title: 'Isi dari chat', subtitle: 'Asisten AI mengisi draf order dari chat', Icon: ChatIcon, href: '/asisten' },
+const FEATURES: { title: string; subtitle: string; Icon: (p: IconProps) => React.ReactNode; href: Href; accent: Accent }[] = [
+  { title: 'Pelanggan', subtitle: 'Data dan riwayat belanja pelanggan', Icon: PeopleIcon, href: '/pelanggan', accent: featureAccent.customers },
+  { title: 'Pengeluaran & pemasukan', subtitle: 'Pengeluaran usaha dan pemasukan di luar penjualan', Icon: WalletIcon, href: '/keuangan', accent: featureAccent.finance },
+  { title: 'Target bulanan', subtitle: 'Target untung, botol terjual, dan restok', Icon: FlagIcon, href: '/target', accent: featureAccent.target },
+  { title: 'Toko online', subtitle: 'Link toko dan cara pembayaran', Icon: StoreIcon, href: '/toko', accent: featureAccent.store },
+  { title: 'Isi dari chat', subtitle: 'Asisten AI mengisi draf order dari chat', Icon: ChatIcon, href: '/asisten', accent: featureAccent.chat },
 ];
 
 export default function AccountScreen() {
@@ -95,7 +96,7 @@ export default function AccountScreen() {
             <SectionLabel>Ubah profil</SectionLabel>
             <Group>
               <FieldRow first label="Nama" value={name} onChangeText={setName} autoCapitalize="words" />
-              <FieldRow label="No. WhatsApp" value={phone} onChangeText={setPhone} keyboardType="phone-pad" placeholder="08…" />
+              <FieldRow label="No. WhatsApp" value={phone} onChangeText={setPhone} keyboardType="phone-pad" placeholder="mis. 0812 3456 7890" />
             </Group>
             <View style={styles.actions}>
               <PillButton label="Batal" tone="outline" onPress={() => setEditing('none')} style={{ flex: 1 }} />
@@ -104,7 +105,7 @@ export default function AccountScreen() {
           </View>
         ) : (
           <View style={styles.profile}>
-            <Avatar name={p.name || 'M'} size={56} />
+            <Avatar name={p.name || 'M'} size={56} accent="green" />
             <View style={{ flex: 1, gap: 2 }}>
               <AppText variant="heading" style={{ fontSize: 18, fontWeight: '800' }} numberOfLines={1}>{p.name || 'Mitra'}</AppText>
               <AppText variant="small" color={colors.textMuted} numberOfLines={1}>{email}</AppText>
@@ -122,7 +123,7 @@ export default function AccountScreen() {
               <LevelPicker value={level} onChange={setLevel} />
               {level === 'custom' ? (
                 <Group>
-                  <FieldRow first label="Nama level" value={customName} onChangeText={setCustomName} placeholder="Mis. Distributor" />
+                  <FieldRow first label="Nama level" value={customName} onChangeText={setCustomName} placeholder="mis. Distributor" />
                   <FieldRow label="Modal/botol" value={formatNumberInput(customPrice)} onChangeText={t => setCustomPrice(parseRupiahInput(t))} keyboardType="number-pad" placeholder="0" />
                 </Group>
               ) : null}
@@ -133,6 +134,7 @@ export default function AccountScreen() {
             </>
           ) : (
             <View style={styles.level}>
+              <HeroDecor />
               <View style={{ flex: 1, gap: 2 }}>
                 <AppText variant="heading" color={colors.white} style={{ fontWeight: '800' }}>{levelLabel(p)}</AppText>
                 <AppText variant="small" color="#E4F3EA">Modal {formatRupiah(buyPricePerBottle(p.mitra_level, p.custom_buy_price))} per botol</AppText>
@@ -145,7 +147,7 @@ export default function AccountScreen() {
         <View style={{ gap: space.sm }}>
           <SectionLabel>Usaha</SectionLabel>
           <Group>
-            {FEATURES.map((f, i) => <MenuRow key={f.title} first={i === 0} title={f.title} subtitle={f.subtitle} Icon={f.Icon} onPress={() => router.push(f.href)} />)}
+            {FEATURES.map((f, i) => <MenuRow key={f.title} first={i === 0} title={f.title} subtitle={f.subtitle} Icon={f.Icon} accent={f.accent} onPress={() => router.push(f.href)} />)}
           </Group>
         </View>
 
@@ -166,6 +168,6 @@ export default function AccountScreen() {
 
 const styles = StyleSheet.create({
   profile: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: colors.white, borderRadius: 18, padding: 14 },
-  level: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: colors.brand, borderRadius: 18, padding: 14 },
+  level: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: colors.brand, borderRadius: 18, padding: 14, overflow: 'hidden' },
   actions: { flexDirection: 'row', gap: 8 },
 });

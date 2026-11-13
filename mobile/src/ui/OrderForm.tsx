@@ -180,7 +180,7 @@ export function OrderForm({ initial = {}, orderId }: { initial?: OrderFormInitia
 
   const addExpense = () => {
     if (!expenseName.trim() || !expenseAmount) {
-      setError('Isi nama dan nominal biaya.');
+      setError('Isi jenis dan nominal biaya tambahan.');
       return;
     }
     setExpenses(prev => [...prev, { name: expenseName.trim(), amount: expenseAmount }]);
@@ -311,7 +311,7 @@ export function OrderForm({ initial = {}, orderId }: { initial?: OrderFormInitia
           {showAll && productRows.length > 6 ? (
             <View style={styles.search}>
               <SearchIcon size={18} color={colors.textMuted} />
-              <TextInput value={query} onChangeText={setQuery} placeholder="Cari produk" placeholderTextColor={colors.textSubtle} style={styles.searchInput} accessibilityLabel="Cari produk" />
+              <TextInput value={query} onChangeText={setQuery} placeholder="Cari produk" placeholderTextColor={colors.placeholder} style={styles.searchInput} accessibilityLabel="Cari produk" />
               {query ? <Pressable onPress={() => setQuery('')} hitSlop={8} accessibilityRole="button" accessibilityLabel="Hapus pencarian"><CloseIcon size={16} color={colors.textMuted} /></Pressable> : null}
             </View>
           ) : null}
@@ -413,24 +413,24 @@ export function OrderForm({ initial = {}, orderId }: { initial?: OrderFormInitia
         ) : null}
 
         <View style={[styles.box, { paddingHorizontal: 16 }]}>
-          <SheetRow first label="Biaya order" value={expenses.length ? `${expenses.length > 1 ? `${expenses.length} biaya` : expenses[0].name} ${formatRupiah(totals.totalExpenses)}` : 'Tidak ada'} valueColor={expenses.length ? colors.text : colors.textMuted} onPress={() => togglePanel('expenses')} />
+          <SheetRow first label="Biaya tambahan" value={expenses.length ? `${expenses.length > 1 ? `${expenses.length} biaya` : expenses[0].name} ${formatRupiah(totals.totalExpenses)}` : 'Tidak ada'} valueColor={expenses.length ? colors.text : colors.textMuted} onPress={() => togglePanel('expenses')} />
           {panel === 'expenses' ? (
             <View style={styles.panel}>
-              <AppText variant="small" color={colors.textMuted}>Ongkir yang kamu tanggung, infaq, packing. Mengurangi untung, bukan omset.</AppText>
+              <AppText variant="small" color={colors.textMuted}>Biaya yang kamu tanggung untuk order ini, mis. ongkir, packing, atau infaq. Mengurangi untung, tidak menambah tagihan pelanggan.</AppText>
               {expenses.map((e, i) => (
                 <Row key={`${e.name}-${i}`} style={{ justifyContent: 'space-between' }}>
                   <AppText variant="body" style={{ flex: 1 }}>{e.name}</AppText>
                   <AppText variant="bodyStrong">{formatRupiah(e.amount)}</AppText>
-                  <Pressable onPress={() => setExpenses(prev => prev.filter((_, j) => j !== i))} accessibilityRole="button" accessibilityLabel={`Hapus biaya ${e.name}`} hitSlop={10} style={{ padding: 6 }}>
+                  <Pressable onPress={() => setExpenses(prev => prev.filter((_, j) => j !== i))} accessibilityRole="button" accessibilityLabel={`Hapus biaya tambahan ${e.name}`} hitSlop={10} style={{ padding: 6 }}>
                     <MinusCircleIcon color={colors.danger} />
                   </Pressable>
                 </Row>
               ))}
               <Row style={{ alignItems: 'flex-end' }}>
-                <View style={{ flex: 1.3 }}><TextField label="Nama biaya" value={expenseName} onChangeText={setExpenseName} placeholder="Ongkir" /></View>
-                <View style={{ flex: 1 }}><TextField label="Nominal" value={formatNumberInput(expenseAmount)} onChangeText={t => setExpenseAmount(parseRupiahInput(t))} keyboardType="number-pad" placeholder="12.000" /></View>
+                <View style={{ flex: 1.3 }}><TextField label="Jenis biaya" value={expenseName} onChangeText={setExpenseName} placeholder="mis. Ongkir" /></View>
+                <View style={{ flex: 1 }}><TextField label="Nominal" value={formatNumberInput(expenseAmount)} onChangeText={t => setExpenseAmount(parseRupiahInput(t))} keyboardType="number-pad" placeholder="mis. 12.000" /></View>
               </Row>
-              <Button label="Tambah biaya" icon="add" tone="secondary" onPress={addExpense} />
+              <Button label="Tambah biaya tambahan" icon="add" tone="secondary" onPress={addExpense} />
             </View>
           ) : null}
           <SheetRow label="Bukti transfer" value={proofUrl ? 'Terlampir' : 'Belum ada'} valueColor={proofUrl ? colors.brand : colors.textMuted} onPress={() => togglePanel('proof')} />
@@ -443,7 +443,7 @@ export function OrderForm({ initial = {}, orderId }: { initial?: OrderFormInitia
             <View style={[styles.box, styles.summary]}>
               <SummaryLine label={`Omset · ${totals.totalQuantity} botol`} value={formatRupiah(totals.totalPrice)} />
               <SummaryLine label={`Modal (level ${levelLabel})`} value={`−${formatRupiah(totals.buyPrice)}`} />
-              <SummaryLine label="Biaya order" value={totals.totalExpenses ? `−${formatRupiah(totals.totalExpenses)}` : 'Rp0'} />
+              <SummaryLine label="Biaya tambahan" value={totals.totalExpenses ? `−${formatRupiah(totals.totalExpenses)}` : 'Rp0'} />
               <View style={styles.summarySep} />
               <Row style={{ justifyContent: 'space-between' }}>
                 <AppText variant="heading" style={{ fontWeight: '800' }}>{totals.margin < 0 ? 'Rugi' : 'Untung kamu'}</AppText>
@@ -456,7 +456,7 @@ export function OrderForm({ initial = {}, orderId }: { initial?: OrderFormInitia
         {isEdit && savedTotal != null && savedTotal !== totals.totalPrice ? (
           <Notice tone="info">Total berubah dari {formatRupiah(savedTotal)} menjadi {formatRupiah(totals.totalPrice)}.</Notice>
         ) : null}
-        {totals.margin < 0 && activeItems.length ? <Notice tone="warning">Order ini rugi {formatRupiah(-totals.margin)}. Periksa harga atau biaya.</Notice> : null}
+        {totals.margin < 0 && activeItems.length ? <Notice tone="warning">Order ini rugi {formatRupiah(-totals.margin)}. Periksa harga atau biaya tambahan.</Notice> : null}
         {noCost ? <Notice tone="warning">Harga modal level kamu belum diisi. Atur di menu Akun.</Notice> : null}
         {stock.data && totals.totalQuantity > stock.data.currentStock ? <Notice tone="info">Stok tercatat {stock.data.currentStock} botol, lebih sedikit dari order ini.</Notice> : null}
       </ScrollView>
@@ -514,7 +514,7 @@ export function OrderForm({ initial = {}, orderId }: { initial?: OrderFormInitia
             {customerName.trim() && !customerId && suggestions.length === 0 ? (
               <Notice tone="info">Pelanggan baru “{customerName.trim()}” akan disimpan bersama order.</Notice>
             ) : null}
-            <TextField label="No. WhatsApp (opsional)" value={customerPhone} onChangeText={setCustomerPhone} keyboardType="phone-pad" placeholder="08…" />
+            <TextField label="No. WhatsApp (opsional)" value={customerPhone} onChangeText={setCustomerPhone} keyboardType="phone-pad" placeholder="mis. 0812 3456 7890" />
           </ScrollView>
           <StickyFooter>
             <CapsuleButton label="Pakai pelanggan ini" onPress={() => setCustomerOpen(false)} disabled={!customerName.trim()} />

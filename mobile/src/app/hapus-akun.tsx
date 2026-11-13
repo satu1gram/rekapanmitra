@@ -13,7 +13,7 @@ import { showDialog } from '~/ui/dialog';
 
 const DELETED = [
   'Profil dan akun login',
-  'Semua order, rincian produk, dan biaya order',
+  'Semua order, rincian produk, dan biaya tambahannya',
   'Catatan stok dan restok',
   'Data pelanggan',
   'Pengeluaran, pemasukan, dan target',

@@ -14,7 +14,7 @@ import { DateCalendar } from '~/ui/DateField';
 import { TrashIcon } from '~/ui/icons';
 import { FieldRow, Group } from '~/ui/kit';
 import { CapsuleButton, SheetHeader, SheetRow, StickyFooter } from '~/ui/sheet';
-import { colors, space } from '~/ui/theme';
+import { colors, space, accents, featureAccent } from '~/ui/theme';
 import { DialogHost, showDialog } from '~/ui/dialog';
 
 export default function MoneyFormScreen() {
@@ -63,6 +63,7 @@ function MoneyForm({ kind, entry }: { kind: MoneyKind; entry?: { id: string; nam
     ]);
 
   const isExpense = kind === 'expense';
+  const tone = accents[isExpense ? featureAccent.expense : 'green'];
   const today = sameDay(date, new Date());
 
   return (
@@ -74,21 +75,21 @@ function MoneyForm({ kind, entry }: { kind: MoneyKind; entry?: { id: string; nam
         <View style={styles.amountCard}>
           <AppText variant="small" color={colors.textMuted} style={{ fontWeight: '600' }}>Nominal</AppText>
           <View style={styles.amountRow}>
-            <AppText variant="title" color={isExpense ? colors.danger : colors.brandDark} style={{ fontSize: 26 }}>Rp</AppText>
+            <AppText variant="title" color={tone.fg} style={{ fontSize: 26 }}>Rp</AppText>
             <TextInput
               value={formatNumberInput(amount)}
               onChangeText={t => setAmount(parseRupiahInput(t))}
               keyboardType="number-pad"
               placeholder="0"
-              placeholderTextColor={colors.textSubtle}
+              placeholderTextColor={colors.placeholder}
               accessibilityLabel="Nominal"
-              style={[styles.amountInput, { color: isExpense ? colors.danger : colors.brandDark }]}
+              style={[styles.amountInput, { color: tone.fg }]}
             />
           </View>
         </View>
 
         <Group>
-          <FieldRow first label="Keterangan" value={name} onChangeText={setName} placeholder={isExpense ? 'Mis. Plastik kemasan' : 'Mis. Bonus bulanan'} />
+          <FieldRow first label="Keterangan" value={name} onChangeText={setName} placeholder={isExpense ? 'mis. Plastik kemasan' : 'mis. Bonus bulanan'} />
           <SheetRow label="Tanggal" value={today ? `Hari ini, ${formatDate(date.toISOString())}` : formatDate(date.toISOString())} onPress={() => setDateOpen(v => !v)} />
           {dateOpen ? <View style={{ paddingBottom: space.md }}><DateCalendar value={date} onChange={d => { setDate(d); setDateOpen(false); }} /></View> : null}
           <FieldRow label="Catatan" value={notes} onChangeText={setNotes} placeholder="Opsional" />

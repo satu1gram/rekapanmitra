@@ -13,7 +13,7 @@ import { ChevronIcon, WalletIcon } from '~/ui/icons';
 import { kitStyles, PageHeader, PillTabs } from '~/ui/kit';
 import { MonthSwitcher } from '~/ui/MonthSwitcher';
 import { CapsuleButton, StickyFooter } from '~/ui/sheet';
-import { colors, space } from '~/ui/theme';
+import { colors, space, accents, featureAccent } from '~/ui/theme';
 
 const KINDS = [
   { value: 'expense', label: 'Pengeluaran' },
@@ -30,6 +30,7 @@ export default function FinanceScreen() {
   const entries = useMemo(() => (query.data ?? []).filter(e => isInMonth(e.date, month)), [query.data, month]);
   const total = entries.reduce((s, e) => s + e.amount, 0);
   const isExpense = kind === 'expense';
+  const tone = accents[isExpense ? featureAccent.expense : 'green'];
   const add = () => router.push({ pathname: '/keuangan/form', params: { kind } });
 
   return (
@@ -43,15 +44,15 @@ export default function FinanceScreen() {
         <MonthSwitcher value={month} onChange={setMonth} />
 
         {query.isPending ? <FinanceTotalSkeleton /> : (
-          <View style={[styles.total, { backgroundColor: isExpense ? colors.dangerSoft : colors.brandSoft }]}>
-            <AppText variant="small" color={isExpense ? colors.danger : colors.brandDark} style={{ fontWeight: '700' }}>
+          <View style={[styles.total, { backgroundColor: tone.bg }]}>
+            <AppText variant="small" color={tone.fg} style={{ fontWeight: '700' }}>
               Total {isExpense ? 'pengeluaran' : 'pemasukan'} {MONTH_NAMES[month.month]}
             </AppText>
-            <AppText variant="title" color={isExpense ? colors.danger : colors.brandDark} style={{ fontSize: 26 }}>{formatRupiah(total)}</AppText>
+            <AppText variant="title" color={tone.fg} style={{ fontSize: 26 }}>{formatRupiah(total)}</AppText>
             <AppText variant="small" color={colors.textMuted}>
               {isExpense
-                ? 'Biaya di luar order, mis. kemasan atau transport. Mengurangi untung bersih.'
-                : 'Pemasukan di luar penjualan, mis. bonus. Menambah untung bersih.'}
+                ? 'Pengeluaran usaha di luar order, mis. stok kemasan atau transport. Mengurangi untung bersih.'
+                : 'Pemasukan di luar penjualan, mis. bonus dari upline. Menambah untung bersih.'}
             </AppText>
           </View>
         )}
@@ -78,7 +79,7 @@ export default function FinanceScreen() {
                       <AppText variant="bodyStrong" numberOfLines={1}>{e.name}</AppText>
                       <AppText variant="small" color={colors.textMuted} numberOfLines={1}>{formatDate(e.date)} · {categoryLabel(kind, e.category)}{e.notes ? ` · ${e.notes}` : ''}</AppText>
                     </View>
-                    <AppText variant="bodyStrong" color={isExpense ? colors.danger : colors.brandDark}>{isExpense ? '−' : '+'}{formatRupiah(e.amount)}</AppText>
+                    <AppText variant="bodyStrong" color={tone.fg}>{isExpense ? '−' : '+'}{formatRupiah(e.amount)}</AppText>
                     <ChevronIcon direction="right" size={16} color="#AEAEB2" />
                   </Pressable>
                 ))

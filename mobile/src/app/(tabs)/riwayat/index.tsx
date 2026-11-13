@@ -100,7 +100,7 @@ export default function HistoryScreen() {
               value={formatRupiah(totals.revenue)}
               caption={`${totals.count} order · ${totals.quantity} botol${totals.open ? ` · ${totals.open} belum selesai` : ''}`}
               band={[
-                { label: totals.profit < 0 ? 'Rugi dari order' : 'Untung dari order', value: formatRupiah(Math.abs(totals.profit)), note: 'setelah modal & biaya di order' },
+                { label: totals.profit < 0 ? 'Rugi dari order' : 'Untung dari order', value: formatRupiah(Math.abs(totals.profit)), note: 'omset dikurangi modal & biaya tambahan' },
               ]}
             />
             <View style={styles.search}>
@@ -109,7 +109,7 @@ export default function HistoryScreen() {
                 value={query}
                 onChangeText={setQuery}
                 placeholder="Cari nama atau nomor pelanggan"
-                placeholderTextColor={colors.textMuted}
+                placeholderTextColor={colors.placeholder}
                 style={styles.searchInput}
                 accessibilityLabel="Cari order berdasarkan pelanggan"
                 returnKeyType="search"

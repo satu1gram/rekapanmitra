@@ -12,7 +12,7 @@ import { ProgressCardSkeleton, TargetSkeleton } from '~/ui/skeleton';
 import { FieldRow, Group, kitStyles, PageHeader, SectionLabel } from '~/ui/kit';
 import { MonthSwitcher } from '~/ui/MonthSwitcher';
 import { CapsuleButton, StickyFooter } from '~/ui/sheet';
-import { colors, space } from '~/ui/theme';
+import { colors, space, accents, type Accent } from '~/ui/theme';
 
 export default function TargetScreen() {
   const targets = useTargets();
@@ -57,9 +57,9 @@ function TargetForm({ month, onMonthChange, existing }: { month: MonthRef; onMon
           <View style={{ gap: space.sm }}>
             <SectionLabel>Capaian {MONTH_NAMES[month.month]}</SectionLabel>
             <View style={styles.progressCard}>
-              <Progress label="Untung kotor" value={formatRupiahShort(progress.profit.value)} target={formatRupiahShort(progress.profit.target)} pct={progress.profit.pct} />
-              <Progress label="Botol terjual" value={`${progress.qty.value}`} target={`${progress.qty.target} botol`} pct={progress.qty.pct} />
-              <Progress label="Restok" value={`${progress.stock.value}`} target={`${progress.stock.target} botol`} pct={progress.stock.pct} />
+              <Progress accent="green" label="Untung kotor" value={formatRupiahShort(progress.profit.value)} target={formatRupiahShort(progress.profit.target)} pct={progress.profit.pct} />
+              <Progress accent="blue" label="Botol terjual" value={`${progress.qty.value}`} target={`${progress.qty.target} botol`} pct={progress.qty.pct} />
+              <Progress accent="teal" label="Restok" value={`${progress.stock.value}`} target={`${progress.stock.target} botol`} pct={progress.stock.pct} />
             </View>
           </View>
         ) : existing && !orders.isError && !stock.isError ? (
@@ -69,9 +69,9 @@ function TargetForm({ month, onMonthChange, existing }: { month: MonthRef; onMon
         <View style={{ gap: space.sm }}>
           <SectionLabel>{existing ? 'Ubah target' : 'Buat target'}</SectionLabel>
           <Group>
-            <FieldRow first label="Untung kotor" value={formatNumberInput(profit)} onChangeText={t => setProfit(parseRupiahInput(t))} keyboardType="number-pad" placeholder="5.000.000" suffix={<AppText variant="small" color={colors.textMuted}>Rp</AppText>} />
-            <FieldRow label="Botol terjual" value={qty == null ? '' : String(qty)} onChangeText={t => setQty(parseRupiahInput(t))} keyboardType="number-pad" placeholder="100" suffix={<AppText variant="small" color={colors.textMuted}>botol</AppText>} />
-            <FieldRow label="Restok" value={restock == null ? '' : String(restock)} onChangeText={t => setRestock(parseRupiahInput(t))} keyboardType="number-pad" placeholder="100" suffix={<AppText variant="small" color={colors.textMuted}>botol</AppText>} />
+            <FieldRow first label="Untung kotor" value={formatNumberInput(profit)} onChangeText={t => setProfit(parseRupiahInput(t))} keyboardType="number-pad" placeholder="mis. 5.000.000" suffix={<AppText variant="small" color={colors.textMuted}>Rp</AppText>} />
+            <FieldRow label="Botol terjual" value={qty == null ? '' : String(qty)} onChangeText={t => setQty(parseRupiahInput(t))} keyboardType="number-pad" placeholder="mis. 100" suffix={<AppText variant="small" color={colors.textMuted}>botol</AppText>} />
+            <FieldRow label="Restok" value={restock == null ? '' : String(restock)} onChangeText={t => setRestock(parseRupiahInput(t))} keyboardType="number-pad" placeholder="mis. 100" suffix={<AppText variant="small" color={colors.textMuted}>botol</AppText>} />
           </Group>
           <AppText variant="small" color={colors.textMuted}>Target ini sama dengan yang tampil di Beranda aplikasi dan web.</AppText>
         </View>
@@ -83,16 +83,16 @@ function TargetForm({ month, onMonthChange, existing }: { month: MonthRef; onMon
   );
 }
 
-function Progress({ label, value, target, pct }: { label: string; value: string; target: string; pct: number }) {
+function Progress({ label, value, target, pct, accent }: { label: string; value: string; target: string; pct: number; accent: Accent }) {
   return (
     <View style={{ gap: 6 }} accessibilityLabel={`${label}: ${value} dari ${target}, ${pct} persen`}>
       <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6 }}>
         <AppText variant="small" color={colors.textMuted} style={{ flex: 1 }}>{label}</AppText>
         <AppText variant="small" style={{ fontWeight: '700', fontSize: 14 }}>{value}</AppText>
         <AppText variant="small" color={colors.textMuted}>/ {target}</AppText>
-        <AppText variant="small" color={colors.brandDark} style={{ fontWeight: '700', minWidth: 38, textAlign: 'right' }}>{pct}%</AppText>
+        <AppText variant="small" color={accents[accent].fg} style={{ fontWeight: '700', minWidth: 38, textAlign: 'right' }}>{pct}%</AppText>
       </View>
-      <View style={styles.bar}><View style={[styles.barFill, { width: `${Math.min(100, pct)}%` }]} /></View>
+      <View style={styles.bar}><View style={[styles.barFill, { width: `${Math.min(100, pct)}%`, backgroundColor: accents[accent].fg }]} /></View>
     </View>
   );
 }

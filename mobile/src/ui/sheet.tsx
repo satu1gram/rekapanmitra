@@ -93,7 +93,7 @@ export function StickyFooter({ children, style }: { children: ReactNode; style?:
   return <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, space.sm) + 2 }, style]}>{children}</View>;
 }
 
-/** A tappable settings-like row inside a sheet ("Biaya order · Ongkir Rp12.000 ›"). */
+/** A tappable settings-like row inside a sheet ("Biaya tambahan · Ongkir Rp12.000 ›"). */
 export function SheetRow({ label, value, valueColor = colors.text, onPress, first }: { label: string; value: string; valueColor?: string; onPress?: () => void; first?: boolean }) {
   return (
     <Pressable onPress={onPress} disabled={!onPress} accessibilityRole={onPress ? 'button' : undefined} accessibilityLabel={`${label}: ${value}`} style={({ pressed }) => [styles.sheetRow, !first && styles.sheetRowSep, pressed && { opacity: 0.6 }]}>

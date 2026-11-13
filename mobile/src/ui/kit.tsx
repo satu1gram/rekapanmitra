@@ -9,7 +9,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppText } from './components';
 import { ChevronIcon, type IconProps } from './icons';
-import { colors, radius, space } from './theme';
+import { colors, radius, space, accentForName, accents, type Accent } from './theme';
 
 /** Page title row for pushed screens: round back button, title, optional action on the right. */
 export function PageHeader({ title, right, back = true }: { title: string; right?: ReactNode; back?: boolean }) {
@@ -42,7 +42,7 @@ export function Group({ children, style }: { children: ReactNode; style?: StyleP
 }
 
 /** Tappable menu row: tinted icon, title + subtitle, value and chevron. */
-export function MenuRow({ title, subtitle, Icon, value, onPress, first, tone = 'brand', chevron = true }: {
+export function MenuRow({ title, subtitle, Icon, value, onPress, first, tone = 'brand', accent, chevron = true }: {
   title: string;
   subtitle?: string;
   Icon?: (p: IconProps) => ReactNode;
@@ -50,10 +50,12 @@ export function MenuRow({ title, subtitle, Icon, value, onPress, first, tone = '
   onPress?: () => void;
   first?: boolean;
   tone?: 'brand' | 'danger' | 'muted';
+  /** Feature colour for the icon tile (see featureAccent). */
+  accent?: Accent;
   chevron?: boolean;
 }) {
-  const fg = tone === 'danger' ? colors.danger : tone === 'muted' ? colors.textMuted : colors.brand;
-  const bg = tone === 'danger' ? colors.dangerSoft : tone === 'muted' ? colors.fill : colors.brandSoft;
+  const fg = accent ? accents[accent].fg : tone === 'danger' ? colors.danger : tone === 'muted' ? colors.textMuted : colors.brand;
+  const bg = accent ? accents[accent].bg : tone === 'danger' ? colors.dangerSoft : tone === 'muted' ? colors.fill : colors.brandSoft;
   return (
     <Pressable onPress={onPress} disabled={!onPress} accessibilityRole={onPress ? 'button' : undefined} accessibilityLabel={subtitle ? `${title}. ${subtitle}` : title} style={({ pressed }) => [styles.row, !first && styles.sep, pressed && { opacity: 0.6 }]}>
       {Icon ? <View style={[styles.iconBox, { backgroundColor: bg }]}><Icon size={20} color={fg} /></View> : null}
@@ -71,9 +73,9 @@ export function MenuRow({ title, subtitle, Icon, value, onPress, first, tone = '
 export function FieldRow({ label, first, suffix, multiline, ...input }: TextInputProps & { label: string; first?: boolean; suffix?: ReactNode }) {
   return (
     <View style={[styles.field, multiline && { alignItems: 'flex-start', paddingVertical: 12 }, !first && styles.sep]}>
-      <AppText variant="body" color={colors.textMuted} style={[styles.fieldLabel, multiline && { paddingTop: 2 }]}>{label}</AppText>
+      <AppText variant="body" color={colors.label} style={[styles.fieldLabel, multiline && { paddingTop: 2 }]}>{label}</AppText>
       <TextInput
-        placeholderTextColor={colors.textSubtle}
+        placeholderTextColor={colors.placeholder}
         accessibilityLabel={label}
         multiline={multiline}
         {...input}
@@ -119,10 +121,12 @@ export function PillButton({ label, onPress, tone = 'soft', Icon, loading, disab
   );
 }
 
-export function Avatar({ name, size = 44, tone = 'brand' }: { name: string; size?: number; tone?: 'brand' | 'warning' }) {
+/** Initial in a soft circle; the colour is fixed per name so the same customer always looks the same. */
+export function Avatar({ name, size = 44, accent }: { name: string; size?: number; accent?: Accent }) {
+  const a = accents[accent ?? accentForName(name || '?')];
   return (
-    <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: tone === 'brand' ? colors.brandSoft : colors.warningSoft, alignItems: 'center', justifyContent: 'center' }}>
-      <AppText variant="bodyStrong" color={tone === 'brand' ? colors.brandDark : colors.warning} style={{ fontSize: Math.round(size * 0.4), fontWeight: '800' }}>{(name || '?').trim().slice(0, 1).toUpperCase()}</AppText>
+    <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: a.bg, alignItems: 'center', justifyContent: 'center' }}>
+      <AppText variant="bodyStrong" color={a.fg} style={{ fontSize: Math.round(size * 0.4), fontWeight: '800' }}>{(name || '?').trim().slice(0, 1).toUpperCase()}</AppText>
     </View>
   );
 }
@@ -157,8 +161,8 @@ const styles = StyleSheet.create({
   sep: { borderTopWidth: StyleSheet.hairlineWidth, borderColor: colors.border },
   iconBox: { width: 36, height: 36, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
   field: { flexDirection: 'row', alignItems: 'center', gap: space.md, minHeight: 48 },
-  fieldLabel: { width: 108, fontSize: 14 },
-  input: { flex: 1, minWidth: 0, width: 0, fontSize: 15, color: colors.text, paddingVertical: 10 },
+  fieldLabel: { width: 108, fontSize: 14, fontWeight: '500' },
+  input: { flex: 1, minWidth: 0, width: 0, fontSize: 15, fontWeight: '600', color: colors.text, paddingVertical: 10 },
   pill: { minHeight: 36, paddingHorizontal: 14, borderRadius: radius.pill, borderWidth: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
   tabs: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   tab: { minHeight: 34, paddingHorizontal: 14, borderRadius: radius.pill, justifyContent: 'center', backgroundColor: colors.white },

@@ -11,7 +11,7 @@ import { AppText, Notice } from '~/ui/components';
 import { ChatIcon } from '~/ui/icons';
 import type { OrderFormInitial } from '~/ui/OrderForm';
 import { CapsuleButton, SheetHeader, StickyFooter } from '~/ui/sheet';
-import { colors, space } from '~/ui/theme';
+import { colors, space, accents } from '~/ui/theme';
 
 export default function AssistantScreen() {
   const catalog = useCatalog();
@@ -92,7 +92,7 @@ export default function AssistantScreen() {
             onChangeText={setText}
             multiline
             placeholder="Tempel chat pesanan atau restok di sini…"
-            placeholderTextColor={colors.textSubtle}
+            placeholderTextColor={colors.placeholder}
             style={styles.input}
             maxLength={2000}
             accessibilityLabel="Isi chat"
@@ -112,7 +112,7 @@ export default function AssistantScreen() {
             <AppText variant="small" color={colors.textMuted} style={{ fontWeight: '600' }}>Coba contoh</AppText>
             {examples.map(ex => (
               <Pressable key={ex} onPress={() => setText(ex)} accessibilityRole="button" style={({ pressed }) => [styles.example, pressed && { opacity: 0.7 }]}>
-                <ChatIcon size={18} color={colors.brand} />
+                <ChatIcon size={18} color={accents.violet.fg} />
                 <AppText variant="small" style={{ flex: 1 }} numberOfLines={2}>{ex}</AppText>
               </Pressable>
             ))}

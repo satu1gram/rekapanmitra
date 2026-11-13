@@ -9,6 +9,10 @@ export const colors = {
   text: '#1C1C1E',
   textMuted: '#6C6C70',
   textSubtle: '#8A8A8E',
+  /** Field label: darker than a placeholder, lighter than typed text. */
+  label: '#3A3A3C',
+  /** Placeholder / example text in an empty field: clearly lighter than a label or a typed value. */
+  placeholder: '#AEAEB2',
   border: '#E5E5EA',
   borderStrong: '#C6C6C8',
   fill: '#F2F2F7',
@@ -47,3 +51,39 @@ export const shadow = {
 
 /** Room a tab screen leaves at the bottom for the floating tab bar (bar 64 + gap + home indicator). */
 export const TAB_BAR_SPACE = 120;
+
+/**
+ * Supporting colours. Brand green stays the primary colour (buttons, hero cards, active tab); these
+ * soft pairs are only for small surfaces: icon tiles, avatars, status pills and stat tiles.
+ * Each `fg` reads at 4.6:1 or better on its own `bg` and on white.
+ */
+export const accents = {
+  green: { fg: '#0A7A52', bg: '#E3F3EC' },
+  blue: { fg: '#1F5FBF', bg: '#E7EFFC' },
+  amber: { fg: '#A55400', bg: '#FFF1DE' },
+  violet: { fg: '#6247C8', bg: '#EFEBFD' },
+  teal: { fg: '#0B7480', bg: '#E0F4F5' },
+  rose: { fg: '#B4234F', bg: '#FCEAF0' },
+} as const;
+export type Accent = keyof typeof accents;
+
+/** What each part of the app is coloured with, so the same feature looks the same everywhere. */
+export const featureAccent = {
+  order: 'green',
+  restock: 'teal',
+  chat: 'violet',
+  history: 'blue',
+  customers: 'blue',
+  finance: 'amber',
+  target: 'violet',
+  store: 'teal',
+  expense: 'rose',
+} as const satisfies Record<string, Accent>;
+
+const AVATAR_ACCENTS: Accent[] = ['green', 'blue', 'violet', 'teal', 'amber', 'rose'];
+/** Stable avatar colour per name, so a customer always has the same colour. */
+export function accentForName(name: string): Accent {
+  let h = 0;
+  for (const ch of name.trim().toLowerCase()) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  return AVATAR_ACCENTS[h % AVATAR_ACCENTS.length];
+}

@@ -15,7 +15,7 @@ import { AppText, Row } from '~/ui/components';
 import { ErrorPanel, MonthCard, ON_BRAND_MUTED, OrderListRow } from '~/ui/brand';
 import { HomeSkeleton } from '~/ui/skeleton';
 import { BoxIcon, ChatIcon, FlagIcon, ListIcon, MoreIcon, PeopleIcon, PlusIcon, SearchIcon, StoreIcon, WalletIcon, type IconProps } from '~/ui/icons';
-import { colors, radius, space, TAB_BAR_SPACE } from '~/ui/theme';
+import { colors, radius, space, TAB_BAR_SPACE, accents, featureAccent, type Accent } from '~/ui/theme';
 
 
 const NEXT_STATUS: Record<string, { status: OrderStatus; label: string; stage: number }> = {
@@ -72,16 +72,16 @@ export default function HomeScreen() {
         caption={<>{summary.orderCount} order · <AppText variant="small" color={colors.white} style={{ fontWeight: '700' }}>{summary.quantity} botol</AppText> terjual</>}
         band={[
           { label: 'Untung kotor', value: formatRupiah(summary.grossProfit), note: 'omset dikurangi modal' },
-          { label: 'Untung bersih', value: financeMissing ? 'Belum lengkap' : formatRupiah(summary.netProfit), note: 'setelah ongkir & biaya' },
+          { label: 'Untung bersih', value: financeMissing ? 'Belum lengkap' : formatRupiah(summary.netProfit), note: 'dikurangi semua biaya' },
         ]}
       />
       {financeMissing ? <AppText variant="small" color={colors.textMuted}>Data pengeluaran belum termuat, jadi untung bersih belum bisa dihitung. Tarik layar ke bawah untuk memuat ulang.</AppText> : null}
 
       <View style={styles.tray} accessibilityRole="toolbar" accessibilityLabel="Catat cepat">
         <QuickAction label="Catat order" href="/order/new" primary Icon={PlusIcon} />
-        <QuickAction label="Catat restok" href="/restok/new" Icon={BoxIcon} />
-        <QuickAction label="Isi dari chat" href="/asisten" Icon={ChatIcon} />
-        <QuickAction label="Riwayat" href="/riwayat" navigate Icon={ListIcon} />
+        <QuickAction label="Catat restok" href="/restok/new" Icon={BoxIcon} accent={featureAccent.restock} />
+        <QuickAction label="Isi dari chat" href="/asisten" Icon={ChatIcon} accent={featureAccent.chat} />
+        <QuickAction label="Riwayat" href="/riwayat" navigate Icon={ListIcon} accent={featureAccent.history} />
       </View>
 
       {taskCount > 0 ? (
@@ -115,10 +115,10 @@ export default function HomeScreen() {
       ) : null}
 
       <View style={styles.grid} accessibilityRole="toolbar" accessibilityLabel="Fitur lain">
-        <MoreFeature label="Pelanggan" href="/pelanggan" Icon={PeopleIcon} />
-        <MoreFeature label="Keuangan" href="/keuangan" Icon={WalletIcon} />
-        <MoreFeature label="Target" href="/target" Icon={FlagIcon} />
-        <MoreFeature label="Toko" href="/toko" Icon={StoreIcon} />
+        <MoreFeature label="Pelanggan" href="/pelanggan" Icon={PeopleIcon} accent={featureAccent.customers} />
+        <MoreFeature label="Keuangan" href="/keuangan" Icon={WalletIcon} accent={featureAccent.finance} />
+        <MoreFeature label="Target" href="/target" Icon={FlagIcon} accent={featureAccent.target} />
+        <MoreFeature label="Toko" href="/toko" Icon={StoreIcon} accent={featureAccent.store} />
         <MoreFeature label="Lainnya" href="/akun" navigate Icon={MoreIcon} />
       </View>
 
@@ -131,9 +131,9 @@ export default function HomeScreen() {
             </Pressable>
           </Row>
           <View style={{ gap: 12 }}>
-            <TargetCell label="Untung kotor" pct={progress.profit.pct} value={formatRupiahShort(progress.profit.value)} target={formatRupiahShort(progress.profit.target)} />
-            <TargetCell label="Botol terjual" pct={progress.qty.pct} value={`${progress.qty.value}`} target={`${progress.qty.target} botol`} />
-            <TargetCell label="Restok" pct={progress.stock.pct} value={`${progress.stock.value}`} target={`${progress.stock.target} botol`} />
+            <TargetCell accent="green" label="Untung kotor" pct={progress.profit.pct} value={formatRupiahShort(progress.profit.value)} target={formatRupiahShort(progress.profit.target)} />
+            <TargetCell accent="blue" label="Botol terjual" pct={progress.qty.pct} value={`${progress.qty.value}`} target={`${progress.qty.target} botol`} />
+            <TargetCell accent="teal" label="Restok" pct={progress.stock.pct} value={`${progress.stock.value}`} target={`${progress.stock.target} botol`} />
           </View>
         </View>
       ) : (
@@ -196,21 +196,21 @@ function go(href: Href, navigate?: boolean) {
   else router.push(href);
 }
 
-function QuickAction({ label, href, Icon, primary, navigate }: { label: string; href: Href; Icon: (p: IconProps) => ReactNode; primary?: boolean; navigate?: boolean }) {
+function QuickAction({ label, href, Icon, primary, navigate, accent = 'green' }: { label: string; href: Href; Icon: (p: IconProps) => ReactNode; primary?: boolean; navigate?: boolean; accent?: Accent }) {
   return (
     <Pressable onPress={() => go(href, navigate)} accessibilityRole="button" accessibilityLabel={label} style={({ pressed }) => [styles.quick, pressed && styles.pressed]}>
-      <View style={[styles.iconBox, { backgroundColor: primary ? colors.brand : colors.brandSoft }]}>
-        <Icon color={primary ? colors.white : colors.brand} />
+      <View style={[styles.iconBox, { backgroundColor: primary ? colors.brand : accents[accent].bg }]}>
+        <Icon color={primary ? colors.white : accents[accent].fg} />
       </View>
       <AppText variant="caption" style={styles.quickLabel} numberOfLines={1}>{label}</AppText>
     </Pressable>
   );
 }
 
-function MoreFeature({ label, href, Icon, navigate }: { label: string; href: Href; Icon: (p: IconProps) => ReactNode; navigate?: boolean }) {
+function MoreFeature({ label, href, Icon, navigate, accent }: { label: string; href: Href; Icon: (p: IconProps) => ReactNode; navigate?: boolean; accent?: Accent }) {
   return (
     <Pressable onPress={() => go(href, navigate)} accessibilityRole="button" accessibilityLabel={label} style={({ pressed }) => [styles.more, pressed && styles.pressed]}>
-      <View style={styles.moreIcon}><Icon color={colors.brand} /></View>
+      <View style={[styles.moreIcon, accent ? { backgroundColor: accents[accent].bg } : null]}><Icon color={accent ? accents[accent].fg : colors.textMuted} /></View>
       <AppText variant="caption" style={styles.moreLabel} numberOfLines={1}>{label}</AppText>
     </Pressable>
   );
@@ -269,16 +269,16 @@ function TaskCard({ order, onAdvance, busy }: { order: OrderRow; onAdvance: () =
   );
 }
 
-function TargetCell({ label, pct, value, target }: { label: string; pct: number; value: string; target: string }) {
+function TargetCell({ label, pct, value, target, accent }: { label: string; pct: number; value: string; target: string; accent: Accent }) {
   return (
     <View style={{ gap: 6 }} accessibilityLabel={`${label}: ${value} dari ${target}, ${pct} persen`}>
       <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6 }}>
         <AppText variant="small" color={colors.textMuted} style={{ flex: 1, fontSize: 13 }} numberOfLines={1}>{label}</AppText>
         <AppText variant="small" style={{ fontSize: 14, fontWeight: '700' }}>{value}</AppText>
         <AppText variant="small" color={colors.textMuted} style={{ fontSize: 13 }}>/ {target}</AppText>
-        <AppText variant="small" color={colors.brandDark} style={{ fontSize: 13, fontWeight: '700', minWidth: 38, textAlign: 'right' }}>{pct}%</AppText>
+        <AppText variant="small" color={accents[accent].fg} style={{ fontSize: 13, fontWeight: '700', minWidth: 38, textAlign: 'right' }}>{pct}%</AppText>
       </View>
-      <View style={styles.bar}><View style={[styles.barFill, { width: `${Math.min(100, pct)}%` }]} /></View>
+      <View style={styles.bar}><View style={[styles.barFill, { width: `${Math.min(100, pct)}%`, backgroundColor: accents[accent].fg }]} /></View>
     </View>
   );
 }

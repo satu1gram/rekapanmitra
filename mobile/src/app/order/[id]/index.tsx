@@ -11,7 +11,8 @@ import { formatRupiah } from '~/lib/money';
 import { productDisplayName } from '~/lib/orderMath';
 import { TIER_LABEL } from '~/lib/priceOptions';
 import { errorMessage } from '~/lib/supabase';
-import { ON_BRAND_MUTED } from '~/ui/brand';
+import { HeroDecor, ON_BRAND_MUTED } from '~/ui/brand';
+import { Avatar } from '~/ui/kit';
 import { AppText, Divider, ErrorState, Row } from '~/ui/components';
 import { OrderDetailSkeleton } from '~/ui/skeleton';
 import { CameraIcon, ChatIcon, CheckIcon, ChevronIcon, ShareIcon, TrashIcon, type IconProps } from '~/ui/icons';
@@ -74,6 +75,7 @@ export default function OrderStatusScreen() {
       <Stack.Screen options={{ headerShown: false }} />
       <ScrollView contentContainerStyle={{ paddingBottom: space.xxxl }}>
         <View style={[styles.hero, { paddingTop: insets.top + 4 }]}>
+          <HeroDecor />
           <Row style={{ justifyContent: 'space-between' }}>
             <Pressable onPress={() => router.back()} accessibilityRole="button" accessibilityLabel="Kembali" hitSlop={8} style={styles.heroBtn}>
               <ChevronIcon direction="left" size={26} color={colors.white} />
@@ -92,7 +94,7 @@ export default function OrderStatusScreen() {
 
         <View style={styles.body}>
           <View style={[styles.card, styles.raised, { flexDirection: 'row', alignItems: 'center', gap: space.md }]}>
-            <View style={styles.avatar}><AppText variant="title" color={colors.warning} style={{ fontSize: 20 }}>{(order.customer_name || '?').slice(0, 1).toUpperCase()}</AppText></View>
+            <Avatar name={order.customer_name || '?'} size={44} />
             <View style={{ flex: 1, gap: 2 }}>
               <AppText variant="heading">{order.customer_name || 'Tanpa nama'}</AppText>
               <AppText variant="small" color={colors.textMuted}>{[order.customer_phone, TIER_LABEL[order.tier as keyof typeof TIER_LABEL]].filter(Boolean).join(' · ')}</AppText>
@@ -144,7 +146,7 @@ export default function OrderStatusScreen() {
             <Line label={`Omset · ${order.quantity} botol`} value={formatRupiah(totalPrice)} />
             <Line label="Modal" value={`−${formatRupiah(buyPrice)}`} />
             {expenses.map(e => <Line key={e.id} label={e.name} value={`−${formatRupiah(e.amount)}`} />)}
-            {Math.round(otherCost) !== 0 ? <Line label="Biaya lain" value={`−${formatRupiah(otherCost)}`} /> : null}
+            {Math.round(otherCost) !== 0 ? <Line label="Biaya tambahan lain" value={`−${formatRupiah(otherCost)}`} /> : null}
             <Row style={{ justifyContent: 'space-between' }}>
               <AppText variant="bodyStrong">{margin < 0 ? 'Rugi' : 'Untung'}</AppText>
               <AppText variant="heading" color={margin < 0 ? colors.danger : colors.brand} style={{ fontWeight: '800' }}>{formatRupiah(margin)}</AppText>
@@ -192,7 +194,7 @@ function Tile({ Icon, label, onPress, danger }: { Icon: (p: IconProps) => ReactN
 }
 
 const styles = StyleSheet.create({
-  hero: { backgroundColor: colors.brand, paddingHorizontal: space.lg, paddingBottom: 44, gap: 10 },
+  hero: { backgroundColor: colors.brand, paddingHorizontal: space.lg, paddingBottom: 44, gap: 10, overflow: 'hidden' },
   heroBtn: { minWidth: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   progress: { flexDirection: 'row', gap: 6 },
   progressPart: { flex: 1, height: 5, borderRadius: 3 },

@@ -142,9 +142,9 @@ export function Button({
 export function TextField({ label, error, hint, style, ...props }: TextInputProps & { label: string; error?: string | null; hint?: string }) {
     return (
       <View style={styles.field}>
-        <AppText variant="small" color={colors.textMuted} style={styles.fieldLabel}>{label}</AppText>
+        <AppText variant="small" color={colors.label} style={styles.fieldLabel}>{label}</AppText>
         <TextInput
-          placeholderTextColor={colors.textSubtle}
+          placeholderTextColor={colors.placeholder}
           accessibilityLabel={label}
           style={[styles.input, error ? { borderColor: colors.danger } : null, style]}
           {...props}
@@ -331,7 +331,7 @@ const styles = StyleSheet.create({
   button: { minHeight: 46, borderRadius: radius.md, borderWidth: 1, paddingHorizontal: space.lg, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: space.sm },
   field: { gap: space.xs },
   fieldLabel: { fontWeight: '600' },
-  input: { minHeight: 44, borderRadius: radius.md, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.white, paddingHorizontal: space.md, paddingVertical: 10, fontSize: 15, color: colors.text },
+  input: { minHeight: 44, borderRadius: radius.md, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.white, paddingHorizontal: space.md, paddingVertical: 10, fontSize: 15, fontWeight: '600', color: colors.text },
   stepper: { flexDirection: 'row', alignItems: 'center', borderRadius: radius.md, borderWidth: 1, borderColor: colors.brandBorder, backgroundColor: colors.brandSoft },
   stepperButton: { width: 48, height: 48, alignItems: 'center', justifyContent: 'center' },
   stepperValue: { width: 56, textAlign: 'center', fontSize: 18, fontWeight: '700', color: colors.text, paddingVertical: 0 },

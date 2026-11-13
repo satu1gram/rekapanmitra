@@ -113,12 +113,12 @@ export function RestockForm({ entry, initialQuantity }: { entry?: StockEntryRow;
           <AppText variant="heading" style={styles.h2}>Harga beli</AppText>
           <View style={styles.card}>
             <View style={styles.field}>
-              <AppText variant="body" color={colors.textMuted} style={styles.fieldLabel}>Modal/botol</AppText>
-              <TextInput value={formatNumberInput(price)} onChangeText={t => setPrice(parseRupiahInput(t))} keyboardType="number-pad" placeholder="0" placeholderTextColor={colors.textSubtle} accessibilityLabel="Harga modal per botol" style={styles.input} />
+              <AppText variant="body" color={colors.label} style={styles.fieldLabel}>Modal/botol</AppText>
+              <TextInput value={formatNumberInput(price)} onChangeText={t => setPrice(parseRupiahInput(t))} keyboardType="number-pad" placeholder="0" placeholderTextColor={colors.placeholder} accessibilityLabel="Harga modal per botol" style={styles.input} />
               {profile.data ? <View style={styles.badge}><AppText variant="caption" color={colors.brandDark} style={{ letterSpacing: 0 }}>{levelLabel(profile.data)}</AppText></View> : null}
             </View>
             <View style={[styles.field, styles.sep]}>
-              <AppText variant="body" color={colors.textMuted} style={styles.fieldLabel}>Total belanja</AppText>
+              <AppText variant="body" color={colors.label} style={styles.fieldLabel}>Total belanja</AppText>
               <AppText variant="bodyStrong" style={{ flex: 1, textAlign: 'right', fontWeight: '800' }}>{formatRupiah(total)}</AppText>
             </View>
           </View>
@@ -132,8 +132,8 @@ export function RestockForm({ entry, initialQuantity }: { entry?: StockEntryRow;
             <SheetRow label="Bukti / nota" value={proofUrl ? 'Terlampir' : 'Tambah foto'} valueColor={colors.brand} onPress={() => toggle('proof')} />
             {panel === 'proof' ? <View style={{ paddingBottom: space.md }}><ProofPicker value={proofUrl} onChange={setProofUrl} label="Foto bukti transfer atau nota" /></View> : null}
             <View style={[styles.field, styles.sep]}>
-              <AppText variant="body" color={colors.textMuted} style={styles.fieldLabel}>Catatan</AppText>
-              <TextInput value={notes} onChangeText={setNotes} placeholder="Opsional, mis. dari upline siapa" placeholderTextColor={colors.textSubtle} accessibilityLabel="Catatan" style={styles.input} />
+              <AppText variant="body" color={colors.label} style={styles.fieldLabel}>Catatan</AppText>
+              <TextInput value={notes} onChangeText={setNotes} placeholder="Opsional, mis. dari upline siapa" placeholderTextColor={colors.placeholder} accessibilityLabel="Catatan" style={styles.input} />
             </View>
           </View>
         </View>
@@ -160,7 +160,7 @@ const styles = StyleSheet.create({
   sizeSelected: { backgroundColor: colors.brand },
   field: { flexDirection: 'row', alignItems: 'center', gap: space.md, minHeight: 48 },
   sep: { borderTopWidth: StyleSheet.hairlineWidth, borderColor: colors.border },
-  fieldLabel: { width: 104, fontSize: 14 },
-  input: { flex: 1, minWidth: 0, width: 0, fontSize: 15, color: colors.text, paddingVertical: space.sm },
+  fieldLabel: { width: 104, fontSize: 14, fontWeight: '500', color: colors.label },
+  input: { flex: 1, minWidth: 0, width: 0, fontSize: 15, fontWeight: '600', color: colors.text, paddingVertical: space.sm },
   badge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: radius.pill, backgroundColor: colors.brandSoft },
 });

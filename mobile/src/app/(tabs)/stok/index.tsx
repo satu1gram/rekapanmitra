@@ -12,12 +12,12 @@ import { formatRupiah, formatRupiahShort } from '~/lib/money';
 import { errorMessage } from '~/lib/supabase';
 import { AppText, Row } from '~/ui/components';
 import { StockSkeleton } from '~/ui/skeleton';
-import { ErrorPanel, IconButton, ON_BRAND_MUTED } from '~/ui/brand';
+import { ErrorPanel, HeroDecor, IconButton, ON_BRAND_MUTED } from '~/ui/brand';
 import { showDialog } from '~/ui/dialog';
 import { BoxIcon, ChevronIcon, PlusIcon } from '~/ui/icons';
 import { PillTabs } from '~/ui/kit';
 import { MonthSwitcher } from '~/ui/MonthSwitcher';
-import { colors, radius, space, TAB_BAR_SPACE } from '~/ui/theme';
+import { colors, radius, space, TAB_BAR_SPACE, accents, type Accent } from '~/ui/theme';
 
 type Kind = 'in' | 'out' | 'all';
 const KINDS = [
@@ -85,6 +85,7 @@ export default function StockScreen() {
         {header}
 
         <View style={styles.hero} accessibilityLabel={`Stok di tangan ${currentStock} botol${low ? ', menipis' : ''}`}>
+          <HeroDecor />
           <View style={styles.heroTop}>
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
               <AppText variant="small" color={ON_BRAND_MUTED}>Stok di tangan</AppText>
@@ -119,9 +120,9 @@ export default function StockScreen() {
           <AppText variant="heading" style={{ fontSize: 18, fontWeight: '800' }}>Riwayat stok</AppText>
           <MonthSwitcher value={month} onChange={setMonth} />
           <View style={styles.tiles}>
-            <Tile label="Masuk" value={`${inQty} botol`} tone="brand" />
-            <Tile label="Keluar" value={`${outQty} botol`} tone={outQty ? 'warning' : undefined} />
-            <Tile label="Nilai belanja" value={formatRupiahShort(inValue)} />
+            <Tile label="Masuk" value={`${inQty} botol`} accent="green" />
+            <Tile label="Keluar" value={`${outQty} botol`} accent="amber" />
+            <Tile label="Nilai belanja" value={formatRupiahShort(inValue)} accent="blue" />
           </View>
           <PillTabs options={KINDS} value={kind} onChange={setKind} />
 
@@ -145,8 +146,8 @@ export default function StockScreen() {
                     accessibilityLabel={`${isIn ? 'Masuk' : 'Keluar'} ${entry.quantity} botol, ${formatDate(entry.created_at)}`}
                     style={({ pressed }) => [styles.row, i > 0 && styles.sep, pressed && { opacity: 0.6 }]}
                   >
-                    <View style={[styles.rowIcon, { backgroundColor: isIn ? colors.brandSoft : colors.warningSoft }]}>
-                      <AppText variant="bodyStrong" color={isIn ? colors.brandDark : colors.warning} style={{ fontWeight: '800' }}>{isIn ? '+' : '−'}</AppText>
+                    <View style={[styles.rowIcon, { backgroundColor: accents[isIn ? 'green' : 'amber'].bg }]}>
+                      <AppText variant="bodyStrong" color={accents[isIn ? 'green' : 'amber'].fg} style={{ fontWeight: '800' }}>{isIn ? '+' : '−'}</AppText>
                     </View>
                     <View style={{ flex: 1, gap: 2 }}>
                       <AppText variant="bodyStrong">{isIn ? 'Restok' : 'Stok keluar'} {entry.quantity} botol</AppText>
@@ -167,12 +168,11 @@ export default function StockScreen() {
   );
 }
 
-function Tile({ label, value, tone }: { label: string; value: string; tone?: 'brand' | 'warning' }) {
-  const color = tone === 'brand' ? colors.brandDark : tone === 'warning' ? colors.warning : colors.text;
+function Tile({ label, value, accent }: { label: string; value: string; accent: Accent }) {
   return (
-    <View style={styles.tile}>
-      <AppText variant="small" color={colors.textMuted}>{label}</AppText>
-      <AppText variant="bodyStrong" color={color} style={{ fontWeight: '800' }} numberOfLines={1}>{value}</AppText>
+    <View style={[styles.tile, { backgroundColor: accents[accent].bg }]}>
+      <AppText variant="small" color={accents[accent].fg} style={{ fontWeight: '600' }}>{label}</AppText>
+      <AppText variant="bodyStrong" color={colors.text} style={{ fontWeight: '800' }} numberOfLines={1}>{value}</AppText>
     </View>
   );
 }

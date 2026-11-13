@@ -12,11 +12,23 @@ import { formatRupiah } from '~/lib/money';
 import { AppText, Row } from './components';
 import { ChevronIcon, OfflineIcon } from './icons';
 import { MonthPicker } from './MonthPicker';
-import { colors, radius, space } from './theme';
+import { accentForName, accents, colors, radius, space, type Accent } from './theme';
 
 /** Light green text on the brand card: 4.67:1 on #0A7A52 and 5.86:1 on the darker band. */
 export const ON_BRAND_MUTED = '#E4F3EA';
 export const BAND = '#096947';
+
+/** Two faint circles in the top-right corner of a green card: depth without another colour. */
+export function HeroDecor() {
+  return (
+    <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+      <View style={[decor.circle, { width: 180, height: 180, top: -70, right: -50, opacity: 0.08 }]} />
+      <View style={[decor.circle, { width: 96, height: 96, top: 40, right: 70, opacity: 0.05 }]} />
+    </View>
+  );
+}
+
+const decor = StyleSheet.create({ circle: { position: 'absolute', borderRadius: 999, backgroundColor: '#FFFFFF' } });
 
 export function MonthCard({ month, onMonthChange, label, value, caption, band }: {
   month: MonthRef;
@@ -33,6 +45,7 @@ export function MonthCard({ month, onMonthChange, label, value, caption, band }:
     <View style={styles.card} accessibilityLabel={`${label} ${value}`}>
       {/* Remounted on each open so it starts on the year being viewed. */}
       <MonthPicker key={picking ? 'open' : 'closed'} visible={picking} value={month} onClose={() => setPicking(false)} onPick={onMonthChange} />
+      <HeroDecor />
       <View style={styles.cardTop}>
         <Row style={{ justifyContent: 'space-between', marginHorizontal: -8, marginTop: -6 }}>
           <Pressable onPress={() => onMonthChange(shiftMonth(month, -1))} accessibilityRole="button" accessibilityLabel="Bulan sebelumnya" style={styles.monthBtn}>
@@ -73,6 +86,7 @@ export function IconButton({ label, onPress, children, tone = 'neutral' }: { lab
 }
 
 const STATUS_NOTE: Record<string, string> = { pending: 'Belum dikirim', terkirim: 'Dikirim' };
+const STATUS_ACCENT: Record<string, Accent> = { pending: 'amber', terkirim: 'blue' };
 
 /** One order: initial avatar, name with bottles · time (and a status pill while it is open), total and profit. */
 export function OrderListRow({ order, first, showTime = true, showDate = false }: { order: OrderRow; first: boolean; showTime?: boolean; showDate?: boolean }) {
@@ -85,13 +99,17 @@ export function OrderListRow({ order, first, showTime = true, showDate = false }
       accessibilityLabel={`Order ${order.customer_name}, ${order.quantity} botol, ${formatRupiah(Number(order.total_price))}, ${margin < 0 ? 'rugi' : 'untung'} ${formatRupiah(Math.abs(margin))}${status ? `, ${status.toLowerCase()}` : ''}`}
       style={({ pressed }) => [styles.row, !first && styles.rowSep, pressed && styles.pressed]}
     >
-      <View style={[styles.avatar, status ? { backgroundColor: colors.warningSoft } : null]}>
-        <AppText variant="bodyStrong" color={status ? colors.warning : colors.brandDark} style={{ fontWeight: '800' }}>{(order.customer_name || '?').slice(0, 1).toUpperCase()}</AppText>
+      <View style={[styles.avatar, { backgroundColor: accents[accentForName(order.customer_name || '?')].bg }]}>
+        <AppText variant="bodyStrong" color={accents[accentForName(order.customer_name || '?')].fg} style={{ fontWeight: '800' }}>{(order.customer_name || '?').slice(0, 1).toUpperCase()}</AppText>
       </View>
       <View style={{ flex: 1, gap: 3, minWidth: 0 }}>
         <AppText variant="bodyStrong" numberOfLines={1}>{order.customer_name || 'Tanpa nama'}</AppText>
         <AppText variant="small" color={colors.textMuted} numberOfLines={1}>{order.quantity} botol{showDate ? ` · ${formatDate(order.created_at)}` : ''}{showTime ? ` · ${formatTime(order.created_at)}` : ''}</AppText>
-        {status ? <View style={styles.pill}><AppText variant="caption" color={colors.warning} style={{ letterSpacing: 0, fontWeight: '700' }}>{status}</AppText></View> : null}
+        {status ? (
+          <View style={[styles.pill, { backgroundColor: accents[STATUS_ACCENT[order.status]].bg }]}>
+            <AppText variant="caption" color={accents[STATUS_ACCENT[order.status]].fg} style={{ letterSpacing: 0, fontWeight: '700' }}>{status}</AppText>
+          </View>
+        ) : null}
       </View>
       <View style={{ alignItems: 'flex-end', gap: 3 }}>
         <AppText variant="bodyStrong">{formatRupiah(Number(order.total_price))}</AppText>

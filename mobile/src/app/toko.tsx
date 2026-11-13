@@ -12,6 +12,7 @@ import { GlobeIcon, PlusIcon, ShareIcon, StoreIcon, TrashIcon } from '~/ui/icons
 import { FieldRow, Group, kitStyles, PageHeader, PillButton, SectionLabel } from '~/ui/kit';
 import { CapsuleButton, StickyFooter } from '~/ui/sheet';
 import { Chips } from '~/ui/Chips';
+import { HeroDecor } from '~/ui/brand';
 import { colors, space } from '~/ui/theme';
 
 const PAYMENT_TYPES = [
@@ -58,6 +59,7 @@ function StoreForm({ initial, exists }: { initial: StoreSettings; exists: boolea
         {message ? <Notice tone={message.tone}>{message.text}</Notice> : null}
 
         <View style={[styles.hero, !s.is_active && { backgroundColor: colors.textMuted }]}>
+          <HeroDecor />
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
             <View style={styles.heroIcon}><StoreIcon size={22} color={colors.white} /></View>
             <View style={{ flex: 1, gap: 2 }}>
@@ -103,7 +105,7 @@ function StoreForm({ initial, exists }: { initial: StoreSettings; exists: boolea
               <Chips options={PAYMENT_TYPES} value={p.type} onChange={type => setPayment(i, { type })} />
               {p.type !== 'cod' ? (
                 <View style={styles.paymentFields}>
-                  <FieldRow first label={p.type === 'bank' ? 'Bank' : 'E-wallet'} value={p.name} onChangeText={v => setPayment(i, { name: v })} placeholder={p.type === 'bank' ? 'BCA' : 'GoPay'} />
+                  <FieldRow first label={p.type === 'bank' ? 'Bank' : 'E-wallet'} value={p.name} onChangeText={v => setPayment(i, { name: v })} placeholder={p.type === 'bank' ? 'mis. BCA' : 'mis. GoPay'} />
                   <FieldRow label={p.type === 'bank' ? 'No. rekening' : 'No. HP'} value={p.number} onChangeText={v => setPayment(i, { number: v })} keyboardType="number-pad" />
                   <FieldRow label="Atas nama" value={p.account_name} onChangeText={v => setPayment(i, { account_name: v })} />
                 </View>
@@ -124,7 +126,7 @@ function StoreForm({ initial, exists }: { initial: StoreSettings; exists: boolea
 }
 
 const styles = StyleSheet.create({
-  hero: { backgroundColor: colors.brand, borderRadius: 18, padding: 14, gap: 12 },
+  hero: { backgroundColor: colors.brand, borderRadius: 18, padding: 14, gap: 12, overflow: 'hidden' },
   heroIcon: { width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.18)', alignItems: 'center', justifyContent: 'center' },
   link: { backgroundColor: 'rgba(0,0,0,0.16)', borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10 },
   payment: { backgroundColor: colors.white, borderRadius: 18, padding: 14, gap: 10 },

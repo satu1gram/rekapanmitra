@@ -69,7 +69,7 @@ export interface OrderTotals {
   totalPrice: number;
   buyPrice: number;
   totalExpenses: number;
-  /** Omzet − modal − biaya order (what the web app stores in orders.margin) */
+  /** Omset − modal − biaya tambahan (what the web app stores in orders.margin) */
   margin: number;
   avgPricePerBottle: number;
 }

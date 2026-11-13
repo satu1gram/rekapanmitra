@@ -52,8 +52,8 @@ function CustomerDetail({ customer, history, ordersLoading }: { customer: Custom
             <SectionLabel>Ubah data pelanggan</SectionLabel>
             <Group>
               <FieldRow first label="Nama" value={fields.name} onChangeText={set('name')} autoCapitalize="words" />
-              <FieldRow label="No. WhatsApp" value={fields.phone} onChangeText={set('phone')} keyboardType="phone-pad" placeholder="08…" />
-              <FieldRow label="Alamat" value={fields.address} onChangeText={set('address')} multiline placeholder="Jalan, nomor rumah" />
+              <FieldRow label="No. WhatsApp" value={fields.phone} onChangeText={set('phone')} keyboardType="phone-pad" placeholder="mis. 0812 3456 7890" />
+              <FieldRow label="Alamat" value={fields.address} onChangeText={set('address')} multiline placeholder="mis. Jl. Melati No. 5" />
               <FieldRow label="Kota" value={fields.city} onChangeText={set('city')} />
               <FieldRow label="Provinsi" value={fields.province} onChangeText={set('province')} />
             </Group>

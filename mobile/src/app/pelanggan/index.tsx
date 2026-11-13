@@ -47,7 +47,7 @@ export default function CustomersScreen() {
             <View style={{ gap: space.md, marginBottom: space.md }}>
               <View style={styles.search}>
                 <SearchIcon size={18} color={colors.textMuted} />
-                <TextInput value={query} onChangeText={setQuery} placeholder="Cari nama atau nomor" placeholderTextColor={colors.textSubtle} style={styles.searchInput} accessibilityLabel="Cari pelanggan" />
+                <TextInput value={query} onChangeText={setQuery} placeholder="Cari nama atau nomor" placeholderTextColor={colors.placeholder} style={styles.searchInput} accessibilityLabel="Cari pelanggan" />
                 {query ? <Pressable onPress={() => setQuery('')} hitSlop={8} accessibilityRole="button" accessibilityLabel="Hapus pencarian"><CloseIcon size={14} color={colors.textMuted} /></Pressable> : null}
               </View>
               <PillTabs options={SORTS} value={sort} onChange={setSort} />
