@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform } from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { router } from 'expo-router';
 
 import { parseChatText } from '~/data/assistant';
@@ -7,10 +7,11 @@ import { useCatalog } from '~/hooks/queries';
 import { aiDate, draftFromAiItems } from '~/lib/aiDraft';
 import { productCategories, productDisplayName } from '~/lib/orderMath';
 import { errorMessage } from '~/lib/supabase';
-import { AppText, Button, Card, Notice, Screen, TextField } from '~/ui/components';
+import { AppText, Notice } from '~/ui/components';
+import { ChatIcon } from '~/ui/icons';
 import type { OrderFormInitial } from '~/ui/OrderForm';
-import { SheetHeader } from '~/ui/sheet';
-import { colors } from '~/ui/theme';
+import { CapsuleButton, SheetHeader, StickyFooter } from '~/ui/sheet';
+import { colors, space } from '~/ui/theme';
 
 export default function AssistantScreen() {
   const catalog = useCatalog();
@@ -61,31 +62,87 @@ export default function AssistantScreen() {
     }
   };
 
-  const example = catalog.data ? productCategories(catalog.data).slice(0, 2).map(productDisplayName) : ['British Propolis', 'BP Green'];
+  const names = catalog.data ? productCategories(catalog.data).slice(0, 2).map(productDisplayName) : ['British Propolis', 'BP Green'];
+  const examples = [
+    `Kak, Bu Rina pesan ${names[0]} 2 sama ${names[1] ?? names[0]} 1 ya, kirim ke Bekasi. 0812 3456 7890`,
+    `Restok dari upline 20 botol ${names[0]} hari ini`,
+  ];
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: colors.white }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: colors.bg }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <SheetHeader title="Isi dari chat" onClose={() => router.back()} />
-      <Screen contentStyle={{ backgroundColor: colors.white }}>
-        <AppText variant="body" color={colors.textMuted}>
-          Tempel chat pesanan dari pelanggan. Asisten mengisi draf order, lalu kamu periksa dan simpan sendiri. Harga dan untung tetap dihitung aplikasi, bukan oleh AI.
-        </AppText>
+      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+        <View style={styles.steps}>
+          {['Tempel', 'Periksa', 'Simpan'].map((step, i) => (
+            <View key={step} style={styles.step}>
+              <View style={[styles.stepNum, i === 0 && { backgroundColor: colors.brand }]}>
+                <AppText variant="caption" color={i === 0 ? colors.white : colors.textMuted} style={{ letterSpacing: 0, fontWeight: '800' }}>{i + 1}</AppText>
+              </View>
+              <AppText variant="small" color={i === 0 ? colors.text : colors.textMuted} style={{ fontWeight: i === 0 ? '700' : '500' }}>{step}</AppText>
+              {i < 2 ? <View style={styles.stepLine} /> : null}
+            </View>
+          ))}
+        </View>
+
         {message ? <Notice tone={message.tone}>{message.text}</Notice> : null}
-        <Card>
-          <TextField
-            label="Isi chat"
+
+        <View style={styles.card}>
+          <TextInput
             value={text}
             onChangeText={setText}
             multiline
-            placeholder={`Contoh: Kak, Bu Rina pesan ${example[0]} 2 sama ${example[1] ?? example[0]} 1 ya, kirim ke Bekasi. 0812xxxx`}
-            style={{ minHeight: 160, textAlignVertical: 'top', paddingTop: 12 }}
+            placeholder="Tempel chat pesanan atau restok di sini…"
+            placeholderTextColor={colors.textSubtle}
+            style={styles.input}
             maxLength={2000}
+            accessibilityLabel="Isi chat"
           />
-          <AppText variant="small" color={colors.textSubtle}>{text.length}/2000 · Teks dikirim ke layanan AI untuk dibaca. Hapus data yang tidak perlu.</AppText>
-        </Card>
-        <Button label="Baca chat" icon="sparkles" onPress={read} loading={busy} disabled={!text.trim()} />
-        <Button label="Isi manual saja" tone="ghost" onPress={() => router.replace('/order/new')} />
-      </Screen>
+          <View style={styles.cardFoot}>
+            <AppText variant="caption" color={colors.textMuted} style={{ flex: 1, letterSpacing: 0, fontWeight: '500' }}>{text.length}/2000</AppText>
+            {text ? (
+              <Pressable onPress={() => setText('')} hitSlop={8} accessibilityRole="button">
+                <AppText variant="small" color={colors.brand} style={{ fontWeight: '700' }}>Kosongkan</AppText>
+              </Pressable>
+            ) : null}
+          </View>
+        </View>
+
+        {!text ? (
+          <View style={{ gap: 8 }}>
+            <AppText variant="small" color={colors.textMuted} style={{ fontWeight: '600' }}>Coba contoh</AppText>
+            {examples.map(ex => (
+              <Pressable key={ex} onPress={() => setText(ex)} accessibilityRole="button" style={({ pressed }) => [styles.example, pressed && { opacity: 0.7 }]}>
+                <ChatIcon size={18} color={colors.brand} />
+                <AppText variant="small" style={{ flex: 1 }} numberOfLines={2}>{ex}</AppText>
+              </Pressable>
+            ))}
+          </View>
+        ) : null}
+
+        <AppText variant="small" color={colors.textMuted} style={{ lineHeight: 19 }}>
+          Asisten hanya mengisi draf. Harga, modal, dan untung tetap dihitung aplikasi. Teks dikirim ke layanan AI untuk dibaca, jadi hapus data yang tidak perlu.
+        </AppText>
+      </ScrollView>
+
+      <StickyFooter>
+        <CapsuleButton label={busy ? 'Membaca chat…' : 'Baca chat'} onPress={read} loading={busy} disabled={!text.trim()} />
+        <Pressable onPress={() => router.replace('/order/new')} accessibilityRole="button" style={styles.manual}>
+          <AppText variant="small" color={colors.brand} style={{ fontWeight: '700' }}>Isi order manual saja</AppText>
+        </Pressable>
+      </StickyFooter>
     </KeyboardAvoidingView>
   );
 }
+
+const styles = StyleSheet.create({
+  content: { padding: space.lg, gap: space.lg, paddingBottom: space.xxl },
+  steps: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.white, borderRadius: 18, paddingHorizontal: 14, paddingVertical: 12 },
+  step: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6 },
+  stepNum: { width: 22, height: 22, borderRadius: 11, backgroundColor: colors.fill, alignItems: 'center', justifyContent: 'center' },
+  stepLine: { flex: 1, height: 2, backgroundColor: colors.border, marginRight: 4 },
+  card: { backgroundColor: colors.white, borderRadius: 18, padding: 14, gap: 8 },
+  input: { minHeight: 170, fontSize: 15, lineHeight: 21, color: colors.text, textAlignVertical: 'top', padding: 0 },
+  cardFoot: { flexDirection: 'row', alignItems: 'center', borderTopWidth: StyleSheet.hairlineWidth, borderColor: colors.border, paddingTop: 8 },
+  example: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, borderRadius: 14, backgroundColor: colors.white },
+  manual: { minHeight: 36, alignItems: 'center', justifyContent: 'center' },
+});

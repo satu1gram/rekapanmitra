@@ -103,7 +103,7 @@ export default function OrderStatusScreen() {
             ) : null}
           </View>
 
-          <View style={styles.card} accessibilityRole="radiogroup">
+          <View style={[styles.card, { gap: 0 }]} accessibilityRole="radiogroup">
             {STAGES.map((s, i) => {
               const done = i <= stageIndex;
               const current = i === stageIndex + 1;

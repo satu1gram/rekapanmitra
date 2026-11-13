@@ -12,7 +12,7 @@ import { Chips } from '~/ui/Chips';
 import { DateField } from '~/ui/DateField';
 import { SheetHeader } from '~/ui/sheet';
 import { colors } from '~/ui/theme';
-import { showDialog } from '~/ui/dialog';
+import { DialogHost, showDialog } from '~/ui/dialog';
 
 export default function MoneyFormScreen() {
   const params = useLocalSearchParams<{ kind?: string; id?: string }>();
@@ -74,6 +74,7 @@ function MoneyForm({ kind, entry }: { kind: MoneyKind; entry?: { id: string; nam
         <Button label="Simpan" onPress={submit} loading={save.isPending} />
         {entry ? <Button label="Hapus" tone="danger" icon="trash-outline" onPress={confirmDelete} loading={remove.isPending} /> : null}
       </Screen>
+      <DialogHost />
     </KeyboardAvoidingView>
   );
 }

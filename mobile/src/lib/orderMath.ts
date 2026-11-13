@@ -119,6 +119,11 @@ const CATEGORY_LABELS: Record<string, string> = {
   BRO: 'Brassic Pro',
   NORWAY: 'BP Norway',
   BELGIE: 'Belgie',
+  BELGIE_FW: 'Belgie Facial Wash',
+  BELGIE_SERUM: 'Belgie Serum',
+  BELGIE_DC: 'Belgie Day Cream',
+  BELGIE_NC: 'Belgie Night Cream',
+  BELGIE_HT: 'Belgie Hair Tonic',
 };
 
 /** Friendly name for a catalog category code; the code itself is still what gets saved (same as the web app). */

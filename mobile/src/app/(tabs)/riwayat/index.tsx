@@ -9,9 +9,17 @@ import { currentMonth, dayKey, formatDayHeading, isInMonth, MONTH_NAMES, type Mo
 import { formatRupiah } from '~/lib/money';
 import { errorMessage } from '~/lib/supabase';
 import { AppText, LoadingState, Row } from '~/ui/components';
-import { brandStyles, ErrorPanel, IconButton, MonthCard, OrderListRow } from '~/ui/brand';
+import { ErrorPanel, IconButton, MonthCard, OrderListRow } from '~/ui/brand';
 import { ChatIcon, CloseIcon, ListIcon, PlusIcon, SearchIcon } from '~/ui/icons';
 import { colors, radius, space, TAB_BAR_SPACE } from '~/ui/theme';
+
+type Filter = 'all' | 'open' | 'selesai';
+const FILTERS: { key: Filter; label: string }[] = [
+  { key: 'all', label: 'Semua' },
+  { key: 'open', label: 'Belum selesai' },
+  { key: 'selesai', label: 'Selesai' },
+];
+const isOpen = (o: Order) => o.status === 'pending' || o.status === 'terkirim';
 
 interface DaySection {
   key: string;
@@ -24,11 +32,13 @@ export default function HistoryScreen() {
   const orders = useOrders();
   const [month, setMonth] = useState<MonthRef>(currentMonth());
   const [query, setQuery] = useState('');
+  const [filter, setFilter] = useState<Filter>('all');
 
-  const { sections, totals } = useMemo(() => {
+  const { sections, totals, shown } = useMemo(() => {
     const q = query.trim().toLowerCase();
-    const list = (orders.data ?? []).filter(
-      o => isInMonth(o.created_at, month) && (!q || o.customer_name?.toLowerCase().includes(q) || o.customer_phone?.includes(q)),
+    const inMonth = (orders.data ?? []).filter(o => isInMonth(o.created_at, month));
+    const list = inMonth.filter(
+      o => (!q || o.customer_name?.toLowerCase().includes(q) || o.customer_phone?.includes(q)) && (filter === 'all' || (filter === 'open' ? isOpen(o) : !isOpen(o))),
     );
     const map = new Map<string, DaySection>();
     for (const o of list) {
@@ -40,15 +50,17 @@ export default function HistoryScreen() {
     }
     return {
       sections: Array.from(map.values()).sort((a, b) => b.key.localeCompare(a.key)),
+      // The month card always shows the whole month; search and filter only narrow the list.
       totals: {
-        count: list.length,
-        quantity: list.reduce((s, o) => s + o.quantity, 0),
-        revenue: list.reduce((s, o) => s + Number(o.total_price), 0),
-        profit: list.reduce((s, o) => s + Number(o.margin), 0),
-        open: list.filter(o => o.status === 'pending' || o.status === 'terkirim').length,
+        count: inMonth.length,
+        quantity: inMonth.reduce((s, o) => s + o.quantity, 0),
+        revenue: inMonth.reduce((s, o) => s + Number(o.total_price), 0),
+        profit: inMonth.reduce((s, o) => s + Number(o.margin), 0),
+        open: inMonth.filter(isOpen).length,
       },
+      shown: list.length,
     };
-  }, [orders.data, month, query]);
+  }, [orders.data, month, query, filter]);
 
   const monthName = MONTH_NAMES[month.month];
   const header = (
@@ -78,7 +90,7 @@ export default function HistoryScreen() {
         stickySectionHeadersEnabled={false}
         refreshControl={<RefreshControl refreshing={orders.isRefetching} onRefresh={() => { orders.refetch(); }} tintColor={colors.brand} />}
         ListHeaderComponent={
-          <View style={{ gap: space.xl, marginBottom: space.sm }}>
+          <View style={{ gap: space.md, marginBottom: 2 }}>
             {header}
             <MonthCard
               month={month}
@@ -107,15 +119,31 @@ export default function HistoryScreen() {
                 </Pressable>
               ) : null}
             </View>
+            <View style={styles.filters} accessibilityRole="radiogroup">
+              {FILTERS.map(f => {
+                const on = filter === f.key;
+                const count = f.key === 'open' ? totals.open : null;
+                return (
+                  <Pressable key={f.key} onPress={() => setFilter(f.key)} accessibilityRole="radio" accessibilityState={{ selected: on }} style={[styles.chip, on && styles.chipOn]}>
+                    <AppText variant="small" color={on ? colors.white : colors.text} style={{ fontWeight: '700' }}>{f.label}{count ? ` · ${count}` : ''}</AppText>
+                  </Pressable>
+                );
+              })}
+            </View>
+            {query || filter !== 'all' ? <AppText variant="small" color={colors.textMuted}>{shown} order ditemukan</AppText> : null}
           </View>
         }
         renderSectionHeader={({ section }) => (
           <Row style={styles.sectionHeader}>
-            <AppText variant="heading" style={[brandStyles.h2, { flex: 1 }]}>{section.title}</AppText>
-            <AppText variant="small" color={colors.textMuted}>{formatRupiah(section.revenue)}</AppText>
+            <AppText variant="heading" style={{ flex: 1, fontSize: 15, fontWeight: '800' }}>{section.title}</AppText>
+            <AppText variant="small" color={colors.textMuted}>{section.data.length} order · {formatRupiah(section.revenue)}</AppText>
           </Row>
         )}
-        renderItem={({ item, index }) => <OrderListRow order={item} first={index === 0} />}
+        renderItem={({ item, index, section }) => (
+          <View style={[styles.cardRow, index === 0 && styles.cardTop, index === section.data.length - 1 && styles.cardBottom]}>
+            <OrderListRow order={item} first={index === 0} />
+          </View>
+        )}
         ListEmptyComponent={
           <View style={styles.empty}>
             <View style={styles.emptyIcon}><ListIcon color={colors.brand} /></View>
@@ -136,12 +164,18 @@ export default function HistoryScreen() {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.white },
+  safe: { flex: 1, backgroundColor: colors.bg },
   pad: { paddingHorizontal: space.lg, paddingTop: 14, paddingBottom: TAB_BAR_SPACE },
-  search: { flexDirection: 'row', alignItems: 'center', gap: space.sm, minHeight: 40, paddingHorizontal: 14, borderRadius: radius.md, backgroundColor: colors.fill },
+  search: { flexDirection: 'row', alignItems: 'center', gap: space.sm, minHeight: 42, paddingHorizontal: 14, borderRadius: radius.md, backgroundColor: colors.white },
+  filters: { flexDirection: 'row', gap: 8 },
+  chip: { minHeight: 34, paddingHorizontal: 14, borderRadius: radius.pill, justifyContent: 'center', backgroundColor: colors.white },
+  chipOn: { backgroundColor: colors.text },
+  cardRow: { backgroundColor: colors.white, paddingHorizontal: 14 },
+  cardTop: { borderTopLeftRadius: 18, borderTopRightRadius: 18 },
+  cardBottom: { borderBottomLeftRadius: 18, borderBottomRightRadius: 18 },
   searchInput: { flex: 1, minWidth: 0, fontSize: 15, color: colors.text, paddingVertical: 6 },
   clear: { width: 28, height: 28, borderRadius: 14, backgroundColor: '#E3E3E8', alignItems: 'center', justifyContent: 'center' },
-  sectionHeader: { marginTop: space.md, marginBottom: 0 },
+  sectionHeader: { marginTop: space.lg, marginBottom: 8, paddingHorizontal: 2 },
   empty: { alignItems: 'center', gap: space.md, paddingVertical: space.xxxl },
   emptyIcon: { width: 56, height: 56, borderRadius: 18, backgroundColor: colors.brandSoft, alignItems: 'center', justifyContent: 'center' },
   primaryBtn: { minHeight: 48, paddingHorizontal: 20, borderRadius: 12, backgroundColor: colors.brand, justifyContent: 'center' },

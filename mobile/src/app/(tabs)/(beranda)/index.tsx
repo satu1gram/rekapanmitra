@@ -216,20 +216,30 @@ function MoreFeature({ label, href, Icon, navigate }: { label: string; href: Hre
 }
 
 /** Identity motif: the three order stages (dicatat, terkirim, selesai) as dots, same as the order status screen. */
+const STAGE_LABELS = ['Dicatat', 'Terkirim', 'Selesai'];
+
+/** Three connected steps: done steps and the line up to them are filled, the next step is a ring. */
 function StageDots({ stage }: { stage: number }) {
   return (
-    <View style={{ flexDirection: 'row', alignItems: 'center' }} accessibilityLabel={`Tahap ${stage + 1} dari 3`}>
-      {[0, 1, 2].map(i => (
-        <View key={i} style={{ flexDirection: 'row', alignItems: 'center' }}>
-          {i > 0 ? <View style={{ width: 22, height: 2, backgroundColor: colors.border }} /> : null}
-          <View
-            style={[
-              { width: 10, height: 10, borderRadius: 5 },
-              i <= stage ? { backgroundColor: colors.warning } : i === stage + 1 ? { borderWidth: 2, borderColor: colors.warning } : { backgroundColor: colors.border },
-            ]}
-          />
-        </View>
-      ))}
+    <View style={{ width: 156, gap: 4 }} accessibilityLabel={`Tahap ${stage + 1} dari 3: ${STAGE_LABELS[stage]}`}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20 }}>
+        {[0, 1, 2].map(i => (
+          <View key={i} style={{ flexDirection: 'row', alignItems: 'center', flex: i > 0 ? 1 : 0 }}>
+            {i > 0 ? <View style={{ flex: 1, height: 3, backgroundColor: i <= stage ? colors.warning : colors.border }} /> : null}
+            <View
+              style={[
+                { width: 12, height: 12, borderRadius: 6 },
+                i <= stage ? { backgroundColor: colors.warning } : i === stage + 1 ? { borderWidth: 2.5, borderColor: colors.warning, backgroundColor: colors.white } : { backgroundColor: colors.border },
+              ]}
+            />
+          </View>
+        ))}
+      </View>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+        {STAGE_LABELS.map((label, i) => (
+          <AppText key={label} variant="caption" color={i <= stage ? colors.warning : colors.textMuted} style={{ width: 52, textAlign: 'center', letterSpacing: 0, fontWeight: i === stage ? '700' : '500' }}>{label}</AppText>
+        ))}
+      </View>
     </View>
   );
 }

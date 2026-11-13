@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Image, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Image, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { router, Stack } from 'expo-router';
 import { MITRA_LEVELS, type TierType } from '@/types';
 import { getFallbackUnitPrice } from '@/lib/catalogPricing';
@@ -7,7 +7,7 @@ import { getFallbackUnitPrice } from '@/lib/catalogPricing';
 import type { CustomerRow } from '~/data/db';
 import { recordCustomerPurchase } from '~/data/customers';
 import { createOrder, updateOrder } from '~/data/orders';
-import { useCatalog, useCustomers, useProfile, useRefreshingMutation, useStock } from '~/hooks/queries';
+import { useCatalog, useCustomers, useOrderDetail, useOrders, useProfile, useRefreshingMutation, useStock } from '~/hooks/queries';
 import { businessDateToISO, formatDate, sameDay } from '~/lib/dates';
 import { formatNumberInput, formatRupiah, formatRupiahShort, parseRupiahInput } from '~/lib/money';
 import { computeOrderTotals, mitraCostLookup, priceItems, productCategories, productDisplayName, type DraftExpense, type DraftItem } from '~/lib/orderMath';
@@ -15,13 +15,12 @@ import { priceOptions, selectedOption, TIER_LABEL, TIER_MIN_BOTTLES } from '~/li
 import { errorMessage } from '~/lib/supabase';
 import { AppText, Button, ErrorState, LoadingState, Notice, Row, TextField } from './components';
 import { DateCalendar } from './DateField';
-import { MinusCircleIcon, MinusIcon, PlusIcon } from './icons';
-import { ProductPicker } from './ProductPicker';
+import { CloseIcon, MinusCircleIcon, MinusIcon, PlusIcon, SearchIcon } from './icons';
 import { productImage } from './productMedia';
 import { ProofPicker } from './ProofPicker';
 import { CapsuleButton, RouteCard, SheetHeader, SheetRow, StickyFooter } from './sheet';
 import { colors, radius, space } from './theme';
-import { showDialog } from './dialog';
+import { DialogHost, showDialog } from './dialog';
 
 const TIERS: TierType[] = ['satuan', 'reseller', 'agen', 'agen_plus', 'sap', 'se'];
 /** How a customer's level reads in the form; 'satuan' is an end consumer. */
@@ -60,6 +59,7 @@ export function OrderForm({ initial = {}, orderId }: { initial?: OrderFormInitia
   const customers = useCustomers();
   const profile = useProfile();
   const stock = useStock();
+  const orders = useOrders();
 
   const [date, setDate] = useState(initial.date ?? new Date());
   const [customerName, setCustomerName] = useState(initial.customerName ?? '');
@@ -75,7 +75,8 @@ export function OrderForm({ initial = {}, orderId }: { initial?: OrderFormInitia
   const [expenseAmount, setExpenseAmount] = useState<number | null>(null);
   const [panel, setPanel] = useState<Panel>('none');
   const [customerOpen, setCustomerOpen] = useState(false);
-  const [productsOpen, setProductsOpen] = useState(false);
+  const [showAll, setShowAll] = useState(true);
+  const [query, setQuery] = useState('');
   const [error, setError] = useState<string | null>(null);
 
   const create = useRefreshingMutation(createOrder, ['orders', 'customers', 'stock']);
@@ -104,7 +105,6 @@ export function OrderForm({ initial = {}, orderId }: { initial?: OrderFormInitia
   const totals = computeOrderTotals(pricedItems, expenses, costOf);
   const noCost = activeItems.length > 0 && totals.buyPrice === 0;
   const levelLabel = level === 'custom' ? (profile.data?.custom_level_name || 'Kustom') : MITRA_LEVELS[level]?.label ?? level;
-  const fixedNames = new Set(fixedLines.map(l => l.productName));
   const missingPrices = priced?.missing.filter(name => activeItems.some(i => i.productName === name)) ?? [];
   const dirty = isEdit || !!customerName || activeItems.length > 0;
   const savedTotal = initial.savedItems?.reduce((s, i) => s + i.subtotal, 0);
@@ -119,6 +119,40 @@ export function OrderForm({ initial = {}, orderId }: { initial?: OrderFormInitia
   // The next quantity step that would make the price cheaper than what the order gets now.
   const nextTier = TIERS.find(t => TIER_MIN_BOTTLES[t] > totals.totalQuantity && TIERS.indexOf(t) > TIERS.indexOf(currentOption));
 
+  const touch = () => setPricesTouched(true);
+  const setQty = (name: string, quantity: number) => {
+    setQuantities(prev => ({ ...prev, [name]: Math.max(0, quantity) }));
+    touch();
+  };
+  const setFixedQty = (name: string, quantity: number) => {
+    setFixedLines(prev => prev.map(l => (l.productName === name ? { ...l, quantity: Math.max(0, quantity) } : l)));
+    touch();
+  };
+  // Product list shown inline (no extra sheet): saved lines first, then every catalog product.
+  const savedPrice = (name: string) => (keepSaved ? initial.savedItems?.find(i => i.productName === name)?.pricePerBottle : undefined);
+  const catalogLines = priced?.items ?? items;
+  const productRows = [
+    ...fixedItems.map(l => ({ name: l.productName, quantity: l.quantity, price: l.pricePerBottle, fixed: true, change: (q: number) => setFixedQty(l.productName, q) })),
+    ...catalogLines.map(l => ({ name: l.productName, quantity: l.quantity, price: savedPrice(l.productName) ?? l.pricePerBottle, fixed: false, change: (q: number) => setQty(l.productName, q) })),
+  ];
+  const q = query.trim().toLowerCase();
+  const shownRows = productRows.filter(r => (showAll || r.quantity > 0) && (!q || productDisplayName(r.name).toLowerCase().includes(q)));
+  const visibleGroups = [
+    { title: 'Propolis & perawatan', rows: shownRows.filter(r => !/^BELGIE/i.test(r.name)) },
+    { title: 'Belgie Pro (skincare)', rows: shownRows.filter(r => /^BELGIE/i.test(r.name)) },
+  ].filter(g => g.rows.length > 0);
+
+  // "Ulangi order terakhir": the chosen customer's latest order, mapped back to catalog categories.
+  const lastOrderId = !isEdit && customerId ? orders.data?.find(o => o.customer_id === customerId)?.id : undefined;
+  const lastOrder = useOrderDetail(lastOrderId ?? '');
+  const repeatLines = (lastOrderId && lastOrder.data?.items ? lastOrder.data.items : [])
+    .map(it => ({ name: catalog.data?.find(p => p.id === it.productId)?.category ?? it.productName, quantity: it.quantity }))
+    .filter(l => catalogLines.some(c => c.productName === l.name));
+  const repeatLastOrder = () => {
+    setQuantities(Object.fromEntries(repeatLines.map(l => [l.name, l.quantity])));
+    setPricesTouched(true);
+  };
+
   const suggestions = useMemo(() => {
     const q = customerName.trim().toLowerCase();
     if (!q || customerId) return [];
@@ -129,15 +163,6 @@ export function OrderForm({ initial = {}, orderId }: { initial?: OrderFormInitia
   if (catalog.isError) return <ErrorState message={errorMessage(catalog.error)} onRetry={() => catalog.refetch()} />;
   if (catalog.data.length === 0) return <ErrorState message="Katalog produk belum tersedia. Hubungi admin." onRetry={() => catalog.refetch()} />;
 
-  const touch = () => setPricesTouched(true);
-  const setQty = (name: string, quantity: number) => {
-    setQuantities(prev => ({ ...prev, [name]: Math.max(0, quantity) }));
-    touch();
-  };
-  const setFixedQty = (name: string, quantity: number) => {
-    setFixedLines(prev => prev.map(l => (l.productName === name ? { ...l, quantity: Math.max(0, quantity) } : l)));
-    touch();
-  };
   const pickTier = (t: TierType) => {
     setTierState(t);
     touch();
@@ -170,9 +195,28 @@ export function OrderForm({ initial = {}, orderId }: { initial?: OrderFormInitia
       return setError('Isi nama pelanggan.');
     }
     if (activeItems.length === 0) {
-      setProductsOpen(true);
+      setShowAll(true);
       return setError('Tambahkan minimal satu produk.');
     }
+    showDialog(
+      isEdit ? 'Simpan perubahan order?' : 'Simpan order ini?',
+      undefined,
+      [
+        { text: 'Cek lagi', style: 'cancel' },
+        { text: isEdit ? 'Ya, simpan perubahan' : 'Ya, simpan order', onPress: doSave },
+      ],
+      <View style={styles.confirm}>
+        <ConfirmLine label="Pelanggan" value={`${customerName.trim()} · ${TIER_DISPLAY[tier]}`} />
+        <ConfirmLine label="Tanggal" value={formatDate(date.toISOString())} />
+        <ConfirmLine label="Produk" value={activeItems.map(i => `${i.quantity} ${productDisplayName(i.productName)}`).join(', ')} />
+        <View style={styles.summarySep} />
+        <ConfirmLine label={`Total (${TIER_LABEL[currentOption]})`} value={formatRupiah(totals.totalPrice)} strong />
+        <ConfirmLine label={totals.margin < 0 ? 'Rugi' : 'Untung kamu'} value={formatRupiah(Math.abs(totals.margin))} color={totals.margin < 0 ? colors.danger : colors.brand} />
+      </View>,
+    );
+  };
+
+  const doSave = () => {
     const payload = {
       customerName,
       customerPhone,
@@ -209,7 +253,6 @@ export function OrderForm({ initial = {}, orderId }: { initial?: OrderFormInitia
   };
 
   const today = sameDay(date, new Date());
-  const pickerLines = (priced?.items ?? items).map(i => ({ productName: i.productName, quantity: i.quantity, pricePerBottle: i.pricePerBottle }));
 
   return (
     <KeyboardAvoidingView style={{ flex: 1, backgroundColor: colors.bg }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
@@ -243,34 +286,76 @@ export function OrderForm({ initial = {}, orderId }: { initial?: OrderFormInitia
         <View style={styles.section}>
           <Row style={{ justifyContent: 'space-between' }}>
             <AppText variant="heading" style={{ fontWeight: '800' }}>Produk</AppText>
-            <AppText variant="small" color={colors.textMuted}>{totals.totalQuantity} botol</AppText>
+            {activeItems.length > 0 ? (
+              <Pressable onPress={() => setShowAll(v => !v)} hitSlop={8} accessibilityRole="button">
+                <AppText variant="small" color={colors.brand} style={{ fontWeight: '700' }}>{showAll ? `Ringkas · ${totals.totalQuantity} botol` : 'Lihat semua produk'}</AppText>
+              </Pressable>
+            ) : (
+              <AppText variant="small" color={colors.textMuted}>Ketuk + untuk menambah</AppText>
+            )}
           </Row>
+
+          {repeatLines.length > 0 && activeItems.length === 0 ? (
+            <View style={styles.suggest}>
+              <View style={{ flex: 1, gap: 2 }}>
+                <AppText variant="small" color={colors.brandDark} style={{ fontWeight: '700' }}>Ulangi order terakhir {customerName.trim()}</AppText>
+                <AppText variant="small" color={colors.textMuted} numberOfLines={2}>{repeatLines.map(l => `${l.quantity} ${productDisplayName(l.name)}`).join(', ')}</AppText>
+              </View>
+              <Pressable onPress={repeatLastOrder} accessibilityRole="button" style={({ pressed }) => [styles.suggestBtn, pressed && { opacity: 0.8 }]}>
+                <AppText variant="small" color={colors.white} style={{ fontWeight: '700' }}>Pakai</AppText>
+              </Pressable>
+            </View>
+          ) : null}
+
+          {showAll && productRows.length > 6 ? (
+            <View style={styles.search}>
+              <SearchIcon size={18} color={colors.textMuted} />
+              <TextInput value={query} onChangeText={setQuery} placeholder="Cari produk" placeholderTextColor={colors.textSubtle} style={styles.searchInput} accessibilityLabel="Cari produk" />
+              {query ? <Pressable onPress={() => setQuery('')} hitSlop={8} accessibilityRole="button" accessibilityLabel="Hapus pencarian"><CloseIcon size={16} color={colors.textMuted} /></Pressable> : null}
+            </View>
+          ) : null}
+
           <View style={styles.box}>
-            {activeItems.map((item, i) => {
-              const fixed = fixedNames.has(item.productName);
-              const change = (q: number) => (fixed ? setFixedQty(item.productName, q) : setQty(item.productName, q));
-              const name = productDisplayName(item.productName);
-              return (
-                <View key={item.productName} style={[styles.line, i > 0 && styles.sep]}>
-                  <ProductThumb name={item.productName} size={40} />
-                  <Pressable style={{ flex: 1, gap: 1 }} onPress={() => !fixed && setProductsOpen(true)} accessibilityRole="button" accessibilityLabel={`${name}, ${item.quantity} × ${formatRupiah(item.pricePerBottle)}`}>
-                    <AppText variant="bodyStrong" style={{ fontSize: 14 }} numberOfLines={1}>{name}</AppText>
-                    <AppText variant="small" color={colors.textMuted} style={{ fontSize: 13 }} numberOfLines={1}>
-                      {formatRupiah(item.pricePerBottle)}/botol{fixed ? ' · harga tersimpan' : ''}
-                    </AppText>
-                  </Pressable>
-                  <View style={styles.stepper}>
-                    <Pressable onPress={() => change(item.quantity - 1)} hitSlop={6} accessibilityRole="button" accessibilityLabel={`Kurangi ${name}`} style={styles.stepBtn}><MinusIcon size={16} color={colors.brand} /></Pressable>
-                    <AppText variant="bodyStrong" style={{ minWidth: 26, textAlign: 'center' }} accessibilityLabel={`${item.quantity} botol`}>{item.quantity}</AppText>
-                    <Pressable onPress={() => change(item.quantity + 1)} hitSlop={6} accessibilityRole="button" accessibilityLabel={`Tambah ${name}`} style={styles.stepBtn}><PlusIcon size={16} color={colors.brand} /></Pressable>
-                  </View>
-                </View>
-              );
-            })}
-            <Pressable onPress={() => setProductsOpen(true)} accessibilityRole="button" accessibilityLabel={activeItems.length ? 'Tambah produk lain' : 'Pilih produk'} style={({ pressed }) => [styles.line, activeItems.length > 0 && styles.sep, pressed && { opacity: 0.6 }]}>
-              <View style={styles.addTile}><PlusIcon size={20} color={colors.brand} /></View>
-              <AppText variant="bodyStrong" color={colors.brand} style={{ fontSize: 14 }}>{activeItems.length ? 'Tambah produk lain' : 'Pilih produk'}</AppText>
-            </Pressable>
+            {visibleGroups.length === 0 ? (
+              <View style={{ paddingVertical: 16 }}><AppText variant="small" color={colors.textMuted}>Tidak ada produk yang cocok dengan “{query}”.</AppText></View>
+            ) : null}
+            {visibleGroups.map((group, gi) => (
+              <View key={group.title}>
+                {visibleGroups.length > 1 ? <AppText variant="caption" color={colors.textMuted} style={[styles.groupTitle, gi > 0 && styles.sep]}>{group.title}</AppText> : null}
+                {group.rows.map((row, i) => {
+                  const name = productDisplayName(row.name);
+                  const selected = row.quantity > 0;
+                  return (
+                    <View key={row.name} style={[styles.line, (i > 0 || visibleGroups.length > 1) && styles.sep]}>
+                      <ProductThumb name={row.name} size={44} />
+                      <View style={{ flex: 1, gap: 1 }}>
+                        <AppText variant="bodyStrong" style={{ fontSize: 14 }} numberOfLines={1}>{name}</AppText>
+                        <AppText variant="small" color={selected ? colors.brandDark : colors.textMuted} style={{ fontSize: 13, fontWeight: selected ? '600' : '400' }} numberOfLines={1}>
+                          {selected ? `${row.quantity} × ${formatRupiah(row.price)}` : `${formatRupiah(row.price)}/botol`}{row.fixed ? ' · harga tersimpan' : ''}
+                        </AppText>
+                      </View>
+                      {selected ? (
+                        <View style={styles.stepper}>
+                          <Pressable onPress={() => row.change(row.quantity - 1)} hitSlop={6} accessibilityRole="button" accessibilityLabel={`Kurangi ${name}`} style={styles.stepBtn}><MinusIcon size={16} color={colors.brand} /></Pressable>
+                          <AppText variant="bodyStrong" style={{ minWidth: 26, textAlign: 'center' }} accessibilityLabel={`${row.quantity} botol`}>{row.quantity}</AppText>
+                          <Pressable onPress={() => row.change(row.quantity + 1)} hitSlop={6} accessibilityRole="button" accessibilityLabel={`Tambah ${name}`} style={styles.stepBtn}><PlusIcon size={16} color={colors.brand} /></Pressable>
+                        </View>
+                      ) : (
+                        <Pressable onPress={() => row.change(1)} hitSlop={6} accessibilityRole="button" accessibilityLabel={`Tambah ${name}`} style={({ pressed }) => [styles.addBtn, pressed && { opacity: 0.7 }]}>
+                          <PlusIcon size={18} color={colors.brand} />
+                        </Pressable>
+                      )}
+                    </View>
+                  );
+                })}
+              </View>
+            ))}
+            {!showAll && productRows.length > activeItems.length ? (
+              <Pressable onPress={() => setShowAll(true)} accessibilityRole="button" style={({ pressed }) => [styles.line, styles.sep, { minHeight: 46 }, pressed && { opacity: 0.6 }]}>
+                <PlusIcon size={18} color={colors.brand} />
+                <AppText variant="bodyStrong" color={colors.brand} style={{ fontSize: 14 }}>Tambah produk lain</AppText>
+              </Pressable>
+            ) : null}
           </View>
           {missingPrices.length > 0 ? (
             <Notice tone="warning" title="Harga katalog belum ada">{missingPrices.map(productDisplayName).join(', ')} memakai harga cadangan. Periksa nominalnya.</Notice>
@@ -389,13 +474,6 @@ export function OrderForm({ initial = {}, orderId }: { initial?: OrderFormInitia
         <CapsuleButton label={isEdit ? 'Simpan perubahan' : 'Simpan order'} value={formatRupiah(totals.totalPrice)} onPress={submit} loading={save.isPending} />
       </StickyFooter>
 
-      <ProductPicker
-        visible={productsOpen}
-        lines={pickerLines}
-        onChange={setQty}
-        onClose={() => setProductsOpen(false)}
-        totalLabel={`${totals.totalQuantity} botol · ${formatRupiah(totals.totalPrice)}`}
-      />
 
       <Modal visible={customerOpen} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setCustomerOpen(false)}>
         <View style={{ flex: 1, backgroundColor: colors.white }}>
@@ -442,7 +520,17 @@ export function OrderForm({ initial = {}, orderId }: { initial?: OrderFormInitia
           </StickyFooter>
         </View>
       </Modal>
+      <DialogHost />
     </KeyboardAvoidingView>
+  );
+}
+
+function ConfirmLine({ label, value, strong, color = colors.text }: { label: string; value: string; strong?: boolean; color?: string }) {
+  return (
+    <View style={{ flexDirection: 'row', gap: 12, alignItems: 'flex-start' }}>
+      <AppText variant="small" color={colors.textMuted} style={{ width: 118 }}>{label}</AppText>
+      <AppText variant="small" color={color} style={{ flex: 1, textAlign: 'right', fontWeight: strong || color !== colors.text ? '700' : '500' }}>{value}</AppText>
+    </View>
   );
 }
 
@@ -470,12 +558,19 @@ const styles = StyleSheet.create({
   section: { gap: space.sm },
   box: { borderRadius: 18, paddingHorizontal: 14, backgroundColor: colors.white },
   summary: { paddingVertical: 14, gap: 10 },
+  confirm: { marginTop: 4, padding: 12, borderRadius: 14, backgroundColor: colors.fill, gap: 8 },
   summarySep: { height: StyleSheet.hairlineWidth, backgroundColor: colors.borderStrong, marginVertical: 2 },
   priceBox: { paddingVertical: 14, gap: 10 },
   line: { flexDirection: 'row', alignItems: 'center', gap: space.md, minHeight: 56, paddingVertical: 8 },
   sep: { borderTopWidth: StyleSheet.hairlineWidth, borderColor: colors.border },
   stepper: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: colors.brandTint, borderRadius: radius.pill, padding: 3 },
   stepBtn: { width: 30, height: 30, borderRadius: 15, backgroundColor: colors.white, alignItems: 'center', justifyContent: 'center' },
+  addBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: colors.brandSoft, alignItems: 'center', justifyContent: 'center' },
+  groupTitle: { paddingTop: 12, paddingBottom: 2, letterSpacing: 0.2, textTransform: 'uppercase' },
+  search: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 40, paddingHorizontal: 12, borderRadius: radius.md, backgroundColor: colors.white },
+  searchInput: { flex: 1, minWidth: 0, fontSize: 15, color: colors.text, paddingVertical: 6 },
+  suggest: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: 16, backgroundColor: colors.brandTint, borderWidth: 1, borderColor: colors.brandBorder },
+  suggestBtn: { minHeight: 34, paddingHorizontal: 14, borderRadius: radius.pill, backgroundColor: colors.brand, justifyContent: 'center' },
   addTile: { width: 40, height: 40, borderRadius: 10, borderWidth: 1.5, borderStyle: 'dashed', borderColor: '#9DB3A8', alignItems: 'center', justifyContent: 'center' },
   track: { height: 6, borderRadius: 3, backgroundColor: colors.fill, overflow: 'hidden' },
   trackFill: { height: 6, borderRadius: 3, backgroundColor: colors.brand },
