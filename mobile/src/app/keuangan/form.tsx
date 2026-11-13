@@ -1,17 +1,19 @@
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform } from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES, deleteMoneyEntry, saveMoneyEntry, type MoneyInput, type MoneyKind } from '~/data/finance';
 import { useGeneralExpenses, useGeneralIncome, useRefreshingMutation } from '~/hooks/queries';
-import { parseDateLike, toDateKey } from '~/lib/dates';
-import { formatNumberInput, parseRupiahInput } from '~/lib/money';
+import { formatDate, parseDateLike, sameDay, toDateKey } from '~/lib/dates';
+import { formatNumberInput, formatRupiah, parseRupiahInput } from '~/lib/money';
 import { errorMessage } from '~/lib/supabase';
-import { AppText, Button, Card, ErrorState, LoadingState, Notice, Screen, TextField } from '~/ui/components';
+import { AppText, ErrorState, LoadingState, Notice } from '~/ui/components';
 import { Chips } from '~/ui/Chips';
-import { DateField } from '~/ui/DateField';
-import { SheetHeader } from '~/ui/sheet';
-import { colors } from '~/ui/theme';
+import { DateCalendar } from '~/ui/DateField';
+import { TrashIcon } from '~/ui/icons';
+import { FieldRow, Group } from '~/ui/kit';
+import { CapsuleButton, SheetHeader, SheetRow, StickyFooter } from '~/ui/sheet';
+import { colors, space } from '~/ui/theme';
 import { DialogHost, showDialog } from '~/ui/dialog';
 
 export default function MoneyFormScreen() {
@@ -35,6 +37,7 @@ function MoneyForm({ kind, entry }: { kind: MoneyKind; entry?: { id: string; nam
   const [notes, setNotes] = useState(entry?.notes ?? '');
   const [date, setDate] = useState(entry ? parseDateLike(entry.date) : new Date());
   const [error, setError] = useState<string | null>(null);
+  const [dateOpen, setDateOpen] = useState(false);
   const invalidate = kind === 'expense' ? 'expenses' : 'income';
   const save = useRefreshingMutation((input: MoneyInput) => saveMoneyEntry(kind, input, entry?.id), [invalidate]);
   const entryId = entry?.id;
@@ -58,23 +61,63 @@ function MoneyForm({ kind, entry }: { kind: MoneyKind; entry?: { id: string; nam
       { text: 'Hapus', style: 'destructive', onPress: () => remove.mutate(undefined, { onSuccess: () => router.back(), onError: e => setError(errorMessage(e)) }) },
     ]);
 
+  const isExpense = kind === 'expense';
+  const today = sameDay(date, new Date());
+
   return (
-    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: colors.white }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: colors.bg }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <SheetHeader title={title} onClose={() => router.back()} />
-      <Screen contentStyle={{ backgroundColor: colors.white }}>
+      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         {error ? <Notice tone="danger">{error}</Notice> : null}
-        <Card>
-          <TextField label="Keterangan" value={name} onChangeText={setName} placeholder={kind === 'expense' ? 'Contoh: Plastik kemasan' : 'Contoh: Bonus bulanan'} />
-          <TextField label="Nominal" value={formatNumberInput(amount)} onChangeText={t => setAmount(parseRupiahInput(t))} keyboardType="number-pad" placeholder="50.000" />
-          <DateField label="Tanggal" value={date} onChange={setDate} />
-          <AppText variant="small" color={colors.textMuted} style={{ fontWeight: '600' }}>Kategori</AppText>
-          <Chips options={categories} value={category} onChange={setCategory} />
-          <TextField label="Catatan (opsional)" value={notes} onChangeText={setNotes} />
-        </Card>
-        <Button label="Simpan" onPress={submit} loading={save.isPending} />
-        {entry ? <Button label="Hapus" tone="danger" icon="trash-outline" onPress={confirmDelete} loading={remove.isPending} /> : null}
-      </Screen>
+
+        <View style={styles.amountCard}>
+          <AppText variant="small" color={colors.textMuted} style={{ fontWeight: '600' }}>Nominal</AppText>
+          <View style={styles.amountRow}>
+            <AppText variant="title" color={isExpense ? colors.danger : colors.brandDark} style={{ fontSize: 26 }}>Rp</AppText>
+            <TextInput
+              value={formatNumberInput(amount)}
+              onChangeText={t => setAmount(parseRupiahInput(t))}
+              keyboardType="number-pad"
+              placeholder="0"
+              placeholderTextColor={colors.textSubtle}
+              accessibilityLabel="Nominal"
+              style={[styles.amountInput, { color: isExpense ? colors.danger : colors.brandDark }]}
+            />
+          </View>
+        </View>
+
+        <Group>
+          <FieldRow first label="Keterangan" value={name} onChangeText={setName} placeholder={isExpense ? 'Mis. Plastik kemasan' : 'Mis. Bonus bulanan'} />
+          <SheetRow label="Tanggal" value={today ? `Hari ini, ${formatDate(date.toISOString())}` : formatDate(date.toISOString())} onPress={() => setDateOpen(v => !v)} />
+          {dateOpen ? <View style={{ paddingBottom: space.md }}><DateCalendar value={date} onChange={d => { setDate(d); setDateOpen(false); }} /></View> : null}
+          <FieldRow label="Catatan" value={notes} onChangeText={setNotes} placeholder="Opsional" />
+        </Group>
+
+        <View style={{ gap: space.sm }}>
+          <AppText variant="heading" style={{ fontWeight: '800' }}>Kategori</AppText>
+          <View style={styles.chipCard}><Chips options={categories} value={category} onChange={setCategory} /></View>
+        </View>
+
+        {entry ? (
+          <Pressable onPress={confirmDelete} accessibilityRole="button" disabled={remove.isPending} style={({ pressed }) => [styles.delete, pressed && { opacity: 0.7 }]}>
+            <TrashIcon size={18} color={colors.danger} />
+            <AppText variant="bodyStrong" color={colors.danger}>Hapus catatan ini</AppText>
+          </Pressable>
+        ) : null}
+      </ScrollView>
+      <StickyFooter>
+        <CapsuleButton label={entry ? 'Simpan perubahan' : 'Simpan'} value={amount ? formatRupiah(amount) : undefined} onPress={submit} loading={save.isPending} />
+      </StickyFooter>
       <DialogHost />
     </KeyboardAvoidingView>
   );
 }
+
+const styles = StyleSheet.create({
+  content: { padding: space.lg, gap: space.lg, paddingBottom: space.xxl },
+  amountCard: { backgroundColor: colors.white, borderRadius: 18, padding: 14, gap: 2 },
+  amountRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  amountInput: { flex: 1, minWidth: 0, fontSize: 30, fontWeight: '800', paddingVertical: 4 },
+  chipCard: { backgroundColor: colors.white, borderRadius: 18, padding: 12 },
+  delete: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, minHeight: 46, borderRadius: 18, backgroundColor: colors.white },
+});

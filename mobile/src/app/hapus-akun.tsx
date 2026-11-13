@@ -1,10 +1,13 @@
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { useQueryClient } from '@tanstack/react-query';
 
 import { DELETE_CONFIRM_TEXT, deleteMyAccount } from '~/data/account';
 import { useAuth } from '~/providers/AuthProvider';
-import { AppText, Button, Card, Icon, Notice, Row, Screen, TextField } from '~/ui/components';
+import { AppText, Notice } from '~/ui/components';
+import { TrashIcon } from '~/ui/icons';
+import { FieldRow, Group, kitStyles, PageHeader, SectionLabel } from '~/ui/kit';
+import { CapsuleButton, StickyFooter } from '~/ui/sheet';
 import { colors, space } from '~/ui/theme';
 import { showDialog } from '~/ui/dialog';
 
@@ -43,39 +46,52 @@ export default function DeleteAccountScreen() {
   };
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <Screen>
-        <Notice tone="danger" title="Penghapusan permanen">
-          Akun {email} dan semua datanya akan dihapus dari aplikasi dan web Rekapan Mitra. Data tidak bisa dikembalikan.
-        </Notice>
-        <Card>
-          <AppText variant="heading">Yang akan dihapus</AppText>
-          {DELETED.map(item => (
-            <Row key={item} style={{ alignItems: 'flex-start' }}>
-              <Icon name="close-circle" size={18} color={colors.danger} />
-              <AppText variant="body" style={{ flex: 1 }}>{item}</AppText>
-            </Row>
-          ))}
-          <AppText variant="small" color={colors.textMuted}>
-            Ingin menyimpan catatan dulu? Buka Riwayat dan bagikan nota yang kamu perlukan sebelum menghapus.
+    <KeyboardAvoidingView style={kitStyles.page} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <PageHeader title="Hapus akun" />
+      <ScrollView contentContainerStyle={[kitStyles.content, { paddingBottom: space.xxl }]} keyboardShouldPersistTaps="handled">
+        <View style={styles.warn}>
+          <View style={styles.warnIcon}><TrashIcon size={22} color={colors.danger} /></View>
+          <AppText variant="heading" color={colors.danger} style={{ fontWeight: '800' }}>Penghapusan permanen</AppText>
+          <AppText variant="small" color={colors.text} style={{ lineHeight: 19 }}>
+            Akun {email} dan semua datanya akan dihapus dari aplikasi dan web Rekapan Mitra. Data tidak bisa dikembalikan.
           </AppText>
-        </Card>
+        </View>
+
+        <View style={{ gap: space.sm }}>
+          <SectionLabel>Yang akan dihapus</SectionLabel>
+          <Group>
+            {DELETED.map((item, i) => (
+              <View key={item} style={[styles.item, i > 0 && styles.sep]}>
+                <View style={styles.dot} />
+                <AppText variant="body" style={{ flex: 1 }}>{item}</AppText>
+              </View>
+            ))}
+          </Group>
+          <AppText variant="small" color={colors.textMuted}>Ingin menyimpan catatan dulu? Buka Riwayat dan bagikan nota yang kamu perlukan sebelum menghapus.</AppText>
+        </View>
+
         {error ? <Notice tone="danger">{error}</Notice> : null}
-        <Card>
-          <TextField label="Kata sandi" value={password} onChangeText={setPassword} secureTextEntry autoComplete="current-password" textContentType="password" />
-          <View style={{ gap: space.xs }}>
-            <TextField
-              label={`Ketik ${DELETE_CONFIRM_TEXT} untuk konfirmasi`}
-              value={confirmText}
-              onChangeText={setConfirmText}
-              autoCapitalize="characters"
-              autoCorrect={false}
-              placeholder={DELETE_CONFIRM_TEXT}
-            />
-          </View>
-        </Card>
-        <Button label="Hapus akun permanen" tone="danger" icon="trash-outline" onPress={run} loading={busy} disabled={!ready} />
-      </Screen>
+
+        <View style={{ gap: space.sm }}>
+          <SectionLabel>Konfirmasi</SectionLabel>
+          <Group>
+            <FieldRow first label="Kata sandi" value={password} onChangeText={setPassword} secureTextEntry autoComplete="current-password" textContentType="password" placeholder="Kata sandi akun" />
+            <FieldRow label="Konfirmasi" value={confirmText} onChangeText={setConfirmText} autoCapitalize="characters" autoCorrect={false} placeholder={`Ketik ${DELETE_CONFIRM_TEXT}`} />
+          </Group>
+          <AppText variant="small" color={colors.textMuted}>Ketik {DELETE_CONFIRM_TEXT} di kolom konfirmasi untuk mengaktifkan tombol hapus.</AppText>
+        </View>
+      </ScrollView>
+      <StickyFooter>
+        <CapsuleButton label="Hapus akun permanen" tone="danger" onPress={run} loading={busy} disabled={!ready} />
+      </StickyFooter>
     </KeyboardAvoidingView>
   );
 }
+
+const styles = StyleSheet.create({
+  warn: { backgroundColor: colors.dangerSoft, borderRadius: 18, padding: 14, gap: 6 },
+  warnIcon: { width: 40, height: 40, borderRadius: 12, backgroundColor: colors.white, alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
+  item: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 44 },
+  sep: { borderTopWidth: StyleSheet.hairlineWidth, borderColor: colors.border },
+  dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.danger },
+});

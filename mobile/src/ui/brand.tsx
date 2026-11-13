@@ -7,7 +7,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
 
 import type { OrderRow } from '~/data/db';
-import { currentMonth, formatTime, monthLabel, shiftMonth, type MonthRef } from '~/lib/dates';
+import { currentMonth, formatDate, formatTime, monthLabel, shiftMonth, type MonthRef } from '~/lib/dates';
 import { formatRupiah } from '~/lib/money';
 import { AppText, Row } from './components';
 import { ChevronIcon, OfflineIcon } from './icons';
@@ -75,7 +75,7 @@ export function IconButton({ label, onPress, children, tone = 'neutral' }: { lab
 const STATUS_NOTE: Record<string, string> = { pending: 'Belum dikirim', terkirim: 'Dikirim' };
 
 /** One order: initial avatar, name with bottles · time (and a status pill while it is open), total and profit. */
-export function OrderListRow({ order, first, showTime = true }: { order: OrderRow; first: boolean; showTime?: boolean }) {
+export function OrderListRow({ order, first, showTime = true, showDate = false }: { order: OrderRow; first: boolean; showTime?: boolean; showDate?: boolean }) {
   const margin = Number(order.margin);
   const status = STATUS_NOTE[order.status];
   return (
@@ -90,7 +90,7 @@ export function OrderListRow({ order, first, showTime = true }: { order: OrderRo
       </View>
       <View style={{ flex: 1, gap: 3, minWidth: 0 }}>
         <AppText variant="bodyStrong" numberOfLines={1}>{order.customer_name || 'Tanpa nama'}</AppText>
-        <AppText variant="small" color={colors.textMuted} numberOfLines={1}>{order.quantity} botol{showTime ? ` · ${formatTime(order.created_at)}` : ''}</AppText>
+        <AppText variant="small" color={colors.textMuted} numberOfLines={1}>{order.quantity} botol{showDate ? ` · ${formatDate(order.created_at)}` : ''}{showTime ? ` · ${formatTime(order.created_at)}` : ''}</AppText>
         {status ? <View style={styles.pill}><AppText variant="caption" color={colors.warning} style={{ letterSpacing: 0, fontWeight: '700' }}>{status}</AppText></View> : null}
       </View>
       <View style={{ alignItems: 'flex-end', gap: 3 }}>

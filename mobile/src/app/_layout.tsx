@@ -76,13 +76,13 @@ function RootNavigator() {
         <Stack.Screen name="restok/new" options={{ title: 'Catat restok', presentation: 'modal', headerShown: false }} />
         <Stack.Screen name="restok/[id]" options={{ title: 'Ubah restok', presentation: 'modal', headerShown: false }} />
         <Stack.Screen name="asisten" options={{ title: 'Isi dari chat', presentation: 'modal', headerShown: false }} />
-        <Stack.Screen name="keuangan/index" options={{ title: 'Pengeluaran & pemasukan' }} />
+        <Stack.Screen name="keuangan/index" options={{ title: 'Pengeluaran & pemasukan', headerShown: false }} />
         <Stack.Screen name="keuangan/form" options={{ title: 'Catatan keuangan', presentation: 'modal', headerShown: false }} />
-        <Stack.Screen name="target" options={{ title: 'Target bulanan' }} />
-        <Stack.Screen name="pelanggan/index" options={{ title: 'Pelanggan' }} />
-        <Stack.Screen name="pelanggan/[id]" options={{ title: 'Pelanggan' }} />
-        <Stack.Screen name="toko" options={{ title: 'Toko online' }} />
-        <Stack.Screen name="hapus-akun" options={{ title: 'Hapus akun' }} />
+        <Stack.Screen name="target" options={{ title: 'Target bulanan', headerShown: false }} />
+        <Stack.Screen name="pelanggan/index" options={{ title: 'Pelanggan', headerShown: false }} />
+        <Stack.Screen name="pelanggan/[id]" options={{ title: 'Pelanggan', headerShown: false }} />
+        <Stack.Screen name="toko" options={{ title: 'Toko online', headerShown: false }} />
+        <Stack.Screen name="hapus-akun" options={{ title: 'Hapus akun', headerShown: false }} />
       </Stack.Protected>
     </Stack>
   );

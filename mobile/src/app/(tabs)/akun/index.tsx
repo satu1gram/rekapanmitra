@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { View } from 'react-native';
+import { KeyboardAvoidingView, Platform, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import Constants from 'expo-constants';
-import { router } from 'expo-router';
+import { router, type Href } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import type { MitraLevel } from '@/types';
 
@@ -12,17 +12,19 @@ import { formatNumberInput, formatRupiah, parseRupiahInput } from '~/lib/money';
 import { buyPricePerBottle } from '~/lib/orderMath';
 import { errorMessage } from '~/lib/supabase';
 import { useAuth } from '~/providers/AuthProvider';
-import { AppText, Badge, Button, Card, Divider, ErrorState, ListItem, LoadingState, Notice, Screen, SectionTitle, TextField, type IconName } from '~/ui/components';
-import { LevelPicker } from '~/ui/LevelPicker';
-import { colors } from '~/ui/theme';
+import { AppText, ErrorState, LoadingState, Notice } from '~/ui/components';
 import { showDialog } from '~/ui/dialog';
+import { ChatIcon, FlagIcon, GlobeIcon, LogoutIcon, PeopleIcon, PencilIcon, StoreIcon, TrashIcon, WalletIcon, type IconProps } from '~/ui/icons';
+import { Avatar, FieldRow, Group, kitStyles, MenuRow, PageHeader, PillButton, SectionLabel } from '~/ui/kit';
+import { LevelPicker } from '~/ui/LevelPicker';
+import { colors, space, TAB_BAR_SPACE } from '~/ui/theme';
 
-const FEATURES: { title: string; subtitle: string; icon: IconName; href: '/keuangan' | '/target' | '/pelanggan' | '/toko' | '/asisten' }[] = [
-  { title: 'Pengeluaran & pemasukan', subtitle: 'Biaya umum dan pemasukan di luar penjualan', icon: 'wallet-outline', href: '/keuangan' },
-  { title: 'Target bulanan', subtitle: 'Target untung, penjualan, dan restok', icon: 'flag-outline', href: '/target' },
-  { title: 'Pelanggan', subtitle: 'Data dan riwayat belanja pelanggan', icon: 'people-outline', href: '/pelanggan' },
-  { title: 'Toko online', subtitle: 'Link toko dan cara pembayaran', icon: 'storefront-outline', href: '/toko' },
-  { title: 'Asisten AI', subtitle: 'Isi order dari teks chat', icon: 'sparkles-outline', href: '/asisten' },
+const FEATURES: { title: string; subtitle: string; Icon: (p: IconProps) => React.ReactNode; href: Href }[] = [
+  { title: 'Pelanggan', subtitle: 'Data dan riwayat belanja pelanggan', Icon: PeopleIcon, href: '/pelanggan' },
+  { title: 'Pengeluaran & pemasukan', subtitle: 'Biaya umum dan pemasukan di luar penjualan', Icon: WalletIcon, href: '/keuangan' },
+  { title: 'Target bulanan', subtitle: 'Target untung, botol terjual, dan restok', Icon: FlagIcon, href: '/target' },
+  { title: 'Toko online', subtitle: 'Link toko dan cara pembayaran', Icon: StoreIcon, href: '/toko' },
+  { title: 'Isi dari chat', subtitle: 'Asisten AI mengisi draf order dari chat', Icon: ChatIcon, href: '/asisten' },
 ];
 
 export default function AccountScreen() {
@@ -42,8 +44,10 @@ export default function AccountScreen() {
     ['profile'],
   );
 
-  if (profile.isPending) return <LoadingState />;
-  if (profile.isError || !profile.data) return <ErrorState message={errorMessage(profile.error, 'Profil tidak ditemukan.')} onRetry={() => profile.refetch()} />;
+  if (profile.isPending) return <View style={kitStyles.page}><PageHeader title="Akun" back={false} /><LoadingState /></View>;
+  if (profile.isError || !profile.data) {
+    return <View style={kitStyles.page}><PageHeader title="Akun" back={false} /><ErrorState message={errorMessage(profile.error, 'Profil tidak ditemukan.')} onRetry={() => profile.refetch()} /></View>;
+  }
   const p = profile.data;
 
   const startEdit = (mode: 'profile' | 'level') => {
@@ -76,67 +80,91 @@ export default function AccountScreen() {
     ]);
 
   return (
-    <Screen refreshing={profile.isRefetching} onRefresh={() => profile.refetch()}>
-      {error ? <Notice tone="danger">{error}</Notice> : null}
+    <KeyboardAvoidingView style={kitStyles.page} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <PageHeader title="Akun" back={false} />
+      <ScrollView
+        contentContainerStyle={[kitStyles.content, { paddingBottom: TAB_BAR_SPACE }]}
+        keyboardShouldPersistTaps="handled"
+        refreshControl={<RefreshControl refreshing={profile.isRefetching} onRefresh={() => { profile.refetch(); }} tintColor={colors.brand} />}
+      >
+        {error ? <Notice tone="danger">{error}</Notice> : null}
 
-      <Card>
         {editing === 'profile' ? (
-          <>
-            <TextField label="Nama" value={name} onChangeText={setName} />
-            <TextField label="No. WhatsApp" value={phone} onChangeText={setPhone} keyboardType="phone-pad" />
-            <Button label="Simpan" onPress={submitProfile} loading={saveProfile.isPending} />
-            <Button label="Batal" tone="ghost" onPress={() => setEditing('none')} />
-          </>
-        ) : (
-          <>
-            <AppText variant="title">{p.name || 'Mitra'}</AppText>
-            <AppText variant="body" color={colors.textMuted}>{email}</AppText>
-            {p.phone ? <AppText variant="body" color={colors.textMuted}>{p.phone}</AppText> : null}
-            <Button label="Ubah profil" tone="secondary" icon="create-outline" onPress={() => startEdit('profile')} />
-          </>
-        )}
-      </Card>
-
-      <Card>
-        <AppText variant="heading">Level mitra</AppText>
-        {editing === 'level' ? (
-          <>
-            <Notice tone="info">Level menentukan harga modal untuk order baru. Order lama tidak berubah.</Notice>
-            <LevelPicker value={level} onChange={setLevel} />
-            {level === 'custom' ? (
-              <>
-                <TextField label="Nama level" value={customName} onChangeText={setCustomName} />
-                <TextField label="Harga modal per botol" value={formatNumberInput(customPrice)} onChangeText={t => setCustomPrice(parseRupiahInput(t))} keyboardType="number-pad" />
-              </>
-            ) : null}
-            <Button label="Simpan level" onPress={submitLevel} loading={saveLevel.isPending} />
-            <Button label="Batal" tone="ghost" onPress={() => setEditing('none')} />
-          </>
-        ) : (
-          <>
-            <Badge label={levelLabel(p)} tone="success" />
-            <AppText variant="body" color={colors.textMuted}>Modal {formatRupiah(buyPricePerBottle(p.mitra_level, p.custom_buy_price))} per botol</AppText>
-            <Button label="Ganti level" tone="secondary" icon="swap-horizontal" onPress={() => startEdit('level')} />
-          </>
-        )}
-      </Card>
-
-      <SectionTitle>Usaha</SectionTitle>
-      <Card style={{ paddingVertical: 4 }}>
-        {FEATURES.map((f, i) => (
-          <View key={f.title}>
-            {i > 0 ? <Divider /> : null}
-            <ListItem title={f.title} subtitle={f.subtitle} icon={f.icon} onPress={() => router.push(f.href)} />
+          <View style={{ gap: space.sm }}>
+            <SectionLabel>Ubah profil</SectionLabel>
+            <Group>
+              <FieldRow first label="Nama" value={name} onChangeText={setName} autoCapitalize="words" />
+              <FieldRow label="No. WhatsApp" value={phone} onChangeText={setPhone} keyboardType="phone-pad" placeholder="08…" />
+            </Group>
+            <View style={styles.actions}>
+              <PillButton label="Batal" tone="outline" onPress={() => setEditing('none')} style={{ flex: 1 }} />
+              <PillButton label="Simpan profil" tone="brand" onPress={submitProfile} loading={saveProfile.isPending} style={{ flex: 1 }} />
+            </View>
           </View>
-        ))}
-      </Card>
-      <Button label="Buka versi web" icon="globe-outline" tone="ghost" onPress={() => WebBrowser.openBrowserAsync(publicWebUrl('/dashboard'))} />
+        ) : (
+          <View style={styles.profile}>
+            <Avatar name={p.name || 'M'} size={56} />
+            <View style={{ flex: 1, gap: 2 }}>
+              <AppText variant="heading" style={{ fontSize: 18, fontWeight: '800' }} numberOfLines={1}>{p.name || 'Mitra'}</AppText>
+              <AppText variant="small" color={colors.textMuted} numberOfLines={1}>{email}</AppText>
+              {p.phone ? <AppText variant="small" color={colors.textMuted}>{p.phone}</AppText> : null}
+            </View>
+            <PillButton label="Ubah" Icon={PencilIcon} onPress={() => startEdit('profile')} />
+          </View>
+        )}
 
-      <Button label="Keluar" icon="log-out-outline" tone="danger" onPress={confirmSignOut} />
-      <Button label="Hapus akun" tone="ghost" onPress={() => router.push('/hapus-akun')} accessibilityHint="Membuka halaman untuk menghapus akun dan semua data secara permanen" />
-      <AppText variant="small" color={colors.textSubtle} style={{ textAlign: 'center' }}>
-        Rekapan Mitra {Constants.expoConfig?.version ?? ''}
-      </AppText>
-    </Screen>
+        <View style={{ gap: space.sm }}>
+          <SectionLabel>Level mitra</SectionLabel>
+          {editing === 'level' ? (
+            <>
+              <AppText variant="small" color={colors.textMuted}>Level menentukan harga modal untuk order baru. Order lama tidak berubah.</AppText>
+              <LevelPicker value={level} onChange={setLevel} />
+              {level === 'custom' ? (
+                <Group>
+                  <FieldRow first label="Nama level" value={customName} onChangeText={setCustomName} placeholder="Mis. Distributor" />
+                  <FieldRow label="Modal/botol" value={formatNumberInput(customPrice)} onChangeText={t => setCustomPrice(parseRupiahInput(t))} keyboardType="number-pad" placeholder="0" />
+                </Group>
+              ) : null}
+              <View style={styles.actions}>
+                <PillButton label="Batal" tone="outline" onPress={() => setEditing('none')} style={{ flex: 1 }} />
+                <PillButton label="Simpan level" tone="brand" onPress={submitLevel} loading={saveLevel.isPending} style={{ flex: 1 }} />
+              </View>
+            </>
+          ) : (
+            <View style={styles.level}>
+              <View style={{ flex: 1, gap: 2 }}>
+                <AppText variant="heading" color={colors.white} style={{ fontWeight: '800' }}>{levelLabel(p)}</AppText>
+                <AppText variant="small" color="#E4F3EA">Modal {formatRupiah(buyPricePerBottle(p.mitra_level, p.custom_buy_price))} per botol</AppText>
+              </View>
+              <PillButton label="Ganti" tone="outline" onPress={() => startEdit('level')} />
+            </View>
+          )}
+        </View>
+
+        <View style={{ gap: space.sm }}>
+          <SectionLabel>Usaha</SectionLabel>
+          <Group>
+            {FEATURES.map((f, i) => <MenuRow key={f.title} first={i === 0} title={f.title} subtitle={f.subtitle} Icon={f.Icon} onPress={() => router.push(f.href)} />)}
+          </Group>
+        </View>
+
+        <View style={{ gap: space.sm }}>
+          <SectionLabel>Lainnya</SectionLabel>
+          <Group>
+            <MenuRow first title="Buka versi web" subtitle="Laporan lengkap di browser" Icon={GlobeIcon} tone="muted" onPress={() => WebBrowser.openBrowserAsync(publicWebUrl('/dashboard'))} />
+            <MenuRow title="Keluar" Icon={LogoutIcon} tone="danger" chevron={false} onPress={confirmSignOut} />
+            <MenuRow title="Hapus akun" subtitle="Hapus akun dan semua data secara permanen" Icon={TrashIcon} tone="muted" onPress={() => router.push('/hapus-akun')} />
+          </Group>
+        </View>
+
+        <AppText variant="small" color={colors.textMuted} style={{ textAlign: 'center' }}>Rekapan Mitra {Constants.expoConfig?.version ?? ''}</AppText>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
+
+const styles = StyleSheet.create({
+  profile: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: colors.white, borderRadius: 18, padding: 14 },
+  level: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: colors.brand, borderRadius: 18, padding: 14 },
+  actions: { flexDirection: 'row', gap: 8 },
+});

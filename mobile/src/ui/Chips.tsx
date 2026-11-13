@@ -19,6 +19,6 @@ export function Chips<T extends string>({ options, value, onChange }: { options:
 
 const styles = StyleSheet.create({
   wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
-  chip: { minHeight: 40, paddingHorizontal: space.md, justifyContent: 'center', borderRadius: radius.pill, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.white },
+  chip: { minHeight: 34, paddingHorizontal: 14, justifyContent: 'center', borderRadius: radius.pill, borderWidth: 1, borderColor: colors.fill, backgroundColor: colors.fill },
   active: { backgroundColor: colors.brand, borderColor: colors.brand },
 });

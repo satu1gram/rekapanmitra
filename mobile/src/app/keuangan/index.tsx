@@ -1,15 +1,23 @@
 import { useMemo, useState } from 'react';
-import { View } from 'react-native';
+import { Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
 
 import { categoryLabel, type MoneyKind } from '~/data/finance';
 import { useGeneralExpenses, useGeneralIncome } from '~/hooks/queries';
-import { currentMonth, formatDate, isInMonth, monthLabel, type MonthRef } from '~/lib/dates';
+import { currentMonth, formatDate, isInMonth, MONTH_NAMES, type MonthRef } from '~/lib/dates';
 import { formatRupiah } from '~/lib/money';
 import { errorMessage } from '~/lib/supabase';
-import { AppText, Button, Card, Divider, EmptyState, ErrorState, ListItem, LoadingState, Screen, Segmented } from '~/ui/components';
+import { AppText, ErrorState, LoadingState } from '~/ui/components';
+import { ChevronIcon, WalletIcon } from '~/ui/icons';
+import { kitStyles, PageHeader, PillTabs } from '~/ui/kit';
 import { MonthSwitcher } from '~/ui/MonthSwitcher';
+import { CapsuleButton, StickyFooter } from '~/ui/sheet';
 import { colors, space } from '~/ui/theme';
+
+const KINDS = [
+  { value: 'expense', label: 'Pengeluaran' },
+  { value: 'income', label: 'Pemasukan' },
+] as const;
 
 export default function FinanceScreen() {
   const expenses = useGeneralExpenses();
@@ -20,48 +28,74 @@ export default function FinanceScreen() {
 
   const entries = useMemo(() => (query.data ?? []).filter(e => isInMonth(e.date, month)), [query.data, month]);
   const total = entries.reduce((s, e) => s + e.amount, 0);
+  const isExpense = kind === 'expense';
+  const add = () => router.push({ pathname: '/keuangan/form', params: { kind } });
 
   return (
-    <Screen refreshing={query.isRefetching} onRefresh={() => query.refetch()}>
-      <Segmented value={kind} onChange={setKind} options={[{ value: 'expense', label: 'Pengeluaran' }, { value: 'income', label: 'Pemasukan' }]} />
-      <MonthSwitcher value={month} onChange={setMonth} />
-      <Card>
-        <AppText variant="caption" color={colors.textMuted}>{(kind === 'expense' ? 'Total pengeluaran ' : 'Total pemasukan ') + monthLabel(month).toUpperCase()}</AppText>
-        <AppText variant="title" color={kind === 'expense' ? colors.danger : colors.brandDark}>{formatRupiah(total)}</AppText>
-        <AppText variant="small" color={colors.textMuted}>
-          {kind === 'expense'
-            ? 'Biaya usaha di luar order, misalnya kemasan atau transport. Mengurangi untung setelah biaya.'
-            : 'Pemasukan di luar penjualan, misalnya bonus. Menambah untung setelah biaya.'}
-        </AppText>
-      </Card>
-      <Button
-        label={kind === 'expense' ? 'Catat pengeluaran' : 'Catat pemasukan'}
-        icon="add-circle"
-        onPress={() => router.push({ pathname: '/keuangan/form', params: { kind } })}
-      />
-      {query.isPending ? (
-        <LoadingState />
-      ) : query.isError ? (
-        <ErrorState message={errorMessage(query.error)} onRetry={() => query.refetch()} />
-      ) : (
-        <Card style={{ paddingVertical: space.xs }}>
-          {entries.length === 0 ? (
-            <EmptyState icon="wallet-outline" title="Belum ada catatan di bulan ini" />
-          ) : (
-            entries.map((e, i) => (
-              <View key={e.id}>
-                {i > 0 ? <Divider /> : null}
-                <ListItem
-                  title={e.name}
-                  subtitle={`${formatDate(e.date)} · ${categoryLabel(kind, e.category)}${e.notes ? ` · ${e.notes}` : ''}`}
-                  right={<AppText variant="bodyStrong" color={kind === 'expense' ? colors.danger : colors.brandDark}>{formatRupiah(e.amount)}</AppText>}
-                  onPress={() => router.push({ pathname: '/keuangan/form', params: { kind, id: e.id } })}
-                />
-              </View>
-            ))
-          )}
-        </Card>
-      )}
-    </Screen>
+    <View style={kitStyles.page}>
+      <PageHeader title="Pengeluaran & pemasukan" />
+      <ScrollView
+        contentContainerStyle={[kitStyles.content, { paddingBottom: space.xxl }]}
+        refreshControl={<RefreshControl refreshing={query.isRefetching} onRefresh={() => { query.refetch(); }} tintColor={colors.brand} />}
+      >
+        <PillTabs options={KINDS} value={kind} onChange={setKind} />
+        <MonthSwitcher value={month} onChange={setMonth} />
+
+        <View style={[styles.total, { backgroundColor: isExpense ? colors.dangerSoft : colors.brandSoft }]}>
+          <AppText variant="small" color={isExpense ? colors.danger : colors.brandDark} style={{ fontWeight: '700' }}>
+            Total {isExpense ? 'pengeluaran' : 'pemasukan'} {MONTH_NAMES[month.month]}
+          </AppText>
+          <AppText variant="title" color={isExpense ? colors.danger : colors.brandDark} style={{ fontSize: 26 }}>{formatRupiah(total)}</AppText>
+          <AppText variant="small" color={colors.textMuted}>
+            {isExpense
+              ? 'Biaya di luar order, mis. kemasan atau transport. Mengurangi untung bersih.'
+              : 'Pemasukan di luar penjualan, mis. bonus. Menambah untung bersih.'}
+          </AppText>
+        </View>
+
+        {query.isPending ? <LoadingState /> : query.isError ? <ErrorState message={errorMessage(query.error)} onRetry={() => query.refetch()} /> : (
+          <View style={{ gap: space.sm }}>
+            <AppText variant="heading" style={{ fontWeight: '800' }}>{entries.length} catatan</AppText>
+            <View style={styles.list}>
+              {entries.length === 0 ? (
+                <View style={styles.empty}>
+                  <View style={styles.emptyIcon}><WalletIcon color={colors.brand} /></View>
+                  <AppText variant="small" color={colors.textMuted} style={{ textAlign: 'center' }}>Belum ada catatan {isExpense ? 'pengeluaran' : 'pemasukan'} di {MONTH_NAMES[month.month]}.</AppText>
+                </View>
+              ) : (
+                entries.map((e, i) => (
+                  <Pressable
+                    key={e.id}
+                    onPress={() => router.push({ pathname: '/keuangan/form', params: { kind, id: e.id } })}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${e.name}, ${formatRupiah(e.amount)}, ${formatDate(e.date)}`}
+                    style={({ pressed }) => [styles.row, i > 0 && styles.sep, pressed && { opacity: 0.6 }]}
+                  >
+                    <View style={{ flex: 1, gap: 2 }}>
+                      <AppText variant="bodyStrong" numberOfLines={1}>{e.name}</AppText>
+                      <AppText variant="small" color={colors.textMuted} numberOfLines={1}>{formatDate(e.date)} · {categoryLabel(kind, e.category)}{e.notes ? ` · ${e.notes}` : ''}</AppText>
+                    </View>
+                    <AppText variant="bodyStrong" color={isExpense ? colors.danger : colors.brandDark}>{isExpense ? '−' : '+'}{formatRupiah(e.amount)}</AppText>
+                    <ChevronIcon direction="right" size={16} color="#AEAEB2" />
+                  </Pressable>
+                ))
+              )}
+            </View>
+          </View>
+        )}
+      </ScrollView>
+      <StickyFooter>
+        <CapsuleButton label={isExpense ? 'Catat pengeluaran' : 'Catat pemasukan'} onPress={add} />
+      </StickyFooter>
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  total: { borderRadius: 18, padding: 14, gap: 4 },
+  list: { backgroundColor: colors.white, borderRadius: 18, paddingHorizontal: 14 },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 58, paddingVertical: 8 },
+  sep: { borderTopWidth: StyleSheet.hairlineWidth, borderColor: colors.border },
+  empty: { alignItems: 'center', gap: space.md, paddingVertical: space.xl },
+  emptyIcon: { width: 52, height: 52, borderRadius: 16, backgroundColor: colors.brandSoft, alignItems: 'center', justifyContent: 'center' },
+});

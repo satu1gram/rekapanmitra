@@ -219,3 +219,38 @@ export function MinusCircleIcon({ size = 22, color }: IconProps) {
     </Svg>
   );
 }
+
+export function GlobeIcon({ size = 22, color }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2.1} strokeLinecap="round">
+      <Circle cx="12" cy="12" r="9" fill={color} fillOpacity={TINT} />
+      <Path d="M3 12h18M12 3c2.5 2.6 3.8 5.6 3.8 9s-1.3 6.4-3.8 9c-2.5-2.6-3.8-5.6-3.8-9S9.5 5.6 12 3Z" />
+    </Svg>
+  );
+}
+
+export function LogoutIcon({ size = 22, color }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2.1} strokeLinecap="round" strokeLinejoin="round">
+      <Path d="M14 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8" fill={color} fillOpacity={TINT} />
+      <Path d="M10 12h10M17 8.5 20.5 12 17 15.5" />
+    </Svg>
+  );
+}
+
+export function PencilIcon({ size = 18, color }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2.1} strokeLinecap="round" strokeLinejoin="round">
+      <Path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16v4Z" fill={color} fillOpacity={TINT} />
+      <Path d="m13.5 6.5 4 4" />
+    </Svg>
+  );
+}
+
+export function SparkleIcon({ size = 22, color }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2.1} strokeLinejoin="round">
+      <Path d="M12 3l2.2 5.8L20 11l-5.8 2.2L12 19l-2.2-5.8L4 11l5.8-2.2L12 3Z" fill={color} fillOpacity={TINT} />
+    </Svg>
+  );
+}
