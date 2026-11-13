@@ -53,7 +53,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "ios:native": "expo run:ios",
-    "android:native": "expo run:android"
+    "android:native": "expo run:android",
+    "e2e": "bash e2e/run.sh"
   },
   "private": true
 }

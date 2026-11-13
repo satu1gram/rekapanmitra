@@ -53,7 +53,10 @@ Hasilnya link unduhan APK yang bisa dipasang langsung di HP Android (perlu akun 
 npm run typecheck   # TypeScript
 npm run lint        # ESLint (eslint-config-expo)
 npm test            # tes logika harga, order, dashboard, tanggal
+npm run e2e         # tes alur end-to-end di Chromium dengan Supabase tiruan
 ```
+
+`npm run e2e` (`e2e/run.sh`) membangun versi web lalu menjalankan semua alur utama dengan data tiruan, jadi tidak ada data asli yang tersentuh: Beranda, tab bar, Riwayat (cari, filter, pilih bulan & tahun), buat order (harga per jumlah dan jenjang, konfirmasi, data yang terkirim), batal order, ulangi order terakhir, ubah status dan hapus order, restok, stok, asisten AI, keuangan, target, pelanggan, toko, ganti level, keluar, hapus akun, login, akun baru, offline, dan onboarding. Setiap baris hasil ditulis `PASS`/`FAIL`; skrip keluar dengan kode 1 jika ada yang gagal. Butuh Playwright + Chromium (`npx playwright install chromium` bila belum ada).
 
 ## Struktur
 
