@@ -4,12 +4,13 @@ import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { QueryClient, QueryClientProvider, focusManager, onlineManager } from '@tanstack/react-query';
 import { AppState, Platform, View } from 'react-native';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useProfile } from '~/hooks/queries';
 import { errorMessage } from '~/lib/supabase';
 import { AuthProvider, useAuth } from '~/providers/AuthProvider';
-import { ErrorState, LoadingState } from '~/ui/components';
+import { ErrorState } from '~/ui/components';
+import { HomeHeaderSkeleton, HomeSkeleton } from '~/ui/skeleton';
 import { colors } from '~/ui/theme';
 import { DialogHost } from '~/ui/dialog';
 
@@ -38,15 +39,28 @@ export default function RootLayout() {
   );
 }
 
+/** First screen while the profile loads: the Beranda layout in grey, so the app opens into the shape it will have. */
+function BootSkeleton() {
+  const insets = useSafeAreaInsets();
+  return (
+    <View style={{ flex: 1, backgroundColor: colors.white, paddingTop: insets.top + 14, paddingHorizontal: 16, gap: 20 }}>
+      <HomeHeaderSkeleton />
+      <HomeSkeleton />
+    </View>
+  );
+}
+
 function RootNavigator() {
   const { session, initializing } = useAuth();
   const profile = useProfile();
   const signedIn = !!session;
   const profileReady = !signedIn || profile.isSuccess;
 
+  // Leave the splash as soon as the session is known: the app then opens straight into its skeleton
+  // (BootSkeleton while the profile loads) instead of staying on a still logo until the data arrives.
   useEffect(() => {
-    if (!initializing && (profileReady || profile.isError)) SplashScreen.hideAsync();
-  }, [initializing, profileReady, profile.isError]);
+    if (!initializing) SplashScreen.hideAsync();
+  }, [initializing]);
 
   if (initializing) return null;
   if (signedIn && profile.isError) {
@@ -56,7 +70,7 @@ function RootNavigator() {
       </View>
     );
   }
-  if (!profileReady) return <View style={{ flex: 1, backgroundColor: colors.bg }}><LoadingState /></View>;
+  if (!profileReady) return <BootSkeleton />;
 
   const needsOnboarding = signedIn && !profile.data?.onboarding_completed;
 

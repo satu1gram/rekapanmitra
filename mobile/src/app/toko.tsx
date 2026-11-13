@@ -6,7 +6,8 @@ import { saveStoreSettings, slugify, type PaymentInfo, type StoreSettings } from
 import { useProfile, useRefreshingMutation, useStoreSettings } from '~/hooks/queries';
 import { publicWebUrl } from '~/lib/config';
 import { errorMessage } from '~/lib/supabase';
-import { AppText, ErrorState, LoadingState, Notice } from '~/ui/components';
+import { AppText, ErrorState, Notice } from '~/ui/components';
+import { StoreSkeleton } from '~/ui/skeleton';
 import { GlobeIcon, PlusIcon, ShareIcon, StoreIcon, TrashIcon } from '~/ui/icons';
 import { FieldRow, Group, kitStyles, PageHeader, PillButton, SectionLabel } from '~/ui/kit';
 import { CapsuleButton, StickyFooter } from '~/ui/sheet';
@@ -22,7 +23,7 @@ const PAYMENT_TYPES = [
 export default function StoreScreen() {
   const store = useStoreSettings();
   const profile = useProfile();
-  if (store.isPending || profile.isPending) return <View style={kitStyles.page}><PageHeader title="Toko online" /><LoadingState /></View>;
+  if (store.isPending || profile.isPending) return <View style={kitStyles.page}><PageHeader title="Toko online" /><StoreSkeleton /></View>;
   if (store.isError) return <View style={kitStyles.page}><PageHeader title="Toko online" /><ErrorState message={errorMessage(store.error)} onRetry={() => store.refetch()} /></View>;
   const initial: StoreSettings = store.data ?? {
     slug: slugify(profile.data?.name ?? ''),

@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import { AccessibilityInfo, Animated, Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { useMemo, useState, type ReactNode } from 'react';
+import { Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { router, type Href } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LOW_STOCK_THRESHOLD, type OrderStatus } from '@/types';
@@ -13,6 +13,7 @@ import { formatRupiah, formatRupiahShort } from '~/lib/money';
 import { errorMessage } from '~/lib/supabase';
 import { AppText, Row } from '~/ui/components';
 import { ErrorPanel, MonthCard, ON_BRAND_MUTED, OrderListRow } from '~/ui/brand';
+import { HomeSkeleton } from '~/ui/skeleton';
 import { BoxIcon, ChatIcon, FlagIcon, ListIcon, MoreIcon, PeopleIcon, PlusIcon, SearchIcon, StoreIcon, WalletIcon, type IconProps } from '~/ui/icons';
 import { colors, radius, space, TAB_BAR_SPACE } from '~/ui/theme';
 
@@ -43,7 +44,7 @@ export default function HomeScreen() {
   const name = profile.data?.name?.split(' ')[0] || 'Mitra';
   const header = <Header salutation={orders.data?.length === 0 ? 'Selamat datang,' : `${greeting()},`} name={name} />;
 
-  if (orders.isPending || stock.isPending) return <Shell>{header}<LoadingBody /></Shell>;
+  if (orders.isPending || stock.isPending) return <Shell>{header}<HomeSkeleton /></Shell>;
   const coreError = orders.error ?? stock.error;
   if (coreError || !summary || !stock.data || !orders.data) {
     return <Shell>{header}<ErrorPanel message={errorMessage(coreError)} onRetry={refresh} retrying={refreshing} /></Shell>;
@@ -315,32 +316,6 @@ function EmptyBody() {
 }
 
 
-function LoadingBody() {
-  const [opacity] = useState(() => new Animated.Value(1));
-  useEffect(() => {
-    let loop: Animated.CompositeAnimation | null = null;
-    AccessibilityInfo.isReduceMotionEnabled().then(reduce => {
-      if (reduce) return;
-      loop = Animated.loop(Animated.sequence([
-        Animated.timing(opacity, { toValue: 0.55, duration: 700, useNativeDriver: true }),
-        Animated.timing(opacity, { toValue: 1, duration: 700, useNativeDriver: true }),
-      ]));
-      loop.start();
-    });
-    return () => loop?.stop();
-  }, [opacity]);
-  const bone = (style: object) => <Animated.View style={[styles.bone, style, { opacity }]} />;
-  return (
-    <View style={{ gap: space.xl }} accessibilityRole="progressbar" accessibilityLabel="Memuat data usaha">
-      {bone({ height: 210, borderRadius: radius.xl })}
-      <View style={{ flexDirection: 'row', gap: 10 }}>{[0, 1, 2, 3].map(i => <View key={i} style={{ flex: 1 }}>{bone({ height: 76, borderRadius: radius.lg })}</View>)}</View>
-      {bone({ height: 18, width: '50%' })}
-      {bone({ height: 96, borderRadius: radius.lg })}
-      <AppText variant="small" color={colors.textMuted} style={{ textAlign: 'center' }}>Memuat data usaha…</AppText>
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
   content: { paddingHorizontal: space.lg, paddingTop: 14, paddingBottom: TAB_BAR_SPACE, gap: space.xl },
   pressed: { opacity: 0.6 },
@@ -363,7 +338,6 @@ const styles = StyleSheet.create({
   bar: { height: 6, borderRadius: 3, backgroundColor: '#DADAE0', overflow: 'hidden' },
   barFill: { height: '100%', backgroundColor: colors.brand },
   whiteBtn: { alignSelf: 'flex-start', minHeight: 48, paddingHorizontal: 20, borderRadius: 12, backgroundColor: colors.white, justifyContent: 'center' },
-  bone: { backgroundColor: '#ECECF1', borderRadius: 8 },
   card: { borderRadius: radius.xl, overflow: 'hidden', backgroundColor: colors.brand },
   recent: { flexDirection: 'row', alignItems: 'center', gap: space.md, minHeight: 54 },
   recentSep: { borderTopWidth: 1, borderColor: colors.border },

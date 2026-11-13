@@ -10,7 +10,8 @@ import { useRefreshingMutation, useStock } from '~/hooks/queries';
 import { currentMonth, formatDate, isInMonth, MONTH_NAMES, type MonthRef } from '~/lib/dates';
 import { formatRupiah, formatRupiahShort } from '~/lib/money';
 import { errorMessage } from '~/lib/supabase';
-import { AppText, LoadingState, Row } from '~/ui/components';
+import { AppText, Row } from '~/ui/components';
+import { StockSkeleton } from '~/ui/skeleton';
 import { ErrorPanel, IconButton, ON_BRAND_MUTED } from '~/ui/brand';
 import { showDialog } from '~/ui/dialog';
 import { BoxIcon, ChevronIcon, PlusIcon } from '~/ui/icons';
@@ -42,7 +43,7 @@ export default function StockScreen() {
     </Row>
   );
 
-  if (stock.isPending) return <SafeAreaView edges={['top']} style={styles.safe}><View style={styles.pad}>{header}<LoadingState label="Memuat stok…" /></View></SafeAreaView>;
+  if (stock.isPending) return <SafeAreaView edges={['top']} style={styles.safe}><View style={[styles.pad, { gap: space.lg }]}>{header}<StockSkeleton /></View></SafeAreaView>;
   if (stock.isError) {
     return (
       <SafeAreaView edges={['top']} style={styles.safe}>

@@ -7,7 +7,8 @@ import { useGeneralExpenses, useGeneralIncome } from '~/hooks/queries';
 import { currentMonth, formatDate, isInMonth, MONTH_NAMES, type MonthRef } from '~/lib/dates';
 import { formatRupiah } from '~/lib/money';
 import { errorMessage } from '~/lib/supabase';
-import { AppText, ErrorState, LoadingState } from '~/ui/components';
+import { AppText, ErrorState } from '~/ui/components';
+import { FinanceSkeleton, FinanceTotalSkeleton } from '~/ui/skeleton';
 import { ChevronIcon, WalletIcon } from '~/ui/icons';
 import { kitStyles, PageHeader, PillTabs } from '~/ui/kit';
 import { MonthSwitcher } from '~/ui/MonthSwitcher';
@@ -41,19 +42,21 @@ export default function FinanceScreen() {
         <PillTabs options={KINDS} value={kind} onChange={setKind} />
         <MonthSwitcher value={month} onChange={setMonth} />
 
-        <View style={[styles.total, { backgroundColor: isExpense ? colors.dangerSoft : colors.brandSoft }]}>
-          <AppText variant="small" color={isExpense ? colors.danger : colors.brandDark} style={{ fontWeight: '700' }}>
-            Total {isExpense ? 'pengeluaran' : 'pemasukan'} {MONTH_NAMES[month.month]}
-          </AppText>
-          <AppText variant="title" color={isExpense ? colors.danger : colors.brandDark} style={{ fontSize: 26 }}>{formatRupiah(total)}</AppText>
-          <AppText variant="small" color={colors.textMuted}>
-            {isExpense
-              ? 'Biaya di luar order, mis. kemasan atau transport. Mengurangi untung bersih.'
-              : 'Pemasukan di luar penjualan, mis. bonus. Menambah untung bersih.'}
-          </AppText>
-        </View>
+        {query.isPending ? <FinanceTotalSkeleton /> : (
+          <View style={[styles.total, { backgroundColor: isExpense ? colors.dangerSoft : colors.brandSoft }]}>
+            <AppText variant="small" color={isExpense ? colors.danger : colors.brandDark} style={{ fontWeight: '700' }}>
+              Total {isExpense ? 'pengeluaran' : 'pemasukan'} {MONTH_NAMES[month.month]}
+            </AppText>
+            <AppText variant="title" color={isExpense ? colors.danger : colors.brandDark} style={{ fontSize: 26 }}>{formatRupiah(total)}</AppText>
+            <AppText variant="small" color={colors.textMuted}>
+              {isExpense
+                ? 'Biaya di luar order, mis. kemasan atau transport. Mengurangi untung bersih.'
+                : 'Pemasukan di luar penjualan, mis. bonus. Menambah untung bersih.'}
+            </AppText>
+          </View>
+        )}
 
-        {query.isPending ? <LoadingState /> : query.isError ? <ErrorState message={errorMessage(query.error)} onRetry={() => query.refetch()} /> : (
+        {query.isPending ? <FinanceSkeleton /> : query.isError ? <ErrorState message={errorMessage(query.error)} onRetry={() => query.refetch()} /> : (
           <View style={{ gap: space.sm }}>
             <AppText variant="heading" style={{ fontWeight: '800' }}>{entries.length} catatan</AppText>
             <View style={styles.list}>

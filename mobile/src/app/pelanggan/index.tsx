@@ -6,7 +6,8 @@ import { useCustomers } from '~/hooks/queries';
 import { formatRupiahShort } from '~/lib/money';
 import { TIER_LABEL } from '~/lib/priceOptions';
 import { errorMessage } from '~/lib/supabase';
-import { AppText, ErrorState, LoadingState } from '~/ui/components';
+import { AppText, ErrorState } from '~/ui/components';
+import { CustomersSkeleton } from '~/ui/skeleton';
 import { ChevronIcon, CloseIcon, PeopleIcon, SearchIcon } from '~/ui/icons';
 import { Avatar, kitStyles, PageHeader, PillTabs } from '~/ui/kit';
 import { colors, radius, space } from '~/ui/theme';
@@ -35,7 +36,7 @@ export default function CustomersScreen() {
   return (
     <View style={kitStyles.page}>
       <PageHeader title="Pelanggan" />
-      {customers.isPending ? <LoadingState /> : customers.isError ? <ErrorState message={errorMessage(customers.error)} onRetry={() => customers.refetch()} /> : (
+      {customers.isPending ? <CustomersSkeleton /> : customers.isError ? <ErrorState message={errorMessage(customers.error)} onRetry={() => customers.refetch()} /> : (
         <FlatList
           contentContainerStyle={{ paddingHorizontal: space.lg, paddingTop: space.sm, paddingBottom: space.xxxl * 2 }}
           keyboardShouldPersistTaps="handled"

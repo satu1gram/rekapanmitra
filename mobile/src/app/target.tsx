@@ -7,7 +7,8 @@ import { summarizeMonth, targetProgress } from '~/lib/dashboard';
 import { currentMonth, MONTH_NAMES, monthLabel, type MonthRef } from '~/lib/dates';
 import { formatNumberInput, formatRupiahShort, parseRupiahInput } from '~/lib/money';
 import { errorMessage } from '~/lib/supabase';
-import { AppText, ErrorState, LoadingState, Notice } from '~/ui/components';
+import { AppText, ErrorState, Notice } from '~/ui/components';
+import { ProgressCardSkeleton, TargetSkeleton } from '~/ui/skeleton';
 import { FieldRow, Group, kitStyles, PageHeader, SectionLabel } from '~/ui/kit';
 import { MonthSwitcher } from '~/ui/MonthSwitcher';
 import { CapsuleButton, StickyFooter } from '~/ui/sheet';
@@ -16,7 +17,7 @@ import { colors, space } from '~/ui/theme';
 export default function TargetScreen() {
   const targets = useTargets();
   const [month, setMonth] = useState<MonthRef>(currentMonth());
-  if (targets.isPending) return <View style={kitStyles.page}><PageHeader title="Target bulanan" /><LoadingState /></View>;
+  if (targets.isPending) return <View style={kitStyles.page}><PageHeader title="Target bulanan" /><TargetSkeleton /></View>;
   if (targets.isError) return <View style={kitStyles.page}><PageHeader title="Target bulanan" /><ErrorState message={errorMessage(targets.error)} onRetry={() => targets.refetch()} /></View>;
   const existing = targets.data.find(t => t.year === month.year && t.month === month.month) ?? null;
   // Remount the form per month so its fields start from that month's target.
@@ -61,6 +62,8 @@ function TargetForm({ month, onMonthChange, existing }: { month: MonthRef; onMon
               <Progress label="Restok" value={`${progress.stock.value}`} target={`${progress.stock.target} botol`} pct={progress.stock.pct} />
             </View>
           </View>
+        ) : existing && !orders.isError && !stock.isError ? (
+          <ProgressCardSkeleton />
         ) : null}
 
         <View style={{ gap: space.sm }}>

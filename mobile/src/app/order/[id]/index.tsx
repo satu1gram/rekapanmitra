@@ -12,7 +12,8 @@ import { productDisplayName } from '~/lib/orderMath';
 import { TIER_LABEL } from '~/lib/priceOptions';
 import { errorMessage } from '~/lib/supabase';
 import { ON_BRAND_MUTED } from '~/ui/brand';
-import { AppText, Divider, ErrorState, LoadingState, Row } from '~/ui/components';
+import { AppText, Divider, ErrorState, Row } from '~/ui/components';
+import { OrderDetailSkeleton } from '~/ui/skeleton';
 import { CameraIcon, ChatIcon, CheckIcon, ChevronIcon, ShareIcon, TrashIcon, type IconProps } from '~/ui/icons';
 import { productImage } from '~/ui/productMedia';
 import { ProofPicker } from '~/ui/ProofPicker';
@@ -35,7 +36,7 @@ export default function OrderStatusScreen() {
   const remove = useRefreshingMutation(() => deleteOrder(id), ['orders', 'stock']);
   const proof = useRefreshingMutation((url: string | null) => setOrderProof(id, url), ['orders', 'order']);
 
-  if (detail.isPending) return <LoadingState />;
+  if (detail.isPending) return <OrderDetailSkeleton />;
   if (detail.isError) return <ErrorState message={errorMessage(detail.error)} onRetry={() => detail.refetch()} />;
 
   const { order, items, expenses } = detail.data;

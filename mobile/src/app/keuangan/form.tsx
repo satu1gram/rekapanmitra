@@ -7,7 +7,8 @@ import { useGeneralExpenses, useGeneralIncome, useRefreshingMutation } from '~/h
 import { formatDate, parseDateLike, sameDay, toDateKey } from '~/lib/dates';
 import { formatNumberInput, formatRupiah, parseRupiahInput } from '~/lib/money';
 import { errorMessage } from '~/lib/supabase';
-import { AppText, ErrorState, LoadingState, Notice } from '~/ui/components';
+import { AppText, ErrorState, Notice } from '~/ui/components';
+import { MoneyFormSkeleton } from '~/ui/skeleton';
 import { Chips } from '~/ui/Chips';
 import { DateCalendar } from '~/ui/DateField';
 import { TrashIcon } from '~/ui/icons';
@@ -22,7 +23,7 @@ export default function MoneyFormScreen() {
   const expenses = useGeneralExpenses();
   const income = useGeneralIncome();
   const query = kind === 'expense' ? expenses : income;
-  if (params.id && query.isPending) return <LoadingState />;
+  if (params.id && query.isPending) return <MoneyFormSkeleton title={`Ubah ${kind === 'expense' ? 'pengeluaran' : 'pemasukan'}`} />;
   if (params.id && query.isError) return <ErrorState message={errorMessage(query.error)} onRetry={() => query.refetch()} />;
   const entry = params.id ? query.data?.find(e => e.id === params.id) : undefined;
   if (params.id && !entry) return <ErrorState message="Catatan tidak ditemukan atau sudah dihapus." />;

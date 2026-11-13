@@ -13,7 +13,8 @@ import { formatNumberInput, formatRupiah, formatRupiahShort, parseRupiahInput } 
 import { computeOrderTotals, mitraCostLookup, priceItems, productCategories, productDisplayName, type DraftExpense, type DraftItem } from '~/lib/orderMath';
 import { priceOptions, selectedOption, TIER_LABEL, TIER_MIN_BOTTLES } from '~/lib/priceOptions';
 import { errorMessage } from '~/lib/supabase';
-import { AppText, Button, ErrorState, LoadingState, Notice, Row, TextField } from './components';
+import { AppText, Button, ErrorState, Notice, Row, TextField } from './components';
+import { OrderFormSkeleton } from './skeleton';
 import { DateCalendar } from './DateField';
 import { CloseIcon, MinusCircleIcon, MinusIcon, PlusIcon, SearchIcon } from './icons';
 import { productImage } from './productMedia';
@@ -159,7 +160,7 @@ export function OrderForm({ initial = {}, orderId }: { initial?: OrderFormInitia
     return (customers.data ?? []).filter(c => c.name.toLowerCase().includes(q) || (c.phone ?? '').includes(q)).slice(0, 6);
   }, [customerName, customerId, customers.data]);
 
-  if (catalog.isPending || profile.isPending) return <LoadingState label="Menyiapkan katalog…" />;
+  if (catalog.isPending || profile.isPending) return <OrderFormSkeleton title={isEdit ? 'Ubah order' : 'Order baru'} />;
   if (catalog.isError) return <ErrorState message={errorMessage(catalog.error)} onRetry={() => catalog.refetch()} />;
   if (catalog.data.length === 0) return <ErrorState message="Katalog produk belum tersedia. Hubungi admin." onRetry={() => catalog.refetch()} />;
 

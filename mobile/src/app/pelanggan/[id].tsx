@@ -11,7 +11,8 @@ import { formatDate } from '~/lib/dates';
 import { formatRupiah } from '~/lib/money';
 import { TIER_LABEL } from '~/lib/priceOptions';
 import { errorMessage } from '~/lib/supabase';
-import { AppText, ErrorState, LoadingState, Notice } from '~/ui/components';
+import { AppText, ErrorState, Notice } from '~/ui/components';
+import { CustomerDetailSkeleton, RowsSkeleton } from '~/ui/skeleton';
 import { OrderListRow } from '~/ui/brand';
 import { ChatIcon, PencilIcon } from '~/ui/icons';
 import { Avatar, FieldRow, Group, kitStyles, PageHeader, PillButton, SectionLabel } from '~/ui/kit';
@@ -22,7 +23,7 @@ export default function CustomerDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const customers = useCustomers();
   const orders = useOrders();
-  if (customers.isPending) return <View style={kitStyles.page}><PageHeader title="Pelanggan" /><LoadingState /></View>;
+  if (customers.isPending) return <View style={kitStyles.page}><PageHeader title="Pelanggan" /><CustomerDetailSkeleton /></View>;
   if (customers.isError) return <View style={kitStyles.page}><PageHeader title="Pelanggan" /><ErrorState message={errorMessage(customers.error)} onRetry={() => customers.refetch()} /></View>;
   const customer = customers.data.find(c => c.id === id);
   if (!customer) return <View style={kitStyles.page}><PageHeader title="Pelanggan" /><ErrorState message="Pelanggan tidak ditemukan." /></View>;
@@ -97,7 +98,7 @@ function CustomerDetail({ customer, history, ordersLoading }: { customer: Custom
         <View style={{ gap: space.sm }}>
           <SectionLabel right={history.length ? <AppText variant="small" color={colors.textMuted}>{history.length} order</AppText> : undefined}>Riwayat order</SectionLabel>
           <View style={styles.list}>
-            {ordersLoading ? <LoadingState /> : history.length === 0 ? (
+            {ordersLoading ? <RowsSkeleton rows={2} /> : history.length === 0 ? (
               <View style={{ paddingVertical: space.lg }}><AppText variant="small" color={colors.textMuted}>Belum ada order tercatat untuk pelanggan ini.</AppText></View>
             ) : history.map((o, i) => <OrderListRow key={o.id} order={o} first={i === 0} showTime={false} showDate />)}
           </View>

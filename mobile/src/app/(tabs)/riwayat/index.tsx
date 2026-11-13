@@ -8,7 +8,8 @@ import { useOrders } from '~/hooks/queries';
 import { currentMonth, dayKey, formatDayHeading, isInMonth, MONTH_NAMES, type MonthRef } from '~/lib/dates';
 import { formatRupiah } from '~/lib/money';
 import { errorMessage } from '~/lib/supabase';
-import { AppText, LoadingState, Row } from '~/ui/components';
+import { AppText, Row } from '~/ui/components';
+import { HistorySkeleton } from '~/ui/skeleton';
 import { ErrorPanel, IconButton, MonthCard, OrderListRow } from '~/ui/brand';
 import { ChatIcon, CloseIcon, ListIcon, PlusIcon, SearchIcon } from '~/ui/icons';
 import { colors, radius, space, TAB_BAR_SPACE } from '~/ui/theme';
@@ -71,7 +72,7 @@ export default function HistoryScreen() {
     </Row>
   );
 
-  if (orders.isPending) return <SafeAreaView edges={['top']} style={styles.safe}><View style={styles.pad}>{header}<LoadingState label="Memuat order…" /></View></SafeAreaView>;
+  if (orders.isPending) return <SafeAreaView edges={['top']} style={styles.safe}><View style={[styles.pad, { gap: space.md }]}>{header}<HistorySkeleton /></View></SafeAreaView>;
   if (orders.isError) {
     return (
       <SafeAreaView edges={['top']} style={styles.safe}>

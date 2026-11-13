@@ -4,6 +4,8 @@ import { Tabs } from 'expo-router';
 import type { BottomTabBarProps } from 'expo-router/js-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { useCatalog, useCustomers, useGeneralExpenses, useGeneralIncome, useProfile, useStoreSettings, useTargets } from '~/hooks/queries';
+
 import { AccountTabIcon, HistoryTabIcon, HomeTabIcon, StockTabIcon, type IconProps } from '~/ui/icons';
 import { colors } from '~/ui/theme';
 
@@ -52,14 +54,32 @@ function FloatingTabBar({ state, emitter, navigateToTab }: BottomTabBarProps) {
   );
 }
 
+/**
+ * Loads the data other screens need (catalog for Order baru, customers, finance, targets, store) in
+ * the background as soon as the app is open, so those screens usually open with data already there.
+ */
+function Warmup() {
+  useProfile();
+  useCatalog();
+  useCustomers();
+  useGeneralExpenses();
+  useGeneralIncome();
+  useTargets();
+  useStoreSettings();
+  return null;
+}
+
 export default function TabsLayout() {
   return (
-    <Tabs tabBar={props => <FloatingTabBar {...props} />} screenOptions={{ headerShown: false }}>
-      <Tabs.Screen name="(beranda)" options={{ title: 'Beranda' }} />
-      <Tabs.Screen name="riwayat" options={{ title: 'Riwayat' }} />
-      <Tabs.Screen name="stok" options={{ title: 'Stok' }} />
-      <Tabs.Screen name="akun" options={{ title: 'Akun' }} />
-    </Tabs>
+    <>
+      <Warmup />
+      <Tabs tabBar={props => <FloatingTabBar {...props} />} screenOptions={{ headerShown: false }}>
+        <Tabs.Screen name="(beranda)" options={{ title: 'Beranda' }} />
+        <Tabs.Screen name="riwayat" options={{ title: 'Riwayat' }} />
+        <Tabs.Screen name="stok" options={{ title: 'Stok' }} />
+        <Tabs.Screen name="akun" options={{ title: 'Akun' }} />
+      </Tabs>
+    </>
   );
 }
 

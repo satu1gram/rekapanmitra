@@ -6,7 +6,8 @@ import { useCatalog, useOrderDetail } from '~/hooks/queries';
 import { linesToDraft } from '~/lib/orderDraft';
 import { productCategories } from '~/lib/orderMath';
 import { errorMessage } from '~/lib/supabase';
-import { ErrorState, LoadingState } from '~/ui/components';
+import { ErrorState } from '~/ui/components';
+import { OrderFormSkeleton } from '~/ui/skeleton';
 import { OrderForm, type OrderFormInitial } from '~/ui/OrderForm';
 
 export default function EditOrderScreen() {
@@ -32,8 +33,8 @@ export default function EditOrderScreen() {
     };
   }, [detail.data, catalog.data]);
 
-  if (detail.isPending || catalog.isPending) return <LoadingState />;
+  if (detail.isPending || catalog.isPending) return <OrderFormSkeleton title="Ubah order" />;
   if (detail.isError || catalog.isError) return <ErrorState message={errorMessage(detail.error ?? catalog.error)} onRetry={() => { detail.refetch(); catalog.refetch(); }} />;
-  if (!initial) return <LoadingState />;
+  if (!initial) return <OrderFormSkeleton title="Ubah order" />;
   return <OrderForm initial={initial} orderId={id} />;
 }

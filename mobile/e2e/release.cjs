@@ -62,6 +62,8 @@ if (mode === 'empty') { data.orders.length = 0; }
     }
     if (mode === 'error' && table.startsWith('orders')) return route.abort('internetdisconnected');
     if (mode === 'loading' && table.startsWith('orders')) { await new Promise(r => setTimeout(r, 8000)); }
+    if (mode === 'slow' && !table.startsWith('profiles')) await new Promise(r => setTimeout(r, 2500));
+    if (mode === 'slowroot' && table.startsWith('profiles')) await new Promise(r => setTimeout(r, 2500));
     let rows = data[table] ?? [];
     for (const [k, v] of url.searchParams) { if (v.startsWith('eq.')) rows = rows.filter(r => r[k] === undefined || String(r[k]) === v.slice(3)); }
     const single = (req.headers()['accept'] || '').includes('vnd.pgrst.object');
@@ -235,6 +237,44 @@ if (mode === 'empty') { data.orders.length = 0; }
       check('Login: masuk dan sampai di Beranda', sent('auth:token').length > 0 && /Omset \w+/.test(await txt()));
     });
   }
+  if (mode === 'slow') {
+    // Each page, opened cold with slow data: a skeleton must show first, then the real content replaces it.
+    const pages = [
+      ['Beranda', '/', 'Omset', 'beranda'], ['Riwayat', '/riwayat', 'Riwayat order', 'riwayat'], ['Stok', '/stok', 'Stok di tangan', 'stok'],
+      ['Pelanggan', '/pelanggan', 'pelanggan', 'pelanggan'], ['Detail pelanggan', '/pelanggan/c1', 'Total belanja', 'pelanggan-detail'], ['Keuangan', '/keuangan', 'Total pengeluaran', 'keuangan'],
+      ['Form keuangan', '/keuangan/form?kind=expense&id=g1', 'Ubah pengeluaran', 'keuangan-form'], ['Target', '/target', 'Capaian', 'target'], ['Toko', '/toko', 'Info toko', 'toko'],
+      ['Detail order', '/order/o1', 'Order dicatat', 'order-detail'], ['Ubah order', '/order/o1/edit', 'Ringkasan', 'order-edit'], ['Order baru', '/order/new', 'Pilih produk', 'order-baru'], ['Ubah restok', '/restok/s1', 'Harga beli', 'restok-edit'],
+    ];
+    for (const [name, p, content, shotName] of pages) await step('skeleton-' + shotName, async () => {
+      await page.goto('http://127.0.0.1:4300' + p);
+      // The bundle takes a moment to start and the opening screen has its own skeleton; wait for the page's skeleton.
+      await page.waitForFunction(() => {
+        const bars = [...document.querySelectorAll('[role=progressbar]')];
+        return bars.length > 0 && !bars.some(b => b.getAttribute('aria-label') === 'Memuat beranda');
+      }, null, { timeout: 8000 }).catch(() => undefined);
+      await page.waitForTimeout(150);
+      const during = await page.getByRole('progressbar').count();
+      const early = await txt();
+      await shot('s-' + shotName);
+      await page.waitForTimeout(p === '/target' ? 6200 : 3600);
+      await shot('f-' + shotName);
+      const late = await txt();
+      check(`Skeleton: ${name} menampilkan skeleton saat memuat`, during > 0, `progressbar=${during}`);
+      check(`Skeleton: ${name} tidak menampilkan spinner/teks "Memuat data…"`, !/Memuat data…/.test(early));
+      check(`Skeleton: ${name} diganti isi asli`, (await page.getByRole('progressbar').count()) === 0 && late.includes(content), `progressbar=${await page.getByRole('progressbar').count()}`);
+    });
+  }
+  if (mode === 'slow') await step('skeleton-akun', async () => {
+    await page.goto('http://127.0.0.1:4300/akun'); await page.waitForTimeout(1100);
+    check('Skeleton: Akun terbuka langsung (profil sudah dimuat layar pembuka)', (await page.getByRole('progressbar').count()) === 0 && (await txt()).includes('Level mitra'));
+  });
+  if (mode === 'slowroot') await step('skeleton-root', async () => {
+    await page.goto('http://127.0.0.1:4300/');
+    await page.getByRole('progressbar').first().waitFor({ timeout: 8000 }).catch(() => undefined); await page.waitForTimeout(150);
+    check('Skeleton: layar pembuka (profil dimuat) memakai bentuk Beranda', (await page.getByLabel('Memuat beranda').count()) > 0);
+    await shot('s-root'); await page.waitForTimeout(3800);
+    check('Skeleton: layar pembuka diganti Beranda', (await page.getByRole('progressbar').count()) === 0 && /Omset/.test(await txt()));
+  });
   if (mode === 'empty') await step('kosong', async () => { await go('/'); check('Akun baru: Beranda kosong mengajak catat order', (await txt()).includes('Catat order pertamamu')); await shot('06-kosong'); });
   if (mode === 'error') await step('gagal', async () => { await go('/'); check('Offline: panel gagal memuat + coba lagi', (await txt()).includes('Data belum bisa dimuat') && (await btn(/Coba lagi/).count()) > 0); });
   if (mode === 'onboarding') await step('onboarding', async () => { await go('/'); check('Onboarding: profil belum lengkap diarahkan ke pengaturan awal', (await txt()).includes('Mulai pakai aplikasi')); });

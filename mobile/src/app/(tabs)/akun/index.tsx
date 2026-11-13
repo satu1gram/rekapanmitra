@@ -12,7 +12,8 @@ import { formatNumberInput, formatRupiah, parseRupiahInput } from '~/lib/money';
 import { buyPricePerBottle } from '~/lib/orderMath';
 import { errorMessage } from '~/lib/supabase';
 import { useAuth } from '~/providers/AuthProvider';
-import { AppText, ErrorState, LoadingState, Notice } from '~/ui/components';
+import { AppText, ErrorState, Notice } from '~/ui/components';
+import { AccountSkeleton } from '~/ui/skeleton';
 import { showDialog } from '~/ui/dialog';
 import { ChatIcon, FlagIcon, GlobeIcon, LogoutIcon, PeopleIcon, PencilIcon, StoreIcon, TrashIcon, WalletIcon, type IconProps } from '~/ui/icons';
 import { Avatar, FieldRow, Group, kitStyles, MenuRow, PageHeader, PillButton, SectionLabel } from '~/ui/kit';
@@ -44,7 +45,7 @@ export default function AccountScreen() {
     ['profile'],
   );
 
-  if (profile.isPending) return <View style={kitStyles.page}><PageHeader title="Akun" back={false} /><LoadingState /></View>;
+  if (profile.isPending) return <View style={kitStyles.page}><PageHeader title="Akun" back={false} /><View style={kitStyles.content}><AccountSkeleton /></View></View>;
   if (profile.isError || !profile.data) {
     return <View style={kitStyles.page}><PageHeader title="Akun" back={false} /><ErrorState message={errorMessage(profile.error, 'Profil tidak ditemukan.')} onRetry={() => profile.refetch()} /></View>;
   }
