@@ -142,6 +142,24 @@ if (mode === 'store') {
       check('Order: belum ada yang tersimpan saat validasi gagal', sent('orders', 'POST').length === 0);
       await shot('02b-order-validasi');
     });
+    await step('order-pelanggan', async () => {
+      await go('/order/new');
+      await tap(/^Pelanggan:/, 600);
+      let t = await txt();
+      check('Pelanggan: daftar terakhir tampil sebelum mengetik', t.includes('Pelanggan terakhir') && t.includes('Bu Rina'));
+      check('Pelanggan: yang hanya ada di riwayat order ikut muncul', t.includes('Pak Budi') && t.includes('Mbak Sari') && t.includes('dari riwayat'));
+      await shot('02c-pelanggan-daftar');
+      await page.getByLabel('Nama pelanggan', { exact: true }).fill('sar'); await page.waitForTimeout(300);
+      t = await txt();
+      check('Pelanggan: mengetik menyaring daftar', t.includes('Cocok dengan “sar”') && t.includes('Mbak Sari') && !t.includes('Pak Budi'));
+      await page.getByLabel('Nama pelanggan', { exact: true }).fill('zzz'); await page.waitForTimeout(300);
+      check('Pelanggan: tidak ada yang cocok menawarkan pelanggan baru', (await txt()).includes('Tambah “zzz” sebagai pelanggan baru'));
+      await tap('Hapus nama pelanggan', 300);
+      check('Pelanggan: tombol X di kolom mengosongkan nama', (await page.getByLabel('Nama pelanggan', { exact: true }).inputValue()) === '');
+      await page.getByLabel('Nama pelanggan', { exact: true }).fill('sar'); await page.waitForTimeout(200);
+      await tap('Pilih Mbak Sari', 500);
+      check('Pelanggan: memilih dari daftar mengisi form order', (await txt()).includes('Mbak Sari · '));
+    });
     await step('order-buat', async () => {
       const before = sent('orders', 'POST').length;
       await go('/order/new');
@@ -153,7 +171,7 @@ if (mode === 'store') {
       await add('British Propolis'); await page.waitForTimeout(150); await add('British Propolis'); await page.waitForTimeout(400);
       t = await txt();
       check('Order: 5 botol otomatis harga Agen', t.includes('Harga Agen') && t.includes('Simpan order Rp1.145.000'));
-      await tap(/^Pelanggan:/); await page.getByLabel('Nama pelanggan').fill('Bu Dewi');
+      await tap(/^Pelanggan:/); await page.getByLabel('Nama pelanggan', { exact: true }).fill('Bu Dewi');
       await page.getByRole('radio', { name: 'Jenjang Agen Plus' }).click(); await tap('Pakai pelanggan ini');
       check('Order: jenjang pelanggan Agen Plus menurunkan harga', (await txt()).includes('Simpan order Rp1.065.000'));
       await tap(/^Simpan order/);
@@ -174,7 +192,7 @@ if (mode === 'store') {
       check('Order: Lanjut mengisi menutup konfirmasi', (await page.getByText('Batalkan order ini?').count()) === 0 && path() === '/order/new');
     });
     await step('order-ulang', async () => {
-      await go('/order/new'); await tap(/^Pelanggan:/); await page.getByLabel('Nama pelanggan').fill('rina'); await page.waitForTimeout(300);
+      await go('/order/new'); await tap(/^Pelanggan:/); await page.getByLabel('Nama pelanggan', { exact: true }).fill('rina'); await page.waitForTimeout(300);
       await tap('Pilih Bu Rina', 1200); await tap('Pakai', 400);
       check('Order: ulangi order terakhir pelanggan', /Ringkas · 3 botol/.test(await txt()));
     });
@@ -255,7 +273,7 @@ if (mode === 'store') {
       await go('/order/new');
       const add = n => btn('Tambah ' + n).first().click();
       await add('British Propolis'); await page.waitForTimeout(150); await add('British Propolis'); await page.waitForTimeout(150); await add('BP Blue'); await page.waitForTimeout(150); await add('Belgie'); await page.waitForTimeout(300);
-      await tap(/^Pelanggan:/); await page.getByLabel('Nama pelanggan').fill('Bu Rina'); await tap('Pakai pelanggan ini', 500);
+      await tap(/^Pelanggan:/); await page.getByLabel('Nama pelanggan', { exact: true }).fill('Bu Rina'); await tap('Pakai pelanggan ini', 500);
       await snap('3-catat-order');
       await go('/stok'); await snap('4-stok');
       await go('/keuangan'); await snap('5-keuangan');

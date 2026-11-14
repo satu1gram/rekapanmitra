@@ -8,10 +8,10 @@ import { colors, radius, space } from './theme';
 import { useKeyboardVisible } from './useKeyboard';
 
 /** Grabber, title and close button at the top of a full-height sheet. */
-export function SheetHeader({ title, onClose, right }: { title: string; onClose: () => void; right?: ReactNode }) {
+export function SheetHeader({ title, onClose, right, grabber = true }: { title: string; onClose: () => void; right?: ReactNode; grabber?: boolean }) {
   return (
     <View style={styles.header}>
-      <View style={styles.grabberRow}><View style={styles.grabber} /></View>
+      {grabber ? <View style={styles.grabberRow}><View style={styles.grabber} /></View> : <View style={{ height: 14 }} />}
       <View style={styles.titleRow}>
         <AppText variant="title" style={{ flex: 1, fontSize: 20 }}>{title}</AppText>
         {right}

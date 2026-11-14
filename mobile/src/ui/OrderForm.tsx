@@ -1,10 +1,9 @@
 import { useMemo, useRef, useState } from 'react';
-import { Image, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, TextInput, View, type ScrollViewInstance } from 'react-native';
+import { Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, TextInput, View, type ScrollViewInstance } from 'react-native';
 import { router, Stack } from 'expo-router';
 import { MITRA_LEVELS, type TierType } from '@/types';
 import { getFallbackUnitPrice } from '@/lib/catalogPricing';
 
-import type { CustomerRow } from '~/data/db';
 import { recordCustomerPurchase } from '~/data/customers';
 import { createOrder, updateOrder } from '~/data/orders';
 import { useCatalog, useCustomers, useOrderDetail, useOrders, useProfile, useRefreshingMutation, useStock } from '~/hooks/queries';
@@ -15,6 +14,8 @@ import { priceOptions, selectedOption, TIER_LABEL, TIER_MIN_BOTTLES } from '~/li
 import { errorMessage } from '~/lib/supabase';
 import { AppText, Button, ErrorState, Notice, Row, TextField } from './components';
 import { OrderFormSkeleton } from './skeleton';
+import { CustomerPicker } from './CustomerPicker';
+import type { Candidate } from '~/lib/customerCandidates';
 import { DateCalendar } from './DateField';
 import { CloseIcon, MinusCircleIcon, MinusIcon, PlusIcon, SearchIcon } from './icons';
 import { productImage } from './productMedia';
@@ -148,7 +149,9 @@ export function OrderForm({ initial = {}, orderId }: { initial?: OrderFormInitia
   ].filter(g => g.rows.length > 0);
 
   // "Ulangi order terakhir": the chosen customer's latest order, mapped back to catalog categories.
-  const lastOrderId = !isEdit && customerId ? orders.data?.find(o => o.customer_id === customerId)?.id : undefined;
+  const lastOrderId = !isEdit && customerName.trim()
+    ? orders.data?.find(o => (customerId ? o.customer_id === customerId : o.customer_name.trim().toLowerCase() === customerName.trim().toLowerCase()))?.id
+    : undefined;
   const lastOrder = useOrderDetail(lastOrderId ?? '');
   const repeatLines = (lastOrderId && lastOrder.data?.items ? lastOrder.data.items : [])
     .map(it => ({ name: catalog.data?.find(p => p.id === it.productId)?.category ?? it.productName, quantity: it.quantity }))
@@ -158,11 +161,6 @@ export function OrderForm({ initial = {}, orderId }: { initial?: OrderFormInitia
     setPricesTouched(true);
   };
 
-  const suggestions = useMemo(() => {
-    const q = customerName.trim().toLowerCase();
-    if (!q || customerId) return [];
-    return (customers.data ?? []).filter(c => c.name.toLowerCase().includes(q) || (c.phone ?? '').includes(q)).slice(0, 6);
-  }, [customerName, customerId, customers.data]);
 
   if (catalog.isPending || profile.isPending) return <OrderFormSkeleton title={isEdit ? 'Ubah order' : 'Order baru'} />;
   if (catalog.isError) return <ErrorState message={errorMessage(catalog.error)} onRetry={() => catalog.refetch()} />;
@@ -173,7 +171,7 @@ export function OrderForm({ initial = {}, orderId }: { initial?: OrderFormInitia
     touch();
   };
   const clearCustomer = () => { setCustomerName(''); setCustomerId(null); setCustomerPhone(''); };
-  const pickCustomer = (c: CustomerRow) => {
+  const pickCustomer = (c: Candidate) => {
     setCustomerName(c.name);
     setCustomerPhone(c.phone ?? '');
     setCustomerId(c.id);
@@ -489,59 +487,25 @@ export function OrderForm({ initial = {}, orderId }: { initial?: OrderFormInitia
       </StickyFooter>
 
 
-      <Modal visible={customerOpen} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setCustomerOpen(false)}>
-        <View style={{ flex: 1, backgroundColor: colors.white }}>
-          <SheetHeader title="Pelanggan" onClose={() => setCustomerOpen(false)} />
-          <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-            <TextField
-              label="Nama pelanggan"
-              value={customerName}
-              onChangeText={t => { setCustomerName(t); setCustomerId(null); }}
-              placeholder="Cari atau ketik nama baru"
-              autoCapitalize="words"
-              autoFocus
-              error={submitted ? customerErr : null}
-              hint={customerName.trim() && customerId ? 'Ketik nama lain untuk mengganti. Pelanggan lama tidak berubah.' : undefined}
-            />
-            {customerName ? (
-              <Pressable onPress={clearCustomer} accessibilityRole="button" hitSlop={8} style={{ alignSelf: 'flex-start', minHeight: 36, justifyContent: 'center' }}>
-                <AppText variant="small" color={colors.danger} style={{ fontWeight: '700' }}>Kosongkan pelanggan</AppText>
-              </Pressable>
-            ) : null}
-            {suggestions.map(c => (
-              <Pressable key={c.id} onPress={() => pickCustomer(c)} accessibilityRole="button" accessibilityLabel={`Pilih ${c.name}`} style={({ pressed }) => [styles.suggestion, pressed && { backgroundColor: colors.fill }]}>
-                <View style={styles.avatar}><AppText variant="bodyStrong" color={colors.brand}>{c.name.slice(0, 1).toUpperCase()}</AppText></View>
-                <View style={{ flex: 1 }}>
-                  <AppText variant="bodyStrong">{c.name}</AppText>
-                  <AppText variant="small" color={colors.textMuted}>{TIER_LABEL[c.tier as TierType] ?? c.tier}{c.phone ? ` · ${c.phone}` : ''} · {c.total_orders} order</AppText>
-                </View>
-              </Pressable>
-            ))}
-            <View style={{ gap: 6 }}>
-              <AppText variant="small" color={colors.textMuted} style={{ fontWeight: '600' }}>Jenjang pelanggan</AppText>
-              <View style={styles.tierWrap} accessibilityRole="radiogroup">
-                {TIERS.map(t => {
-                  const on = tier === t;
-                  return (
-                    <Pressable key={t} onPress={() => pickTier(t)} accessibilityRole="radio" accessibilityState={{ selected: on }} accessibilityLabel={`Jenjang ${TIER_DISPLAY[t]}`} style={[styles.tierChip, on && styles.tierChipOn]}>
-                      <AppText variant="small" color={on ? colors.white : colors.text} style={{ fontWeight: '700', fontSize: 14 }}>{TIER_DISPLAY[t]}</AppText>
-                    </Pressable>
-                  );
-                })}
-              </View>
-              <AppText variant="small" color={colors.textMuted} style={{ fontSize: 13 }}>Pelanggan yang juga mitra dapat harga sesuai jenjangnya, meski belinya sedikit.</AppText>
-            </View>
-            {customerName.trim() && !customerId && suggestions.length === 0 ? (
-              <Notice tone="info">Pelanggan baru “{customerName.trim()}” akan disimpan bersama order.</Notice>
-            ) : null}
-            <TextField label="No. WhatsApp (opsional)" value={customerPhone} onChangeText={setCustomerPhone} keyboardType="phone-pad" placeholder="mis. 0812 3456 7890" />
-          </ScrollView>
-          <StickyFooter>
-            {!customerName.trim() ? <AppText variant="small" color={colors.textMuted} style={{ textAlign: 'center' }}>Isi nama pelanggan dulu, atau pilih dari daftar di atas.</AppText> : null}
-            <CapsuleButton label="Pakai pelanggan ini" onPress={() => setCustomerOpen(false)} disabled={!customerName.trim()} />
-          </StickyFooter>
-        </View>
-      </Modal>
+      {customerOpen ? (
+        <CustomerPicker
+          name={customerName}
+          phone={customerPhone}
+          tier={tier}
+          customerId={customerId}
+          tiers={TIERS.map(t => ({ value: t, label: TIER_DISPLAY[t] }))}
+          tierLabel={t => TIER_LABEL[t as TierType] ?? t}
+          customers={customers}
+          orders={orders.data}
+          error={submitted ? customerErr : null}
+          onNameChange={t => { setCustomerName(t); setCustomerId(null); }}
+          onPhoneChange={setCustomerPhone}
+          onTierChange={t => pickTier(t as TierType)}
+          onClear={clearCustomer}
+          onPick={pickCustomer}
+          onClose={() => setCustomerOpen(false)}
+        />
+      ) : null}
       <DialogHost />
     </KeyboardAvoidingView>
   );
