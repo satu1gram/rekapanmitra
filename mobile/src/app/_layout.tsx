@@ -9,7 +9,7 @@ import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-cont
 import { useProfile } from '~/hooks/queries';
 import { errorMessage } from '~/lib/supabase';
 import { AuthProvider, useAuth } from '~/providers/AuthProvider';
-import { ErrorState } from '~/ui/components';
+import { ErrorPanel } from '~/ui/brand';
 import { HomeHeaderSkeleton, HomeSkeleton } from '~/ui/skeleton';
 import { colors } from '~/ui/theme';
 import { DialogHost } from '~/ui/dialog';
@@ -50,6 +50,16 @@ function BootSkeleton() {
   );
 }
 
+/** Profile could not be loaded at start: same panel as Beranda's "Data belum bisa dimuat". */
+function BootError({ message, onRetry, retrying }: { message: string; onRetry: () => void; retrying: boolean }) {
+  const insets = useSafeAreaInsets();
+  return (
+    <View style={{ flex: 1, backgroundColor: colors.white, paddingTop: insets.top + 24, paddingHorizontal: 16 }}>
+      <ErrorPanel message={message} onRetry={onRetry} retrying={retrying} />
+    </View>
+  );
+}
+
 function RootNavigator() {
   const { session, initializing } = useAuth();
   const profile = useProfile();
@@ -64,11 +74,7 @@ function RootNavigator() {
 
   if (initializing) return null;
   if (signedIn && profile.isError) {
-    return (
-      <View style={{ flex: 1, backgroundColor: colors.bg }}>
-        <ErrorState message={errorMessage(profile.error)} onRetry={() => profile.refetch()} />
-      </View>
-    );
+    return <BootError message={errorMessage(profile.error)} onRetry={() => profile.refetch()} retrying={profile.isRefetching} />;
   }
   if (!profileReady) return <BootSkeleton />;
 
@@ -80,7 +86,7 @@ function RootNavigator() {
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />
       </Stack.Protected>
       <Stack.Protected guard={needsOnboarding} redirectTo="/">
-        <Stack.Screen name="onboarding" options={{ title: 'Pengaturan awal', headerBackVisible: false, gestureEnabled: false }} />
+        <Stack.Screen name="onboarding" options={{ title: 'Pengaturan awal', headerShown: false, gestureEnabled: false }} />
       </Stack.Protected>
       <Stack.Protected guard={signedIn && !needsOnboarding} redirectTo={signedIn ? '/onboarding' : '/login'}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
