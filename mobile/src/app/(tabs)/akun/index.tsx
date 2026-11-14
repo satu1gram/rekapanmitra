@@ -20,6 +20,7 @@ import { Avatar, FieldRow, Group, kitStyles, MenuRow, PageHeader, PillButton, Se
 import { LevelPicker } from '~/ui/LevelPicker';
 import { HeroDecor } from '~/ui/brand';
 import { colors, space, TAB_BAR_SPACE, featureAccent, type Accent } from '~/ui/theme';
+import { usePullRefresh } from '~/ui/usePullRefresh';
 
 const FEATURES: { title: string; subtitle: string; Icon: (p: IconProps) => React.ReactNode; href: Href; accent: Accent }[] = [
   { title: 'Pelanggan', subtitle: 'Data dan riwayat belanja pelanggan', Icon: PeopleIcon, href: '/pelanggan', accent: featureAccent.customers },
@@ -32,6 +33,7 @@ const FEATURES: { title: string; subtitle: string; Icon: (p: IconProps) => React
 export default function AccountScreen() {
   const { email, signOut } = useAuth();
   const profile = useProfile();
+  const pull = usePullRefresh(() => profile.refetch());
   const [editing, setEditing] = useState<'none' | 'profile' | 'level'>('none');
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
@@ -87,7 +89,7 @@ export default function AccountScreen() {
       <ScrollView
         contentContainerStyle={[kitStyles.content, { paddingBottom: TAB_BAR_SPACE }]}
         keyboardShouldPersistTaps="handled"
-        refreshControl={<RefreshControl refreshing={profile.isRefetching} onRefresh={() => { profile.refetch(); }} tintColor={colors.brand} />}
+        refreshControl={<RefreshControl refreshing={pull.refreshing} onRefresh={pull.onRefresh} tintColor={colors.brand} />}
       >
         {error ? <Notice tone="danger">{error}</Notice> : null}
 

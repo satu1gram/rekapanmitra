@@ -14,6 +14,7 @@ import { kitStyles, PageHeader, PillTabs } from '~/ui/kit';
 import { MonthSwitcher } from '~/ui/MonthSwitcher';
 import { CapsuleButton, StickyFooter } from '~/ui/sheet';
 import { colors, space, accents, featureAccent } from '~/ui/theme';
+import { usePullRefresh } from '~/ui/usePullRefresh';
 
 const KINDS = [
   { value: 'expense', label: 'Pengeluaran' },
@@ -26,6 +27,7 @@ export default function FinanceScreen() {
   const [kind, setKind] = useState<MoneyKind>('expense');
   const [month, setMonth] = useState<MonthRef>(currentMonth());
   const query = kind === 'expense' ? expenses : income;
+  const pull = usePullRefresh(() => query.refetch());
 
   const entries = useMemo(() => (query.data ?? []).filter(e => isInMonth(e.date, month)), [query.data, month]);
   const total = entries.reduce((s, e) => s + e.amount, 0);
@@ -38,7 +40,7 @@ export default function FinanceScreen() {
       <PageHeader title="Pengeluaran & pemasukan" />
       <ScrollView
         contentContainerStyle={[kitStyles.content, { paddingBottom: space.xxl }]}
-        refreshControl={<RefreshControl refreshing={query.isRefetching} onRefresh={() => { query.refetch(); }} tintColor={colors.brand} />}
+        refreshControl={<RefreshControl refreshing={pull.refreshing} onRefresh={pull.onRefresh} tintColor={colors.brand} />}
       >
         <PillTabs options={KINDS} value={kind} onChange={setKind} />
         <MonthSwitcher value={month} onChange={setMonth} />

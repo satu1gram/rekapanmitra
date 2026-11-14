@@ -18,6 +18,7 @@ import { BoxIcon, ChevronIcon, PlusIcon } from '~/ui/icons';
 import { PillTabs } from '~/ui/kit';
 import { MonthSwitcher } from '~/ui/MonthSwitcher';
 import { colors, radius, space, TAB_BAR_SPACE, accents, type Accent } from '~/ui/theme';
+import { usePullRefresh } from '~/ui/usePullRefresh';
 
 type Kind = 'in' | 'out' | 'all';
 const KINDS = [
@@ -28,6 +29,7 @@ const KINDS = [
 
 export default function StockScreen() {
   const stock = useStock();
+  const pull = usePullRefresh(() => stock.refetch());
   const [month, setMonth] = useState<MonthRef>(currentMonth());
   const [kind, setKind] = useState<Kind>('all');
   const remove = useRefreshingMutation((entry: StockEntryRow) => deleteStockEntry(entry), ['stock']);
@@ -80,7 +82,7 @@ export default function StockScreen() {
     <SafeAreaView edges={['top']} style={styles.safe}>
       <ScrollView
         contentContainerStyle={[styles.pad, { gap: space.lg }]}
-        refreshControl={<RefreshControl refreshing={stock.isRefetching} onRefresh={() => { stock.refetch(); }} tintColor={colors.brand} />}
+        refreshControl={<RefreshControl refreshing={pull.refreshing} onRefresh={pull.onRefresh} tintColor={colors.brand} />}
       >
         {header}
 

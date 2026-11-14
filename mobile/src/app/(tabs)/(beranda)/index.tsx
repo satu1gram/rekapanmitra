@@ -1,4 +1,5 @@
 import { useMemo, useState, type ReactNode } from 'react';
+import { usePullRefresh } from '~/ui/usePullRefresh';
 import { Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { router, type Href } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -33,8 +34,9 @@ export default function HomeScreen() {
   const [month, setMonth] = useState<MonthRef>(currentMonth());
   const advance = useRefreshingMutation((input: { id: string; status: OrderStatus }) => updateOrderStatus(input.id, input.status), ['orders', 'order']);
 
-  const refreshing = [orders, stock, expenses, income, targets].some(q => q.isRefetching);
-  const refresh = () => [profile, orders, stock, expenses, income, targets].forEach(q => q.refetch());
+  const pull = usePullRefresh(() => Promise.all([profile, orders, stock, expenses, income, targets].map(q => q.refetch())));
+  const refreshing = pull.refreshing;
+  const refresh = pull.onRefresh;
 
   const summary = useMemo(() => {
     if (!orders.data || !stock.data) return null;

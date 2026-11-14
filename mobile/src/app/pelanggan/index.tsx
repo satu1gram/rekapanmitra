@@ -11,6 +11,7 @@ import { CustomersSkeleton } from '~/ui/skeleton';
 import { ChevronIcon, CloseIcon, PeopleIcon, SearchIcon } from '~/ui/icons';
 import { Avatar, kitStyles, PageHeader, PillTabs } from '~/ui/kit';
 import { colors, radius, space } from '~/ui/theme';
+import { usePullRefresh } from '~/ui/usePullRefresh';
 import type { TierType } from '@/types';
 
 type Sort = 'recent' | 'spent' | 'name';
@@ -22,6 +23,7 @@ const SORTS = [
 
 export default function CustomersScreen() {
   const customers = useCustomers();
+  const pull = usePullRefresh(() => customers.refetch());
   const [query, setQuery] = useState('');
   const [sort, setSort] = useState<Sort>('recent');
 
@@ -42,7 +44,7 @@ export default function CustomersScreen() {
           keyboardShouldPersistTaps="handled"
           data={list}
           keyExtractor={c => c.id}
-          refreshControl={<RefreshControl refreshing={customers.isRefetching} onRefresh={() => { customers.refetch(); }} tintColor={colors.brand} />}
+          refreshControl={<RefreshControl refreshing={pull.refreshing} onRefresh={pull.onRefresh} tintColor={colors.brand} />}
           ListHeaderComponent={
             <View style={{ gap: space.md, marginBottom: space.md }}>
               <View style={styles.search}>

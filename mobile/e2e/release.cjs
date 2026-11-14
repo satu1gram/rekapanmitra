@@ -184,7 +184,7 @@ if (mode === 'store') {
       await go('/restok/new');
       check('Restok: tidak menampilkan stok saat ini', !/Stok kamu|Stok saat ini/.test(await txt()));
       await page.getByRole('radio', { name: '20 botol' }).click(); await page.waitForTimeout(200);
-      check('Restok: total belanja ikut jumlah', (await txt()).includes('Rp4.500.000'));
+      check('Restok: total belanja ikut jumlah', (await txt()).includes('Rp4.500.000')); await shot('09-restok');
       await tap(/^Simpan restok/, 1500);
       const e = sent('stock_entries', 'POST').slice(-1)[0]?.body;
       check('Restok: tersimpan 20 botol', e && (Array.isArray(e) ? e[0] : e).quantity === 20, JSON.stringify(e).slice(0, 120));

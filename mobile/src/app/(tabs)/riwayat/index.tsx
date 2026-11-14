@@ -13,6 +13,7 @@ import { HistorySkeleton } from '~/ui/skeleton';
 import { ErrorPanel, IconButton, MonthCard, OrderListRow } from '~/ui/brand';
 import { ChatIcon, CloseIcon, ListIcon, PlusIcon, SearchIcon } from '~/ui/icons';
 import { colors, radius, space, TAB_BAR_SPACE } from '~/ui/theme';
+import { usePullRefresh } from '~/ui/usePullRefresh';
 
 type Filter = 'all' | 'open' | 'selesai';
 const FILTERS: { key: Filter; label: string }[] = [
@@ -31,6 +32,7 @@ interface DaySection {
 
 export default function HistoryScreen() {
   const orders = useOrders();
+  const pull = usePullRefresh(() => orders.refetch());
   const [month, setMonth] = useState<MonthRef>(currentMonth());
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<Filter>('all');
@@ -89,7 +91,7 @@ export default function HistoryScreen() {
         sections={sections}
         keyExtractor={item => item.id}
         stickySectionHeadersEnabled={false}
-        refreshControl={<RefreshControl refreshing={orders.isRefetching} onRefresh={() => { orders.refetch(); }} tintColor={colors.brand} />}
+        refreshControl={<RefreshControl refreshing={pull.refreshing} onRefresh={pull.onRefresh} tintColor={colors.brand} />}
         ListHeaderComponent={
           <View style={{ gap: space.md, marginBottom: 2 }}>
             {header}

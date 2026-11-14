@@ -15,9 +15,23 @@ import { AppText, Notice } from './components';
 import { MinusIcon, PlusIcon } from './icons';
 import { DateCalendar } from './DateField';
 import { ProofPicker } from './ProofPicker';
-import { CapsuleButton, SheetHeader, SheetRow, StickyFooter } from './sheet';
+import { FieldRow } from './kit';
+import { CapsuleButton, SheetHeader, StickyFooter } from './sheet';
 import { colors, radius, space } from './theme';
 import { DialogHost, showDialog } from './dialog';
+
+/** A row that opens something when tapped: small label on top, value below, green action word on the right. */
+function TapRow({ label, value, action, onPress, first, muted }: { label: string; value: string; action: string; onPress: () => void; first?: boolean; muted?: boolean }) {
+  return (
+    <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={`${label}: ${value}. ${action}`} style={({ pressed }) => [styles.tap, !first && styles.sep, pressed && { opacity: 0.6 }]}>
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <AppText variant="small" color={colors.textMuted} style={{ fontSize: 12, fontWeight: '600' }}>{label}</AppText>
+        <AppText variant="body" color={muted ? colors.placeholder : colors.text} style={{ fontSize: 16, fontWeight: muted ? '400' : '600', paddingVertical: 3 }}>{value}</AppText>
+      </View>
+      <AppText variant="bodyStrong" color={colors.brand} style={{ fontWeight: '700' }}>{action}</AppText>
+    </Pressable>
+  );
+}
 
 const QUICK_SIZES = [5, 10, 20, 40];
 type Panel = 'none' | 'date' | 'proof';
@@ -112,29 +126,38 @@ export function RestockForm({ entry, initialQuantity }: { entry?: StockEntryRow;
         <View style={styles.section}>
           <AppText variant="heading" style={styles.h2}>Harga beli</AppText>
           <View style={styles.card}>
-            <View style={styles.field}>
-              <AppText variant="body" color={colors.label} style={styles.fieldLabel}>Modal/botol</AppText>
-              <TextInput value={formatNumberInput(price)} onChangeText={t => setPrice(parseRupiahInput(t))} keyboardType="number-pad" placeholder="0" placeholderTextColor={colors.placeholder} accessibilityLabel="Harga modal per botol" style={styles.input} />
-              {profile.data ? <View style={styles.badge}><AppText variant="caption" color={colors.brandDark} style={{ letterSpacing: 0 }}>{levelLabel(profile.data)}</AppText></View> : null}
+            <FieldRow
+              first
+              label="Modal per botol (bisa diubah)"
+              value={formatNumberInput(price)}
+              onChangeText={t => setPrice(parseRupiahInput(t))}
+              keyboardType="number-pad"
+              placeholder="Isi harga beli per botol"
+              suffix={<AppText variant="small" color={colors.textMuted}>Rp / botol</AppText>}
+            />
+          </View>
+          {profile.data ? (
+            <AppText variant="small" color={colors.textMuted} style={styles.hint}>
+              {price === defaultPrice ? `Terisi otomatis dari level ${levelLabel(profile.data)}. Ketuk angkanya kalau harga belinya berbeda.` : `Harga level ${levelLabel(profile.data)} adalah ${formatRupiah(defaultPrice)}. Angka di atas sudah kamu ubah.`}
+            </AppText>
+          ) : null}
+          <View style={styles.total} accessibilityLabel={`Total belanja ${formatRupiah(total)}`}>
+            <View style={{ flex: 1 }}>
+              <AppText variant="small" color={colors.brandDark} style={{ fontWeight: '700' }}>Total belanja</AppText>
+              <AppText variant="small" color={colors.brandDark}>{quantity} botol × {formatRupiah(price ?? 0)}</AppText>
             </View>
-            <View style={[styles.field, styles.sep]}>
-              <AppText variant="body" color={colors.label} style={styles.fieldLabel}>Total belanja</AppText>
-              <AppText variant="bodyStrong" style={{ flex: 1, textAlign: 'right', fontWeight: '800' }}>{formatRupiah(total)}</AppText>
-            </View>
+            <AppText variant="title" color={colors.brandDark} style={{ fontSize: 20 }}>{formatRupiah(total)}</AppText>
           </View>
         </View>
 
         <View style={styles.section}>
           <AppText variant="heading" style={styles.h2}>Detail</AppText>
           <View style={styles.card}>
-            <SheetRow first label="Tanggal terima" value={today ? `Hari ini, ${formatDate(date.toISOString())}` : formatDate(date.toISOString())} onPress={() => toggle('date')} />
+            <TapRow first label="Tanggal terima" value={today ? `Hari ini, ${formatDate(date.toISOString())}` : formatDate(date.toISOString())} action="Ubah" onPress={() => toggle('date')} />
             {panel === 'date' ? <View style={{ paddingBottom: space.md }}><DateCalendar value={date} onChange={d => { setDate(d); setPanel('none'); }} /></View> : null}
-            <SheetRow label="Bukti / nota" value={proofUrl ? 'Terlampir' : 'Tambah foto'} valueColor={colors.brand} onPress={() => toggle('proof')} />
+            <TapRow label="Bukti / nota" value={proofUrl ? 'Foto terlampir' : 'Belum ada foto'} muted={!proofUrl} action={proofUrl ? 'Ganti' : 'Tambah'} onPress={() => toggle('proof')} />
             {panel === 'proof' ? <View style={{ paddingBottom: space.md }}><ProofPicker value={proofUrl} onChange={setProofUrl} label="Foto bukti transfer atau nota" /></View> : null}
-            <View style={[styles.field, styles.sep]}>
-              <AppText variant="body" color={colors.label} style={styles.fieldLabel}>Catatan</AppText>
-              <TextInput value={notes} onChangeText={setNotes} placeholder="Opsional, mis. dari upline siapa" placeholderTextColor={colors.placeholder} accessibilityLabel="Catatan" style={styles.input} />
-            </View>
+            <FieldRow label="Catatan (opsional)" value={notes} onChangeText={setNotes} placeholder="mis. dari upline siapa" />
           </View>
         </View>
       </ScrollView>
@@ -162,5 +185,8 @@ const styles = StyleSheet.create({
   sep: { borderTopWidth: StyleSheet.hairlineWidth, borderColor: colors.border },
   fieldLabel: { width: 104, fontSize: 14, fontWeight: '500', color: colors.label },
   input: { flex: 1, minWidth: 0, width: 0, fontSize: 15, fontWeight: '600', color: colors.text, paddingVertical: space.sm },
+  tap: { flexDirection: 'row', alignItems: 'center', gap: space.md, minHeight: 60, paddingVertical: 7 },
+  hint: { paddingHorizontal: 4, lineHeight: 18 },
+  total: { flexDirection: 'row', alignItems: 'center', gap: space.md, borderRadius: 16, backgroundColor: colors.brandSoft, paddingHorizontal: 14, paddingVertical: 12 },
   badge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: radius.pill, backgroundColor: colors.brandSoft },
 });
