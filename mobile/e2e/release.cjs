@@ -220,7 +220,7 @@ if (mode === 'empty') { data.orders.length = 0; }
       await tap(/^Keluar/, 400);
       check('Akun: keluar minta konfirmasi', (await page.getByText('Keluar dari akun?').count()) === 1);
       await btn('Keluar').last().click(); await page.waitForTimeout(1500);
-      check('Akun: keluar kembali ke halaman masuk', /Masuk/.test(await txt()) && sent('auth:logout').length > 0);
+      check('Akun: keluar kembali ke halaman sambutan', /Saya sudah punya akun/.test(await txt()) && sent('auth:logout').length > 0);
     });
   }
 
