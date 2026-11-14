@@ -6,7 +6,8 @@ import { QueryClient, QueryClientProvider, focusManager, onlineManager } from '@
 import { AppState, Platform, View } from 'react-native';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { useProfile } from '~/hooks/queries';
+import { useGeneralExpenses, useGeneralIncome, useOrders, useProfile, useStock, useTargets } from '~/hooks/queries';
+import { resetHomeReady, useHomeReady } from '~/lib/bootGate';
 import { errorMessage } from '~/lib/supabase';
 import { AuthProvider, useAuth } from '~/providers/AuthProvider';
 import { ErrorPanel } from '~/ui/brand';
@@ -64,7 +65,36 @@ function RootNavigator() {
   const { session, initializing } = useAuth();
   const profile = useProfile();
   const signedIn = !!session;
-  const profileReady = !signedIn || profile.isSuccess;
+  // Beranda needs these five to draw. Loading them here, behind the same opening skeleton, means the app
+  // opens straight into a filled Beranda instead of showing one skeleton, then Beranda's own skeleton.
+  const core = [useOrders(), useStock(), useGeneralExpenses(), useGeneralIncome(), useTargets()];
+  const coreSettled = core.every(q => !q.isPending);
+  // On a very slow connection do not hold the opening screen forever: after a few seconds let Beranda load its own data.
+  const userId = session?.user.id ?? null;
+  const [waitedFor, setWaitedFor] = useState<string | null>(null);
+  useEffect(() => {
+    if (!userId) return undefined;
+    const timer = setTimeout(() => setWaitedFor(userId), 6000);
+    return () => clearTimeout(timer);
+  }, [userId]);
+  const waitedLongEnough = !!userId && waitedFor === userId;
+  const onboarded = !!profile.data?.onboarding_completed;
+  const profileReady = !signedIn || (profile.isSuccess && (!onboarded || coreSettled || waitedLongEnough));
+
+  // The opening skeleton stays on top of the app until Beranda has drawn (or a short grace period passes, e.g. when the
+  // app opens straight onto another tab), so there is no blank frame between skeleton and content.
+  const homeReady = useHomeReady();
+  const [graceOverFor, setGraceOverFor] = useState<string | null>(null);
+  const covering = signedIn && profileReady && onboarded;
+  useEffect(() => {
+    if (!userId) resetHomeReady();
+  }, [userId]);
+  useEffect(() => {
+    if (!covering || !userId) return undefined;
+    const timer = setTimeout(() => setGraceOverFor(userId), 1500);
+    return () => clearTimeout(timer);
+  }, [covering, userId]);
+  const showCover = covering && !homeReady && graceOverFor !== userId;
 
   // Leave the splash as soon as the session is known: the app then opens straight into its skeleton
   // (BootSkeleton while the profile loads) instead of staying on a still logo until the data arrives.
@@ -81,6 +111,7 @@ function RootNavigator() {
   const needsOnboarding = signedIn && !profile.data?.onboarding_completed;
 
   return (
+    <>
     <Stack screenOptions={{ headerTintColor: colors.brandDark, contentStyle: { backgroundColor: colors.bg }, headerBackButtonDisplayMode: 'minimal' }}>
       <Stack.Protected guard={!signedIn} redirectTo="/">
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />
@@ -105,5 +136,7 @@ function RootNavigator() {
         <Stack.Screen name="hapus-akun" options={{ title: 'Hapus akun', headerShown: false }} />
       </Stack.Protected>
     </Stack>
+    {showCover ? <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} pointerEvents="auto"><BootSkeleton /></View> : null}
+    </>
   );
 }

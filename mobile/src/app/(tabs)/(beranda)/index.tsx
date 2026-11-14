@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { usePullRefresh } from '~/ui/usePullRefresh';
 import { Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { router, type Href } from 'expo-router';
@@ -11,6 +11,7 @@ import { useGeneralExpenses, useGeneralIncome, useOrders, useProfile, useRefresh
 import { summarizeMonth, targetProgress } from '~/lib/dashboard';
 import { currentMonth, formatTime, greeting, isInMonth, MONTH_NAMES, type MonthRef } from '~/lib/dates';
 import { formatRupiah, formatRupiahShort } from '~/lib/money';
+import { markHomeReady } from '~/lib/bootGate';
 import { isOpenStatus } from '~/lib/orderStatus';
 import { errorMessage } from '~/lib/supabase';
 import { AppText, Row } from '~/ui/components';
@@ -36,6 +37,9 @@ export default function HomeScreen() {
   const [month, setMonth] = useState<MonthRef>(currentMonth());
   const advance = useRefreshingMutation((input: { id: string; status: OrderStatus }) => updateOrderStatus(input.id, input.status), ['orders', 'order']);
 
+  // Beranda has something real on screen (data, empty state or error): the opening skeleton can go.
+  const drawn = !orders.isPending;
+  useEffect(() => { if (drawn) markHomeReady(); }, [drawn]);
   const pull = usePullRefresh(() => Promise.all([profile, orders, stock, expenses, income, targets].map(q => q.refetch())));
   const refreshing = pull.refreshing;
   const refresh = pull.onRefresh;

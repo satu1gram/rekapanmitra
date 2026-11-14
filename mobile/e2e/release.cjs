@@ -356,6 +356,21 @@ if (mode === 'store') {
       await shot('d3-lupa');
     });
   }
+  if (mode === 'slow') await step('skeleton-sekali', async () => {
+    // Buka aplikasi dingin dengan data lambat: skeleton awal lalu isi Beranda. Skeleton kedua milik Beranda tidak boleh muncul.
+    await page.goto('http://127.0.0.1:4300/');
+    const seq = [];
+    for (let i = 0; i < 60; i++) {
+      const boot = await page.getByLabel('Memuat beranda').count();
+      const bars = await page.getByRole('progressbar').count();
+      const content = /Omset/.test(await txt());
+      seq.push(content ? 'C' : boot > 0 ? 'B' : bars > 0 ? 'P' : '-');
+      if (content && seq.filter(x => x === 'C').length > 3) break;
+      await page.waitForTimeout(100);
+    }
+    const compact = seq.filter((x, i) => x !== seq[i - 1]).join('');
+    check('Buka aplikasi: skeleton awal sekali, tanpa bingkai kosong, lalu langsung isi Beranda', compact === 'BC' || compact === '-BC', compact);
+  });
   if (mode === 'slow') {
     // Each page, opened cold with slow data: a skeleton must show first, then the real content replaces it.
     const pages = [
@@ -378,13 +393,13 @@ if (mode === 'store') {
       await page.waitForTimeout(p === '/target' ? 6200 : 3600);
       await shot('f-' + shotName);
       const late = await txt();
-      check(`Skeleton: ${name} menampilkan skeleton saat memuat`, during > 0, `progressbar=${during}`);
+      check(`Skeleton: ${name} menampilkan skeleton saat memuat, atau langsung berisi bila datanya sudah dimuat di layar pembuka`, during > 0 || early.includes(content), `progressbar=${during}`);
       check(`Skeleton: ${name} tidak menampilkan spinner/teks "Memuat data…"`, !/Memuat data…/.test(early));
       check(`Skeleton: ${name} diganti isi asli`, (await page.getByRole('progressbar').count()) === 0 && late.includes(content), `progressbar=${await page.getByRole('progressbar').count()}`);
     });
   }
   if (mode === 'slow') await step('skeleton-akun', async () => {
-    await page.goto('http://127.0.0.1:4300/akun'); await page.waitForTimeout(1100);
+    await page.goto('http://127.0.0.1:4300/akun'); await page.waitForTimeout(4600);
     check('Skeleton: Akun terbuka langsung (profil sudah dimuat layar pembuka)', (await page.getByRole('progressbar').count()) === 0 && (await txt()).includes('Level mitra'));
   });
   if (mode === 'slowroot') await step('skeleton-root', async () => {
@@ -395,7 +410,7 @@ if (mode === 'store') {
     check('Skeleton: layar pembuka diganti Beranda', (await page.getByRole('progressbar').count()) === 0 && /Omset/.test(await txt()));
   });
   if (mode === 'empty') await step('kosong', async () => { await go('/'); check('Akun baru: Beranda kosong mengajak catat order', (await txt()).includes('Catat order pertamamu')); await shot('06-kosong'); });
-  if (mode === 'error') await step('gagal', async () => { await go('/'); check('Offline: panel gagal memuat + coba lagi', (await txt()).includes('Data belum bisa dimuat') && (await btn(/Coba lagi/).count()) > 0); });
+  if (mode === 'error') await step('gagal', async () => { await go('/'); await page.getByText('Data belum bisa dimuat').first().waitFor({ timeout: 8000 }).catch(() => undefined); check('Offline: panel gagal memuat + coba lagi', (await txt()).includes('Data belum bisa dimuat') && (await btn(/Coba lagi/).count()) > 0); });
   if (mode === 'onboarding') await step('onboarding', async () => {
     await go('/');
     check('Onboarding: profil belum lengkap diarahkan ke Lengkapi profil', (await txt()).includes('Kenalan dulu, yuk'));
