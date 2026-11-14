@@ -80,3 +80,15 @@ export async function updateCustomer(id: string, fields: { name: string; phone: 
     throw error;
   }
 }
+
+/**
+ * Hapus pelanggan tanpa menghapus order-ordernya. Order tetap tersimpan dengan nama dan nomor
+ * pelanggan saat order dibuat; hanya tautannya yang dilepas, jadi tidak perlu membatalkan order dulu.
+ */
+export async function deleteCustomer(id: string) {
+  const userId = await requireUserId();
+  const { error: unlinkError } = await supabase.from('orders').update({ customer_id: null }).eq('customer_id', id).eq('user_id', userId);
+  if (unlinkError) throw unlinkError;
+  const { error } = await supabase.from('customers').delete().eq('id', id).eq('user_id', userId);
+  if (error) throw error;
+}

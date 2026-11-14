@@ -134,6 +134,14 @@ if (mode === 'store') {
       check('Riwayat: pilih Oktober 2025 dari pemilih bulan', /Oktober 2025/.test(await txt()) && /Belum ada order di Oktober/.test(await txt()));
       await shot('02-riwayat-okt');
     });
+    await step('order-validasi', async () => {
+      await go('/order/new');
+      await tap(/^Simpan order/, 500);
+      const t = await txt();
+      check('Order: kosong menampilkan kesalahan per bagian', t.includes('Isi dulu Pelanggan dan Produk') && t.includes('Pilih atau ketik nama pelanggan.') && t.includes('Tambahkan minimal satu produk.'));
+      check('Order: belum ada yang tersimpan saat validasi gagal', sent('orders', 'POST').length === 0);
+      await shot('02b-order-validasi');
+    });
     await step('order-buat', async () => {
       const before = sent('orders', 'POST').length;
       await go('/order/new');

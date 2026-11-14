@@ -4,17 +4,18 @@ import { router, useLocalSearchParams } from 'expo-router';
 import type { TierType } from '@/types';
 
 import type { CustomerRow } from '~/data/db';
-import { updateCustomer } from '~/data/customers';
+import { deleteCustomer, updateCustomer } from '~/data/customers';
 import { ordersForCustomer } from '~/data/orders';
 import { useCustomers, useOrders, useRefreshingMutation } from '~/hooks/queries';
 import { formatDate } from '~/lib/dates';
 import { formatRupiah } from '~/lib/money';
+import { showDialog } from '~/ui/dialog';
 import { TIER_LABEL } from '~/lib/priceOptions';
 import { errorMessage } from '~/lib/supabase';
 import { AppText, ErrorState, Notice } from '~/ui/components';
 import { CustomerDetailSkeleton, RowsSkeleton } from '~/ui/skeleton';
 import { OrderListRow } from '~/ui/brand';
-import { ChatIcon, PencilIcon } from '~/ui/icons';
+import { ChatIcon, PencilIcon, TrashIcon } from '~/ui/icons';
 import { Avatar, FieldRow, Group, kitStyles, PageHeader, PillButton, SectionLabel } from '~/ui/kit';
 import { CapsuleButton, StickyFooter } from '~/ui/sheet';
 import { colors, space } from '~/ui/theme';
@@ -36,6 +37,15 @@ function CustomerDetail({ customer, history, ordersLoading }: { customer: Custom
   const [fields, setFields] = useState({ name: customer.name, phone: customer.phone ?? '', address: customer.address ?? '', city: customer.city ?? '', province: customer.province ?? '' });
   const [error, setError] = useState<string | null>(null);
   const save = useRefreshingMutation((f: typeof fields) => updateCustomer(customer.id, f), ['customers']);
+  const remove = useRefreshingMutation(() => deleteCustomer(customer.id), ['customers', 'orders']);
+  const confirmDelete = () => showDialog(
+    `Hapus ${customer.name}?`,
+    'Data pelanggan dihapus. Order yang pernah dicatat tetap ada di Riwayat, tanpa tautan ke pelanggan ini.',
+    [
+      { text: 'Batal', style: 'cancel' },
+      { text: 'Hapus pelanggan', style: 'destructive', onPress: () => remove.mutate(undefined, { onSuccess: () => router.back(), onError: e => showDialog('Gagal menghapus', errorMessage(e)) }) },
+    ],
+  );
   const set = (key: keyof typeof fields) => (value: string) => setFields(prev => ({ ...prev, [key]: value }));
   const waNumber = (customer.phone ?? '').replace(/\D/g, '').replace(/^0/, '62');
   const address = [customer.address, customer.city, customer.province].filter(Boolean).join(', ');
@@ -92,6 +102,7 @@ function CustomerDetail({ customer, history, ordersLoading }: { customer: Custom
               <PillButton label="Ubah data" Icon={PencilIcon} tone="outline" onPress={() => setEditing(true)} style={{ flex: 1 }} />
             </View>
             <AppText variant="small" color={colors.textMuted}>Pelanggan sejak {formatDate(customer.created_at)}</AppText>
+            <PillButton label="Hapus pelanggan" Icon={TrashIcon} tone="danger" onPress={confirmDelete} style={{ alignSelf: 'flex-start' }} />
           </View>
         )}
 

@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react';
-import { Image, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { useMemo, useRef, useState } from 'react';
+import { Image, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, TextInput, View, type ScrollViewInstance } from 'react-native';
 import { router, Stack } from 'expo-router';
 import { MITRA_LEVELS, type TierType } from '@/types';
 import { getFallbackUnitPrice } from '@/lib/catalogPricing';
@@ -79,6 +79,10 @@ export function OrderForm({ initial = {}, orderId }: { initial?: OrderFormInitia
   const [showAll, setShowAll] = useState(true);
   const [query, setQuery] = useState('');
   const [error, setError] = useState<string | null>(null);
+  // Set after a failed save attempt: field errors show from then on and clear as soon as the field is fixed.
+  const [submitted, setSubmitted] = useState(false);
+  const [expenseTried, setExpenseTried] = useState(false);
+  const scrollRef = useRef<ScrollViewInstance>(null);
 
   const create = useRefreshingMutation(createOrder, ['orders', 'customers', 'stock']);
   const editId = orderId ?? '';
@@ -168,6 +172,7 @@ export function OrderForm({ initial = {}, orderId }: { initial?: OrderFormInitia
     setTierState(t);
     touch();
   };
+  const clearCustomer = () => { setCustomerName(''); setCustomerId(null); setCustomerPhone(''); };
   const pickCustomer = (c: CustomerRow) => {
     setCustomerName(c.name);
     setCustomerPhone(c.phone ?? '');
@@ -180,24 +185,27 @@ export function OrderForm({ initial = {}, orderId }: { initial?: OrderFormInitia
 
   const addExpense = () => {
     if (!expenseName.trim() || !expenseAmount) {
-      setError('Isi jenis dan nominal biaya tambahan.');
+      setExpenseTried(true);
       return;
     }
     setExpenses(prev => [...prev, { name: expenseName.trim(), amount: expenseAmount }]);
     setExpenseName('');
     setExpenseAmount(null);
-    setError(null);
+    setExpenseTried(false);
   };
+
+  const customerErr = customerName.trim() ? null : 'Pilih atau ketik nama pelanggan.';
+  const productsErr = activeItems.length === 0 ? 'Tambahkan minimal satu produk.' : null;
+  const missing = [customerErr && 'Pelanggan', productsErr && 'Produk'].filter(Boolean) as string[];
+  const shownCustomerErr = submitted ? customerErr : null;
+  const shownProductsErr = submitted ? productsErr : null;
 
   const submit = () => {
     setError(null);
-    if (!customerName.trim()) {
-      setCustomerOpen(true);
-      return setError('Isi nama pelanggan.');
-    }
-    if (activeItems.length === 0) {
-      setShowAll(true);
-      return setError('Tambahkan minimal satu produk.');
+    if (missing.length) {
+      setSubmitted(true);
+      scrollRef.current?.scrollTo({ y: 0, animated: true });
+      return;
     }
     showDialog(
       isEdit ? 'Simpan perubahan order?' : 'Simpan order ini?',
@@ -260,7 +268,10 @@ export function OrderForm({ initial = {}, orderId }: { initial?: OrderFormInitia
       <Stack.Screen options={{ headerShown: false, gestureEnabled: !dirty }} />
       <SheetHeader title={isEdit ? 'Ubah order' : 'Order baru'} onClose={confirmLeave} />
 
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <ScrollView ref={scrollRef} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+        {submitted && missing.length ? (
+          <Notice tone="danger" title="Order belum bisa disimpan">Isi dulu {missing.join(' dan ')}. Bagian yang masih kosong ditandai merah.</Notice>
+        ) : null}
         {initial.notices?.map(n => <Notice key={n.text} tone={n.tone}>{n.text}</Notice>)}
         {error ? <Notice tone="danger">{error}</Notice> : null}
 
@@ -282,6 +293,7 @@ export function OrderForm({ initial = {}, orderId }: { initial?: OrderFormInitia
             },
           ]}
         />
+        {shownCustomerErr ? <FieldError>{shownCustomerErr}</FieldError> : null}
         {panel === 'date' ? <DateCalendar value={date} onChange={d => { setDate(d); setPanel('none'); }} /> : null}
 
         <View style={styles.section}>
@@ -295,6 +307,7 @@ export function OrderForm({ initial = {}, orderId }: { initial?: OrderFormInitia
               <AppText variant="small" color={colors.textMuted}>Ketuk + untuk menambah</AppText>
             )}
           </Row>
+          {shownProductsErr ? <FieldError>{shownProductsErr}</FieldError> : null}
 
           {repeatLines.length > 0 && activeItems.length === 0 ? (
             <View style={styles.suggest}>
@@ -427,8 +440,8 @@ export function OrderForm({ initial = {}, orderId }: { initial?: OrderFormInitia
                 </Row>
               ))}
               <Row style={{ alignItems: 'flex-end' }}>
-                <View style={{ flex: 1.3 }}><TextField label="Jenis biaya" value={expenseName} onChangeText={setExpenseName} placeholder="mis. Ongkir" /></View>
-                <View style={{ flex: 1 }}><TextField label="Nominal" value={formatNumberInput(expenseAmount)} onChangeText={t => setExpenseAmount(parseRupiahInput(t))} keyboardType="number-pad" placeholder="mis. 12.000" /></View>
+                <View style={{ flex: 1.3 }}><TextField label="Jenis biaya" value={expenseName} onChangeText={setExpenseName} placeholder="mis. Ongkir" error={expenseTried && !expenseName.trim() ? 'Isi jenis biaya.' : null} /></View>
+                <View style={{ flex: 1 }}><TextField label="Nominal" value={formatNumberInput(expenseAmount)} onChangeText={t => setExpenseAmount(parseRupiahInput(t))} keyboardType="number-pad" placeholder="mis. 12.000" error={expenseTried && !expenseAmount ? 'Isi nominal.' : null} /></View>
               </Row>
               <Button label="Tambah biaya tambahan" icon="add" tone="secondary" onPress={addExpense} />
             </View>
@@ -487,7 +500,14 @@ export function OrderForm({ initial = {}, orderId }: { initial?: OrderFormInitia
               placeholder="Cari atau ketik nama baru"
               autoCapitalize="words"
               autoFocus
+              error={submitted ? customerErr : null}
+              hint={customerName.trim() && customerId ? 'Ketik nama lain untuk mengganti. Pelanggan lama tidak berubah.' : undefined}
             />
+            {customerName ? (
+              <Pressable onPress={clearCustomer} accessibilityRole="button" hitSlop={8} style={{ alignSelf: 'flex-start', minHeight: 36, justifyContent: 'center' }}>
+                <AppText variant="small" color={colors.danger} style={{ fontWeight: '700' }}>Kosongkan pelanggan</AppText>
+              </Pressable>
+            ) : null}
             {suggestions.map(c => (
               <Pressable key={c.id} onPress={() => pickCustomer(c)} accessibilityRole="button" accessibilityLabel={`Pilih ${c.name}`} style={({ pressed }) => [styles.suggestion, pressed && { backgroundColor: colors.fill }]}>
                 <View style={styles.avatar}><AppText variant="bodyStrong" color={colors.brand}>{c.name.slice(0, 1).toUpperCase()}</AppText></View>
@@ -517,6 +537,7 @@ export function OrderForm({ initial = {}, orderId }: { initial?: OrderFormInitia
             <TextField label="No. WhatsApp (opsional)" value={customerPhone} onChangeText={setCustomerPhone} keyboardType="phone-pad" placeholder="mis. 0812 3456 7890" />
           </ScrollView>
           <StickyFooter>
+            {!customerName.trim() ? <AppText variant="small" color={colors.textMuted} style={{ textAlign: 'center' }}>Isi nama pelanggan dulu, atau pilih dari daftar di atas.</AppText> : null}
             <CapsuleButton label="Pakai pelanggan ini" onPress={() => setCustomerOpen(false)} disabled={!customerName.trim()} />
           </StickyFooter>
         </View>
@@ -524,6 +545,11 @@ export function OrderForm({ initial = {}, orderId }: { initial?: OrderFormInitia
       <DialogHost />
     </KeyboardAvoidingView>
   );
+}
+
+/** Red helper line under a field or section that the person has not filled in yet. */
+function FieldError({ children }: { children: string }) {
+  return <AppText variant="small" color={colors.danger} style={{ fontWeight: '600', paddingHorizontal: 4, marginTop: 6 }} accessibilityLabel={children}>{children}</AppText>;
 }
 
 function ConfirmLine({ label, value, strong, color = colors.text }: { label: string; value: string; strong?: boolean; color?: string }) {
