@@ -84,7 +84,7 @@ Rancangan visualnya ada di kanvas desain (baris "Alternatif: pola UX super app")
 
 | Fitur | Status di aplikasi |
 |---|---|
-| Masuk, daftar, lupa kata sandi | Ada. Link email dibuka di `https://mitrabp.biz.id` (ganti lewat `EXPO_PUBLIC_WEB_URL`). |
+| Masuk, daftar, lupa kata sandi | Ada. Link email dan toko online dibuka di `https://app.mitrabp.biz.id` (ganti lewat `EXPO_PUBLIC_WEB_URL`). `mitrabp.biz.id` adalah landing page, tidak punya rute aplikasi. |
 | Pengaturan awal (nama, level, stok awal) | Ada. |
 | Beranda: omset, untung kotor/setelah biaya, stok, target, order bulan ini | Ada, rumus sama dengan dashboard web. |
 | Tambah dan **ubah** order (pelanggan → produk → periksa, biaya, bukti transfer) | Ada. Saat mengubah, harga tersimpan dipakai sampai produk atau harga pelanggan diganti. |
@@ -128,7 +128,7 @@ Bundle ID / package: `id.biz.mitrabp.rekapan` (sama dengan rencana Capacitor seb
    ```
    Fungsi ini memakai `verify_jwt = true`, mengambil ID pengguna dari token (bukan dari isi permintaan), menolak akun admin, menghapus foto di bucket `transfer-proofs`, menghapus data di semua tabel milik pengguna (termasuk tabel yang belum `ON DELETE CASCADE`: `order_items`, `order_expenses`, `general_income`, `products`), lalu menghapus akun login.
 2. Kebijakan privasi dan formulir App Privacy / Data Safety.
-3. Pastikan `https://mitrabp.biz.id/dashboard` dan `/reset-password` ada di Supabase → Authentication → Redirect URLs.
+3. Pastikan `https://app.mitrabp.biz.id/dashboard` dan `/reset-password` ada di Supabase → Authentication → Redirect URLs.
 4. Ganti kunci API AI yang pernah bocor di riwayat git, dan amankan RPC `submit_public_order` serta webhook Telegram (lihat `docs/VALIDASI_RENCANA_MOBILE.md` di branch `preview/mobile-ai`). Backend yang sama dipakai aplikasi ini.
 5. Uji di iPhone dan HP Android nyata.
 6. Hubungkan proyek ke akun Expo sekali (`npx eas-cli@latest init`, mengisi `extra.eas.projectId`), lalu build `production`. Nomor build naik otomatis (`appVersionSource: remote`).

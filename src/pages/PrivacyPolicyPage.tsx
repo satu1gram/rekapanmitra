@@ -10,7 +10,7 @@ const sections: { title: string; body: React.ReactNode }[] = [
     body: (
       <p>
         Rekapan Mitra adalah aplikasi pencatatan order, stok, pelanggan, dan keuangan untuk mitra penjual produk. Tersedia sebagai aplikasi iOS, aplikasi Android, dan
-        aplikasi web di mitrabp.biz.id. Ketiganya memakai satu akun dan satu database, jadi data yang sama muncul di semua perangkat.
+        aplikasi web di app.mitrabp.biz.id. Ketiganya memakai satu akun dan satu database, jadi data yang sama muncul di semua perangkat.
       </p>
     ),
   },
@@ -64,7 +64,7 @@ const sections: { title: string; body: React.ReactNode }[] = [
     title: "6. Toko online publik",
     body: (
       <p>
-        Bila kamu mengaktifkan halaman toko (mitrabp.biz.id/toko/nama-tokomu), nama toko, pesan sambutan, dan info pembayaran yang kamu isi di pengaturan toko dapat dilihat
+        Bila kamu mengaktifkan halaman toko (app.mitrabp.biz.id/toko/nama-tokomu), nama toko, pesan sambutan, dan info pembayaran yang kamu isi di pengaturan toko dapat dilihat
         siapa saja yang memiliki tautannya. Data lain tidak ditampilkan. Kamu bisa menonaktifkan toko kapan saja.
       </p>
     ),
