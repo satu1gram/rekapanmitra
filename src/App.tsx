@@ -18,6 +18,7 @@ const DashboardPage = lazy(() => import("./pages/DashboardPage"));
 const RiwayatPage = lazy(() => import("./pages/RiwayatPage"));
 const ProdukPage = lazy(() => import("./pages/ProdukPage"));
 const AkunPage = lazy(() => import("./pages/AkunPage"));
+const PrivacyPolicyPage = lazy(() => import("./pages/PrivacyPolicyPage"));
 const PublicOrderPage = lazy(() => import("./pages/PublicOrderPage"));
 const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage").then(m => ({ default: m.ResetPasswordPage })));
 
@@ -92,6 +93,11 @@ const App = () => (
             {/* Public store page — no auth required */}
             <Route path="/toko/:slug" element={
               <Suspense fallback={<PageLoader />}><PublicOrderPage /></Suspense>
+            } />
+
+            {/* Kebijakan privasi — wajib publik untuk App Store / Play Store */}
+            <Route path="/kebijakan-privasi" element={
+              <Suspense fallback={<PageLoader />}><PrivacyPolicyPage /></Suspense>
             } />
 
             {/* Reset password — link dari email Supabase */}

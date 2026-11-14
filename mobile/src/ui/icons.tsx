@@ -229,6 +229,15 @@ export function GlobeIcon({ size = 22, color }: IconProps) {
   );
 }
 
+export function LockIcon({ size = 22, color }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2.1} strokeLinecap="round" strokeLinejoin="round">
+      <Rect x="5" y="10.5" width="14" height="10" rx="3" fill={color} fillOpacity={TINT} />
+      <Path d="M8 10.5V8a4 4 0 0 1 8 0v2.5" />
+    </Svg>
+  );
+}
+
 export function LogoutIcon({ size = 22, color }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2.1} strokeLinecap="round" strokeLinejoin="round">

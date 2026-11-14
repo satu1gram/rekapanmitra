@@ -36,11 +36,25 @@ const posted = [];
 const mode = process.argv[4] || 'full';
 if (mode === 'onboarding') data.profiles[0].onboarding_completed = false;
 if (mode === 'empty') { data.orders.length = 0; }
+if (mode === 'store') {
+  // Data contoh yang tampak hidup untuk screenshot store. Semua fiktif.
+  data.profiles[0].name = 'Dewi Rahayu';
+  const people = [['Bu Rina', '0812-3456-7801', 'reseller'], ['Pak Budi', '0812-3456-7802', 'satuan'], ['Mbak Sari', '0812-3456-7803', 'agen'], ['Bu Wati', '0812-3456-7804', 'satuan'], ['Kak Dimas', '0812-3456-7805', 'reseller']];
+  data.customers = people.map(([name, phone, tier], i) => ({ id: 'c' + (i + 1), user_id: uid, name, phone, tier, type: 'konsumen', total_orders: 3 + i, total_spent: (3 + i) * 520000, created_at: d(30 + i), updated_at: d(i) }));
+  const plan = [[0, 0, 3, 240000, 'selesai'], [0, 1, 1, 285000, 'pending'], [0, 4, 2, 195000, 'menunggu_bayar'], [1, 2, 5, 225000, 'terkirim'], [2, 3, 1, 265000, 'selesai'], [3, 4, 2, 195000, 'selesai'], [5, 0, 2, 285000, 'selesai'], [7, 1, 2, 265000, 'selesai'], [9, 2, 3, 260000, 'selesai'], [12, 3, 1, 195000, 'selesai'], [15, 4, 3, 240000, 'selesai'], [19, 0, 5, 225000, 'selesai']];
+  data.orders = plan.map(([ago, ci, qty, price, status], i) => { const c = data.customers[ci]; const total = qty * price; const buy = qty * 225000; return { id: 'o' + (i + 1), user_id: uid, customer_id: c.id, customer_name: c.name, customer_phone: c.phone, tier: c.tier, quantity: qty, price_per_bottle: price, total_price: total, buy_price: buy, margin: total - buy, status, transfer_proof_url: null, created_at: d(ago, 9 + (i % 6)), updated_at: d(ago) }; });
+  data.order_items = data.orders.map((o, i) => ({ id: 'i' + i, order_id: o.id, user_id: uid, product_name: ['BP', 'BLUE', 'BELGIE', 'KID'][i % 4], product_id: null, quantity: o.quantity, price_per_bottle: o.price_per_bottle, subtotal: o.total_price, created_at: o.created_at }));
+  data.user_stock = [{ id: 'us', user_id: uid, current_stock: 18, updated_at: d(0) }];
+  data.stock_entries = [{ id: 's1', user_id: uid, type: 'in', quantity: 30, tier: 'agen', buy_price_per_bottle: 225000, total_buy_price: 6750000, notes: 'Restok dari upline', created_at: d(25) }, { id: 's2', user_id: uid, type: 'in', quantity: 20, tier: 'agen', buy_price_per_bottle: 225000, total_buy_price: 4500000, notes: 'Restok bulanan', created_at: d(8) }];
+  data.general_expenses = [{ id: 'g1', user_id: uid, name: 'Plastik dan lakban', amount: 45000, category: 'packaging', notes: null, expense_date: d(3).slice(0, 10), created_at: d(3) }, { id: 'g2', user_id: uid, name: 'Iklan', amount: 100000, category: 'marketing', notes: null, expense_date: d(6).slice(0, 10), created_at: d(6) }];
+  data.monthly_targets = [{ year: now.getFullYear(), month: now.getMonth(), target_profit: 1500000, target_qty: 40, target_stock: 30 }];
+}
 (async () => {
   // Use the preinstalled browser when the project's Playwright pins another version.
   const exe = process.env.PW_CHROMIUM || (fs.existsSync('/opt/pw-browsers/chromium') ? '/opt/pw-browsers/chromium' : undefined);
   const b = await chromium.launch(exe ? { executablePath: fs.statSync(exe).isDirectory() ? undefined : exe } : {});
-  const ctx = await b.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
+  const vp = mode === 'store' ? { width: +(process.env.STORE_W || 440), height: +(process.env.STORE_H || 956) } : { width: 390, height: 844 };
+  const ctx = await b.newContext({ viewport: vp, deviceScaleFactor: mode === 'store' ? +(process.env.STORE_DPR || 3) : 2 });
   const page = await ctx.newPage();
   const errors = []; page.on('pageerror', e => errors.push(e.message)); page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
   await page.route('**/*supabase.co/**', async route => {
@@ -224,6 +238,24 @@ if (mode === 'empty') { data.orders.length = 0; }
     });
   }
 
+  if (mode === 'store') {
+    const tag = process.env.STORE_TAG || 'store';
+    const snap = name => shot(`${tag}-${name}`);
+    await step('store', async () => {
+      await go('/'); await snap('1-beranda');
+      await go('/riwayat'); await snap('2-riwayat');
+      await go('/order/new');
+      const add = n => btn('Tambah ' + n).first().click();
+      await add('British Propolis'); await page.waitForTimeout(150); await add('British Propolis'); await page.waitForTimeout(150); await add('BP Blue'); await page.waitForTimeout(150); await add('Belgie'); await page.waitForTimeout(300);
+      await tap(/^Pelanggan:/); await page.getByLabel('Nama pelanggan').fill('Bu Rina'); await tap('Pakai pelanggan ini', 500);
+      await snap('3-catat-order');
+      await go('/stok'); await snap('4-stok');
+      await go('/keuangan'); await snap('5-keuangan');
+      await go('/pelanggan'); await snap('6-pelanggan');
+      await go('/target'); await snap('7-target');
+      await go('/akun'); await snap('8-akun');
+    });
+  }
   if (mode === 'hapus') {
     await step('hapus-akun', async () => {
       await go('/hapus-akun');

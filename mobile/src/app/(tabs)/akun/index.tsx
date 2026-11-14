@@ -15,7 +15,7 @@ import { useAuth } from '~/providers/AuthProvider';
 import { AppText, ErrorState, Notice } from '~/ui/components';
 import { AccountSkeleton } from '~/ui/skeleton';
 import { showDialog } from '~/ui/dialog';
-import { ChatIcon, FlagIcon, GlobeIcon, LogoutIcon, PeopleIcon, PencilIcon, StoreIcon, TrashIcon, WalletIcon, type IconProps } from '~/ui/icons';
+import { ChatIcon, FlagIcon, GlobeIcon, LockIcon, LogoutIcon, PeopleIcon, PencilIcon, StoreIcon, TrashIcon, WalletIcon, type IconProps } from '~/ui/icons';
 import { Avatar, FieldRow, Group, kitStyles, MenuRow, PageHeader, PillButton, SectionLabel } from '~/ui/kit';
 import { LevelPicker } from '~/ui/LevelPicker';
 import { HeroDecor } from '~/ui/brand';
@@ -155,6 +155,7 @@ export default function AccountScreen() {
           <SectionLabel>Lainnya</SectionLabel>
           <Group>
             <MenuRow first title="Buka versi web" subtitle="Laporan lengkap di browser" Icon={GlobeIcon} tone="muted" onPress={() => WebBrowser.openBrowserAsync(publicWebUrl('/dashboard'))} />
+            <MenuRow title="Kebijakan privasi" subtitle="Data apa yang disimpan dan cara menghapusnya" Icon={LockIcon} tone="muted" onPress={() => WebBrowser.openBrowserAsync(publicWebUrl('/kebijakan-privasi'))} />
             <MenuRow title="Keluar" Icon={LogoutIcon} tone="danger" chevron={false} onPress={confirmSignOut} />
             <MenuRow title="Hapus akun" subtitle="Hapus akun dan semua data secara permanen" Icon={TrashIcon} tone="muted" onPress={() => router.push('/hapus-akun')} />
           </Group>

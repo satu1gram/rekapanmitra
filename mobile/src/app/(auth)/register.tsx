@@ -1,3 +1,5 @@
+import * as WebBrowser from 'expo-web-browser';
+import { publicWebUrl } from '~/lib/config';
 import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
@@ -85,6 +87,9 @@ export default function RegisterScreen() {
           <AppText variant="small" color={level ? STRENGTH[level].color : colors.textMuted} style={{ fontWeight: '600' }}>{STRENGTH[level].text}</AppText>
         </View>
         <AppText variant="small" color={colors.textMuted} style={{ paddingHorizontal: 4, lineHeight: 19 }}>Datamu tersimpan di akun ini dan bisa dihapus kapan saja lewat menu Akun.</AppText>
+        <Pressable onPress={() => WebBrowser.openBrowserAsync(publicWebUrl('/kebijakan-privasi'))} accessibilityRole="link" style={{ paddingHorizontal: 4, minHeight: 32, justifyContent: 'center' }}>
+          <AppText variant="small" color={colors.brand} style={{ fontWeight: '700' }}>Baca kebijakan privasi</AppText>
+        </Pressable>
       </ScrollView>
       <StickyFooter>
         <CapsuleButton label={ready ? 'Daftar dan kirim link verifikasi' : 'Lengkapi tiga isian di atas'} onPress={submit} loading={busy} disabled={!ready} />
