@@ -1,5 +1,9 @@
 name: Versioning Check
 
+permissions:
+  contents: read
+  pull-requests: write
+
 on:
   push:
     branches: [main]
@@ -38,3 +42,27 @@ jobs:
               exit 1
             }
           done <<< "$commits"
+
+      - name: Check mobile version and changelog
+        shell: bash
+        run: |
+          set -euo pipefail
+          app=$(node -p "require('./mobile/app.json').expo.version")
+          pkg=$(node -p "require('./mobile/package.json').version")
+          if [[ "$app" != "$pkg" ]]; then
+            echo "Versi mobile tidak sama: mobile/app.json=$app, mobile/package.json=$pkg"
+            exit 1
+          fi
+          grep -q "## \[$app\]" mobile/CHANGELOG.md || { echo "mobile/CHANGELOG.md belum punya entri untuk $app"; exit 1; }
+
+      - name: Saran versi
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          node scripts/version-advice.mjs --markdown > advice.md
+          cat advice.md >> "$GITHUB_STEP_SUMMARY"
+          if [[ "${{ github.event_name }}" == "pull_request" && "${{ github.event.pull_request.head.repo.full_name }}" == "${{ github.repository }}" ]]; then
+            { echo "## Saran versi"; echo; cat advice.md; echo; echo "_Otomatis dari \`npm run version:advice\`. Rilis dengan \`npm run release:bump -- <web|mobile>\`._"; } > comment.md
+            gh pr comment "${{ github.event.pull_request.number }}" --edit-last --create-if-none --body-file comment.md || true
+          fi

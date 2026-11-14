@@ -47,6 +47,10 @@ npx eas-cli@latest build --platform android --profile preview
 
 Hasilnya link unduhan APK yang bisa dipasang langsung di HP Android (perlu akun Expo gratis).
 
+## Versi dan rilis
+
+Versi aplikasi ada di `app.json` (sama dengan `package.json`); nomor build diurus EAS. Jalankan `npm run version:advice` di root repo untuk saran naik versi, dan baca `docs/VERSIONING.md` untuk alurnya.
+
 ## Pemeriksaan
 
 ```bash

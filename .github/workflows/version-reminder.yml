@@ -1,0 +1,41 @@
+name: Pengingat Rilis
+
+# Setiap Senin pagi (WIB) cek apakah sudah waktunya naik versi. Bila ya, buka atau perbarui satu issue pengingat.
+on:
+  schedule:
+    - cron: "0 1 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  remind:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Hitung saran versi
+        id: advice
+        shell: bash
+        run: |
+          set +e
+          node scripts/version-advice.mjs --markdown --exit-code > advice.md
+          echo "code=$?" >> "$GITHUB_OUTPUT"
+          cat advice.md >> "$GITHUB_STEP_SUMMARY"
+      - name: Buka atau perbarui issue pengingat
+        if: steps.advice.outputs.code == '3'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          title="Saatnya rilis versi baru?"
+          { cat advice.md; echo; echo "Cara rilis: \`npm run release:bump -- <web|mobile>\` (lihat docs/VERSIONING.md). Issue ini diperbarui otomatis tiap Senin dan boleh ditutup setelah rilis."; } > body.md
+          n=$(gh issue list --state open --search "\"$title\" in:title" --json number --jq '.[0].number // empty')
+          if [[ -n "$n" ]]; then gh issue edit "$n" --body-file body.md; else gh issue create --title "$title" --body-file body.md; fi

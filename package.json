@@ -11,6 +11,8 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
+    "version:advice": "node scripts/version-advice.mjs",
+    "release:bump": "node scripts/version-advice.mjs bump",
     "sync:testimoni": "python3 scripts/telegram_scraper.py && npx tsx scripts/import_scraped_data.ts"
   },
   "dependencies": {
