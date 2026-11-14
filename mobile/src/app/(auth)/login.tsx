@@ -11,7 +11,7 @@ import { AppText } from '~/ui/components';
 import { ChevronIcon } from '~/ui/icons';
 import { FieldRow, Group, PillButton } from '~/ui/kit';
 import { PasswordToggle } from '~/ui/PasswordToggle';
-import { CapsuleButton } from '~/ui/sheet';
+import { CapsuleButton, StickyFooter } from '~/ui/sheet';
 import { accents, colors, space } from '~/ui/theme';
 
 export default function LoginScreen() {
@@ -40,8 +40,8 @@ export default function LoginScreen() {
   };
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: colors.brand }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <ScrollView contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled" bounces={false}>
+    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: colors.bg }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <ScrollView contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets bounces={false}>
         <View style={[styles.hero, { paddingTop: insets.top + 12 }]}>
           <HeroDecor />
           {router.canGoBack() ? (
@@ -54,7 +54,7 @@ export default function LoginScreen() {
           <AppText variant="body" color={ON_BRAND_MUTED} style={{ fontSize: 15, lineHeight: 22 }}>Masuk untuk lanjut mencatat order dan stok usahamu.</AppText>
         </View>
 
-        <View style={[styles.sheet, { paddingBottom: insets.bottom + 24 }]}>
+        <View style={[styles.sheet, { paddingBottom: 24 }]}>
           {error ? (
             <View style={styles.error} accessibilityRole="alert">
               <AppText variant="small" color={accents.rose.fg} style={{ fontWeight: '600', fontSize: 14 }}>{error}</AppText>
@@ -90,8 +90,6 @@ export default function LoginScreen() {
             <AppText variant="small" color={colors.brand} style={{ fontWeight: '700', fontSize: 14 }}>Lupa kata sandi?</AppText>
           </Pressable>
 
-          <CapsuleButton label="Masuk" onPress={submit} loading={busy} />
-
           <View style={styles.register}>
             <View style={{ flex: 1, gap: 2 }}>
               <AppText variant="bodyStrong">Baru di Rekapan Mitra?</AppText>
@@ -101,6 +99,9 @@ export default function LoginScreen() {
           </View>
         </View>
       </ScrollView>
+      <StickyFooter>
+        <CapsuleButton label="Masuk" onPress={submit} loading={busy} />
+      </StickyFooter>
     </KeyboardAvoidingView>
   );
 }

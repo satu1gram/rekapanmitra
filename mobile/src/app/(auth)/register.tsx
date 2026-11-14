@@ -8,6 +8,7 @@ import { AppText, Notice } from '~/ui/components';
 import { FieldRow, Group, kitStyles, PageHeader } from '~/ui/kit';
 import { PasswordToggle } from '~/ui/PasswordToggle';
 import { CapsuleButton, StickyFooter } from '~/ui/sheet';
+import { useKeyboardVisible } from '~/ui/useKeyboard';
 import { StageSteps } from '~/ui/StageSteps';
 import { accents, colors, space } from '~/ui/theme';
 
@@ -25,6 +26,7 @@ function strengthOf(password: string) {
 }
 
 export default function RegisterScreen() {
+  const keyboard = useKeyboardVisible();
   const { signUp } = useAuth();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -55,7 +57,7 @@ export default function RegisterScreen() {
   return (
     <KeyboardAvoidingView style={kitStyles.page} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <PageHeader title="Buat akun" />
-      <ScrollView contentContainerStyle={[kitStyles.content, { paddingBottom: space.xxl }]} keyboardShouldPersistTaps="handled">
+      <ScrollView contentContainerStyle={[kitStyles.content, { paddingBottom: space.xxl }]} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets>
         <StageSteps labels={['Akun', 'Verifikasi']} current={0} />
         <View style={{ gap: 6 }}>
           <AppText variant="title" style={{ fontSize: 24, lineHeight: 30 }}>Mulai catat usahamu</AppText>
@@ -86,9 +88,11 @@ export default function RegisterScreen() {
       </ScrollView>
       <StickyFooter>
         <CapsuleButton label={ready ? 'Daftar dan kirim link verifikasi' : 'Lengkapi tiga isian di atas'} onPress={submit} loading={busy} disabled={!ready} />
-        <Pressable onPress={() => router.replace('/login')} accessibilityRole="button" style={styles.login}>
+        {keyboard ? null : (
+          <Pressable onPress={() => router.replace('/login')} accessibilityRole="button" style={styles.login}>
           <AppText variant="small" color={colors.textMuted}>Sudah punya akun? <AppText variant="small" color={colors.brand} style={{ fontWeight: '700' }}>Masuk</AppText></AppText>
         </Pressable>
+        )}
       </StickyFooter>
     </KeyboardAvoidingView>
   );

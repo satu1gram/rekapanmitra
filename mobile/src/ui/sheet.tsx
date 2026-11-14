@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppText } from './components';
 import { ChevronIcon, CloseIcon } from './icons';
 import { colors, radius, space } from './theme';
+import { useKeyboardVisible } from './useKeyboard';
 
 /** Grabber, title and close button at the top of a full-height sheet. */
 export function SheetHeader({ title, onClose, right }: { title: string; onClose: () => void; right?: ReactNode }) {
@@ -90,7 +91,9 @@ export function CapsuleButton({ label, value, onPress, loading, disabled, tone =
 /** White bar pinned to the bottom of a sheet, above the home indicator. */
 export function StickyFooter({ children, style }: { children: ReactNode; style?: StyleProp<ViewStyle> }) {
   const insets = useSafeAreaInsets();
-  return <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, space.sm) + 2 }, style]}>{children}</View>;
+  const keyboard = useKeyboardVisible();
+  // With the keyboard up the home-indicator inset is already covered, so keep the bar slim.
+  return <View style={[styles.footer, { paddingBottom: keyboard ? space.sm : Math.max(insets.bottom, space.sm) + 2 }, style]}>{children}</View>;
 }
 
 /** A tappable settings-like row inside a sheet ("Biaya tambahan · Ongkir Rp12.000 ›"). */

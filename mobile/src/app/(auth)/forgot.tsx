@@ -9,9 +9,11 @@ import { AppText, Notice } from '~/ui/components';
 import { CheckIcon } from '~/ui/icons';
 import { FieldRow, Group, kitStyles, PageHeader } from '~/ui/kit';
 import { CapsuleButton, StickyFooter } from '~/ui/sheet';
+import { useKeyboardVisible } from '~/ui/useKeyboard';
 import { accents, colors, space } from '~/ui/theme';
 
 export default function ForgotScreen() {
+  const keyboard = useKeyboardVisible();
   const { sendPasswordReset } = useAuth();
   const [email, setEmail] = useState('');
   const [busy, setBusy] = useState(false);
@@ -35,7 +37,7 @@ export default function ForgotScreen() {
   return (
     <KeyboardAvoidingView style={kitStyles.page} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <PageHeader title="Lupa kata sandi" />
-      <ScrollView contentContainerStyle={[kitStyles.content, { paddingBottom: space.xxl }]} keyboardShouldPersistTaps="handled">
+      <ScrollView contentContainerStyle={[kitStyles.content, { paddingBottom: space.xxl }]} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets>
         <View style={styles.lock}>
           <Svg width={32} height={32} viewBox="0 0 24 24" fill="none" stroke={accents.amber.fg} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
             <Rect x="5" y="11" width="14" height="10" rx="3" fill={accents.amber.fg} fillOpacity={0.22} />
@@ -62,9 +64,11 @@ export default function ForgotScreen() {
       </ScrollView>
       <StickyFooter>
         <CapsuleButton label={sent ? 'Kirim ulang link' : 'Kirim link reset'} onPress={submit} loading={busy} />
-        <Pressable onPress={() => router.replace('/login')} accessibilityRole="button" style={styles.back}>
+        {keyboard ? null : (
+          <Pressable onPress={() => router.replace('/login')} accessibilityRole="button" style={styles.back}>
           <AppText variant="bodyStrong" color={colors.brand} style={{ fontWeight: '700' }}>Kembali ke halaman masuk</AppText>
         </Pressable>
+        )}
       </StickyFooter>
     </KeyboardAvoidingView>
   );

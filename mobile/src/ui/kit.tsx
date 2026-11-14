@@ -71,16 +71,19 @@ export function MenuRow({ title, subtitle, Icon, value, onPress, first, tone = '
 
 /** Label on the left, input on the right, inside a Group. */
 export function FieldRow({ label, first, suffix, multiline, ...input }: TextInputProps & { label: string; first?: boolean; suffix?: ReactNode }) {
+  const filled = !!input.value && String(input.value).length > 0;
   return (
-    <View style={[styles.field, multiline && { alignItems: 'flex-start', paddingVertical: 12 }, !first && styles.sep]}>
-      <AppText variant="body" color={colors.label} style={[styles.fieldLabel, multiline && { paddingTop: 2 }]}>{label}</AppText>
-      <TextInput
-        placeholderTextColor={colors.placeholder}
-        accessibilityLabel={label}
-        multiline={multiline}
-        {...input}
-        style={[styles.input, multiline && { minHeight: 60, textAlignVertical: 'top', paddingVertical: 0 }]}
-      />
+    <View style={[styles.field, !first && styles.sep]}>
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <AppText variant="small" color={colors.textMuted} style={styles.fieldLabel}>{label}</AppText>
+        <TextInput
+          placeholderTextColor={colors.placeholder}
+          accessibilityLabel={label}
+          multiline={multiline}
+          {...input}
+          style={[styles.input, filled ? styles.inputFilled : styles.inputEmpty, multiline && { minHeight: 44, textAlignVertical: 'top' }]}
+        />
+      </View>
       {suffix}
     </View>
   );
@@ -160,9 +163,11 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 56, paddingVertical: 8 },
   sep: { borderTopWidth: StyleSheet.hairlineWidth, borderColor: colors.border },
   iconBox: { width: 36, height: 36, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
-  field: { flexDirection: 'row', alignItems: 'center', gap: space.md, minHeight: 48 },
-  fieldLabel: { width: 108, fontSize: 14, fontWeight: '500' },
-  input: { flex: 1, minWidth: 0, width: 0, fontSize: 15, fontWeight: '600', color: colors.text, paddingVertical: 10 },
+  field: { flexDirection: 'row', alignItems: 'center', gap: space.md, minHeight: 60, paddingVertical: 7 },
+  fieldLabel: { fontSize: 12, fontWeight: '600', letterSpacing: 0.1 },
+  input: { fontSize: 16, color: colors.text, paddingVertical: 3, paddingHorizontal: 0 },
+  inputFilled: { fontWeight: '600' },
+  inputEmpty: { fontWeight: '400' },
   pill: { minHeight: 36, paddingHorizontal: 14, borderRadius: radius.pill, borderWidth: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
   tabs: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   tab: { minHeight: 34, paddingHorizontal: 14, borderRadius: radius.pill, justifyContent: 'center', backgroundColor: colors.white },
