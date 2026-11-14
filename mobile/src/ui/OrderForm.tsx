@@ -246,7 +246,7 @@ export function OrderForm({ initial = {}, orderId }: { initial?: OrderFormInitia
       onSuccess: order => {
         // Customer stats are secondary; the order is already saved (same as the web app).
         recordCustomerPurchase(customers.data ?? [], { customerName, customerPhone, tier, totalPrice: totals.totalPrice }).catch(() => undefined);
-        router.replace({ pathname: '/order/[id]', params: { id: order.id } });
+        router.replace({ pathname: '/order/[id]', params: { id: order.id, created: '1' } });
       },
       onError: e => setError(errorMessage(e, 'Order gagal disimpan. Coba lagi.')),
     });

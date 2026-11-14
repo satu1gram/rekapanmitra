@@ -1,11 +1,14 @@
 import { useState, type ReactNode } from 'react';
-import { Image, Linking, Pressable, ScrollView, Share, StyleSheet, View } from 'react-native';
+import { Image, Linking, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { OrderStatus } from '@/types';
 
 import { deleteOrder, setOrderProof, updateOrderStatus } from '~/data/orders';
-import { useOrderDetail, useRefreshingMutation } from '~/hooks/queries';
+import { useOrderDetail, useProfile, useRefreshingMutation, useStoreSettings } from '~/hooks/queries';
+import { publicWebUrl } from '~/lib/config';
+import type { ReceiptInput } from '~/lib/receipt';
+import { ReceiptSheet } from '~/ui/ReceiptSheet';
 import { formatDate, formatTime } from '~/lib/dates';
 import { formatRupiah } from '~/lib/money';
 import { productDisplayName } from '~/lib/orderMath';
@@ -28,10 +31,14 @@ const STAGES: { status: OrderStatus; title: string; headline: string; hint: stri
 ];
 
 export default function OrderStatusScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, created } = useLocalSearchParams<{ id: string; created?: string }>();
   const insets = useSafeAreaInsets();
   const detail = useOrderDetail(id);
   const [showProof, setShowProof] = useState(false);
+  // Right after saving, open the nota as a success screen so it can be sent straight away.
+  const [receiptMode, setReceiptMode] = useState<'created' | 'view' | null>(created === '1' ? 'created' : null);
+  const store = useStoreSettings();
+  const profile = useProfile();
   const setStatus = useRefreshingMutation((status: OrderStatus) => updateOrderStatus(id, status), ['orders', 'order']);
   const remove = useRefreshingMutation(() => deleteOrder(id), ['orders', 'stock']);
   const proof = useRefreshingMutation((url: string | null) => setOrderProof(id, url), ['orders', 'order']);
@@ -57,16 +64,21 @@ export default function OrderStatusScreen() {
       { text: 'Hapus', style: 'destructive', onPress: () => remove.mutate(undefined, { onSuccess: () => router.back(), onError: e => showDialog('Gagal menghapus', errorMessage(e)) }) },
     ]);
 
-  const shareReceipt = () => {
-    const lines = [
-      `Nota pesanan, ${formatDate(order.created_at)}`,
-      `Pelanggan: ${order.customer_name}`,
-      '',
-      ...items.map(i => `${productDisplayName(i.productName)} × ${i.quantity} = ${formatRupiah(i.subtotal)}`),
-      '',
-      `Total: ${formatRupiah(totalPrice)}`,
-    ];
-    Share.share({ message: lines.join('\n') });
+  const shop = store.data;
+  const receipt: ReceiptInput = {
+    storeName: shop?.store_name || profile.data?.name || '',
+    orderId: order.id,
+    createdAt: order.created_at,
+    customerName: order.customer_name,
+    items: items.map(i => ({ name: productDisplayName(i.productName), quantity: i.quantity, pricePerBottle: i.pricePerBottle, subtotal: i.subtotal })),
+    total: totalPrice,
+    bottles: order.quantity,
+    payments: shop?.payment_info ?? [],
+    storeUrl: shop?.is_active && shop.slug ? publicWebUrl(`/toko/${shop.slug}`) : null,
+  };
+  const closeReceipt = () => {
+    if (receiptMode === 'created') router.setParams({ created: '' });
+    setReceiptMode(null);
   };
 
   return (
@@ -154,7 +166,7 @@ export default function OrderStatusScreen() {
 
           <View style={styles.tiles}>
             <Tile Icon={CameraIcon} label={order.transfer_proof_url ? 'Bukti terlampir' : 'Bukti'} onPress={() => setShowProof(v => !v)} />
-            <Tile Icon={ShareIcon} label="Nota" onPress={shareReceipt} />
+            <Tile Icon={ShareIcon} label="Nota" onPress={() => setReceiptMode('view')} />
             <Tile Icon={TrashIcon} label="Hapus" danger onPress={confirmDelete} />
           </View>
           {showProof ? (
@@ -170,6 +182,7 @@ export default function OrderStatusScreen() {
           <CapsuleButton label="Tandai selesai" onPress={() => changeStatus(next.status)} loading={setStatus.isPending} />
         </StickyFooter>
       ) : null}
+      {receiptMode ? <ReceiptSheet mode={receiptMode} receipt={receipt} phone={order.customer_phone} onClose={closeReceipt} /> : null}
     </View>
   );
 }

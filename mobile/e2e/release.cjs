@@ -74,6 +74,7 @@ if (mode === 'store') {
       const row = Array.isArray(body) ? body[0] : body;
       const created = { id: 'new-' + table, ...(row || {}), created_at: (row && row.created_at) || new Date().toISOString() };
       if (table.startsWith('profiles') && req.method() === 'PATCH' && row) Object.assign(data.profiles[0], row);
+      if (table.startsWith('order_items') && req.method() === 'POST' && Array.isArray(body)) data.order_items.push(...body.map((r, i) => ({ id: `ni${i}`, created_at: new Date().toISOString(), ...r })));
       if (table === 'orders' && req.method() === 'POST') { data.orders.unshift({ ...created, id: 'o-new', updated_at: created.created_at }); created.id = 'o-new'; }
       const single = (req.headers()['accept'] || '').includes('vnd.pgrst.object');
       return route.fulfill({ status: 201, json: single ? created : [created] });
@@ -183,6 +184,21 @@ if (mode === 'store') {
       check('Order: item tersimpan dengan product_id katalog', Array.isArray(items) && items.length === 2 && items.every(i => i.product_id), JSON.stringify(items).slice(0, 160));
       check('Order: pelanggan baru tercatat', sent('customers', 'POST').some(p => p.body?.name === 'Bu Dewi'));
       check('Order: pindah ke detail order', path() === '/order/o-new', path());
+      t = await txt();
+      check('Order: layar berhasil dibuat muncul setelah simpan', t.includes('Order berhasil dibuat') && t.includes('Bu Dewi · 5 botol · Rp1.065.000'));
+      check('Nota: pratinjau berisi nomor, pelanggan, dan total tanpa modal/untung', t.includes('NOTA PESANAN') && /No\. #[A-Z0-9]{3,6}/.test(t) && t.includes('Total · 5 botol') && !/Untung|Modal/.test(t.split('NOTA PESANAN')[1] || ''));
+      await shot('03b-order-berhasil');
+      await page.evaluate(() => { window.__opened = []; window.open = u => { window.__opened.push(String(u)); return null; }; });
+      await tap('Kirim nota ke WhatsApp', 500);
+      const opened = await page.evaluate(() => window.__opened);
+      const waText = opened[0] && decodeURIComponent(opened[0].split('text=')[1] || '');
+      check('Nota: tombol WhatsApp membuka wa.me dengan teks nota', opened.length === 1 && opened[0].startsWith('https://wa.me/') && waText.includes('*NOTA PESANAN*') && waText.includes('Pelanggan: Bu Dewi') && waText.includes('*TOTAL (5 botol): Rp1.065.000*'), (opened[0] || '').slice(0, 80));
+      await tap('Lihat detail order', 500);
+      t = await txt();
+      check('Nota: Lihat detail order menutup layar sukses', !t.includes('Order berhasil dibuat') && t.includes('Omset'));
+      await tap(/^Nota$/, 500);
+      check('Nota: tombol Nota di detail membuka nota yang sama', (await txt()).includes('Nota pesanan') && (await txt()).includes('NOTA PESANAN'));
+      await tap('Tutup nota', 300);
     });
     await step('order-batal', async () => {
       await go('/order/new'); await btn('Tambah BP Green').first().click(); await page.waitForTimeout(300);
