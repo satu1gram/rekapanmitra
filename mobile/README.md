@@ -131,3 +131,6 @@ Bundle ID / package: `id.biz.mitrabp.rekapan` (sama dengan rencana Capacitor seb
 3. Pastikan `https://mitrabp.biz.id/dashboard` dan `/reset-password` ada di Supabase → Authentication → Redirect URLs.
 4. Ganti kunci API AI yang pernah bocor di riwayat git, dan amankan RPC `submit_public_order` serta webhook Telegram (lihat `docs/VALIDASI_RENCANA_MOBILE.md` di branch `preview/mobile-ai`). Backend yang sama dipakai aplikasi ini.
 5. Uji di iPhone dan HP Android nyata.
+6. Hubungkan proyek ke akun Expo sekali (`npx eas-cli@latest init`, mengisi `extra.eas.projectId`), lalu build `production`. Nomor build naik otomatis (`appVersionSource: remote`).
+7. Siapkan untuk peninjau store: URL kebijakan privasi, akun demo yang sudah lewat pengaturan awal (aplikasi wajib login), dan screenshot. Hapus akun sudah tersedia di menu Akun, sesuai syarat Apple dan Google.
+8. Profil `preview` iOS di `eas.json` menghasilkan build simulator. Untuk IPA di iPhone asli lewat distribusi internal, ubah `"simulator": false` dan daftarkan perangkat dengan `npx eas-cli device:create`.

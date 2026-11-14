@@ -88,7 +88,7 @@ function RootNavigator() {
       <Stack.Protected guard={needsOnboarding} redirectTo="/">
         <Stack.Screen name="onboarding" options={{ title: 'Pengaturan awal', headerShown: false, gestureEnabled: false }} />
       </Stack.Protected>
-      <Stack.Protected guard={signedIn && !needsOnboarding} redirectTo={signedIn ? '/onboarding' : '/login'}>
+      <Stack.Protected guard={signedIn && !needsOnboarding} redirectTo={signedIn ? '/onboarding' : '/welcome'}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="order/new" options={{ title: 'Tambah order', presentation: 'modal', headerShown: false }} />
         <Stack.Screen name="order/[id]/index" options={{ title: 'Detail order', headerShown: false }} />

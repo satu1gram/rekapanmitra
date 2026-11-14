@@ -11,8 +11,8 @@ export const colors = {
   textSubtle: '#8A8A8E',
   /** Field label: darker than a placeholder, lighter than typed text. */
   label: '#3A3A3C',
-  /** Placeholder / example text in an empty field: clearly lighter than a label or a typed value. */
-  placeholder: '#AEAEB2',
+  /** Placeholder / example text in an empty field: lighter and regular weight next to a dark label and a bold value, still 4.7:1 on white. */
+  placeholder: '#737378',
   border: '#E5E5EA',
   borderStrong: '#C6C6C8',
   fill: '#F2F2F7',

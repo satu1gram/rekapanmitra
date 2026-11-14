@@ -48,6 +48,9 @@ if (mode === 'empty') { data.orders.length = 0; }
     if (url.pathname.includes('/storage/v1/')) { posted.push({ method: req.method(), table: 'storage', body: url.pathname }); return route.fulfill({ status: 200, json: { Key: 'transfer-proofs/x.jpg', Id: '1' } }); }
     if (url.pathname.includes('/functions/v1/delete-account')) { posted.push({ method: 'POST', table: 'fn:delete-account', body: req.postDataJSON() }); return route.fulfill({ status: 200, json: { ok: true } }); }
     if (url.pathname.includes('/auth/v1/token')) { const b = req.postDataJSON(); posted.push({ method: 'POST', table: 'auth:token', body: { email: b.email, password: b.password ? '***' : '' } }); const exp = Math.floor(Date.now()/1000)+3600; return route.fulfill({ status: 200, json: { access_token: 'x.eyJzdWIiOiIxIn0.x', refresh_token: 'r2', token_type: 'bearer', expires_in: 3600, expires_at: exp, user: { id: uid, email: 'mitra@contoh.id', aud: 'authenticated', app_metadata: {}, user_metadata: {}, created_at: '' } } }); }
+    if (url.pathname.includes('/auth/v1/signup')) { posted.push({ method: 'POST', table: 'auth:signup', body: { email: req.postDataJSON()?.email } }); return route.fulfill({ status: 200, json: { id: 'u-new', email: req.postDataJSON()?.email, aud: 'authenticated', role: '', identities: [{ id: 'i1' }], app_metadata: {}, user_metadata: {}, created_at: '' } }); }
+    if (url.pathname.includes('/auth/v1/resend')) { posted.push({ method: 'POST', table: 'auth:resend', body: req.postDataJSON() }); return route.fulfill({ status: 200, json: {} }); }
+    if (url.pathname.includes('/auth/v1/recover')) { posted.push({ method: 'POST', table: 'auth:recover', body: req.postDataJSON() }); return route.fulfill({ status: 200, json: {} }); }
     if (url.pathname.includes('/auth/v1/logout')) { posted.push({ method: 'POST', table: 'auth:logout', body: null }); return route.fulfill({ status: 204, body: '' }); }
     if (url.pathname.includes('/functions/v1/parse-order')) { posted.push({ method: 'POST', table: 'fn:parse-order', body: req.postDataJSON() }); return route.fulfill({ status: 200, json: { intent: 'order', pelanggan: 'Bu Rina', hp: '081234567890', tanggal: '', items: [{ nama: 'bp', qty: 2 }, { nama: 'green', qty: 1 }, { nama: 'kopi', qty: 1 }], catatan: 'kirim sore' } }); }
     const table = url.pathname.split('/rest/v1/')[1];
@@ -56,6 +59,7 @@ if (mode === 'empty') { data.orders.length = 0; }
       const body = req.postDataJSON?.() ?? null; posted.push({ method: req.method(), table, body });
       const row = Array.isArray(body) ? body[0] : body;
       const created = { id: 'new-' + table, ...(row || {}), created_at: (row && row.created_at) || new Date().toISOString() };
+      if (table.startsWith('profiles') && req.method() === 'PATCH' && row) Object.assign(data.profiles[0], row);
       if (table === 'orders' && req.method() === 'POST') { data.orders.unshift({ ...created, id: 'o-new', updated_at: created.created_at }); created.id = 'o-new'; }
       const single = (req.headers()['accept'] || '').includes('vnd.pgrst.object');
       return route.fulfill({ status: 201, json: single ? created : [created] });
@@ -72,7 +76,7 @@ if (mode === 'empty') { data.orders.length = 0; }
   const shot = async name => { await page.waitForTimeout(700); await page.screenshot({ path: `${out}/${name}.png` }); };
   const go = async path => { await page.goto('http://127.0.0.1:4300' + path); await page.waitForTimeout(2200); };
   await page.goto('http://127.0.0.1:4300/'); await page.waitForTimeout(1500);
-  if (mode !== 'loggedout') await page.evaluate(uid => {
+  if (!['loggedout', 'daftar'].includes(mode)) await page.evaluate(uid => {
     const exp = Math.floor(Date.now() / 1000) + 3600;
     localStorage.setItem('sb-kqoitztjohxjnjoxctoz-auth-token', JSON.stringify({ access_token: 'x.eyJzdWIiOiIxIn0.x', refresh_token: 'r', token_type: 'bearer', expires_in: 3600, expires_at: exp, user: { id: uid, email: 'mitra@contoh.id', aud: 'authenticated', app_metadata: {}, user_metadata: {}, created_at: '' } }));
   }, uid);
@@ -230,11 +234,46 @@ if (mode === 'empty') { data.orders.length = 0; }
     });
   }
   if (mode === 'loggedout') {
+    await step('sambutan', async () => {
+      await go('/');
+      check('Sambutan: layar pertama saat belum masuk', (await txt()).includes('Catat order dalam hitungan detik') && (await page.getByRole('img', { name: /British Propolis/ }).count()) > 0);
+      await tap('Lanjut', 600); check('Sambutan: Lanjut ke slide 2', (await txt()).includes('Harga ikut jumlah botol'));
+      await tap('Lanjut', 600); check('Sambutan: slide 3 punya tombol Buat akun', (await txt()).includes('Stok dan keuangan ikut rapi') && (await btn('Buat akun').count()) > 0);
+      await shot('l1-sambutan');
+      await tap('Saya sudah punya akun', 1200);
+      check('Sambutan: "Saya sudah punya akun" membuka halaman masuk', path() === '/login', path());
+    });
     await step('login', async () => {
-      await go('/'); check('Login: halaman masuk tampil', (await txt()).includes('Lupa kata sandi'));
+      check('Login: halaman masuk tampil', (await txt()).includes('Lupa kata sandi'));
+      await tap(/^Masuk$/, 500);
+      check('Login: kolom kosong memunculkan pesan di halaman', (await txt()).includes('Isi email dan kata sandi dulu.') && sent('auth:token').length === 0);
       await page.getByLabel('Email').fill('mitra@contoh.id'); await page.getByLabel('Kata sandi', { exact: true }).fill('rahasia');
-      await tap('Masuk', 3000);
+      check('Login: pesan error hilang saat mengetik', !(await txt()).includes('Isi email dan kata sandi dulu.'));
+      await tap(/^Masuk$/, 3000);
       check('Login: masuk dan sampai di Beranda', sent('auth:token').length > 0 && /Omset \w+/.test(await txt()));
+    });
+  }
+  if (mode === 'daftar') {
+    await step('daftar', async () => {
+      await go('/register');
+      const cta = () => page.getByRole('button', { name: /Lengkapi tiga isian|Daftar dan kirim/ }).last();
+      check('Daftar: tombol nonaktif sebelum tiga isian lengkap', await cta().isDisabled());
+      await page.getByLabel('Nama', { exact: true }).last().fill('Dewi'); await page.getByLabel('Email').last().fill('dewi@contoh.id');
+      await page.getByLabel('Kata sandi', { exact: true }).last().fill('abc'); await page.waitForTimeout(200);
+      check('Daftar: indikator sandi terlalu pendek', (await txt()).includes('Terlalu pendek'));
+      await page.getByLabel('Kata sandi', { exact: true }).last().fill('rahasia2026'); await page.waitForTimeout(200);
+      check('Daftar: indikator sandi kuat dan tombol aktif', (await txt()).includes('Kuat') && !(await cta().isDisabled()));
+      await shot('d1-daftar');
+      await cta().click(); await page.waitForTimeout(1500);
+      check('Daftar: akun dibuat lalu ke Verifikasi email', sent('auth:signup').length === 1 && path() === '/verify' && (await txt()).includes('dewi@contoh.id'), path());
+      await shot('d2-verifikasi');
+      await tap('Kirim ulang link', 1200);
+      check('Verifikasi: kirim ulang memanggil server dan mulai hitung mundur', sent('auth:resend').length === 1 && /Kirim ulang dalam 0:4\d/.test(await txt()));
+    });
+    await step('lupa', async () => {
+      await go('/forgot'); await page.getByLabel('Email').last().fill('mitra@contoh.id'); await tap(/^Kirim link reset/, 1200);
+      check('Lupa sandi: link terkirim', sent('auth:recover').length === 1 && (await txt()).includes('Link terkirim'));
+      await shot('d3-lupa');
     });
   }
   if (mode === 'slow') {
@@ -277,7 +316,29 @@ if (mode === 'empty') { data.orders.length = 0; }
   });
   if (mode === 'empty') await step('kosong', async () => { await go('/'); check('Akun baru: Beranda kosong mengajak catat order', (await txt()).includes('Catat order pertamamu')); await shot('06-kosong'); });
   if (mode === 'error') await step('gagal', async () => { await go('/'); check('Offline: panel gagal memuat + coba lagi', (await txt()).includes('Data belum bisa dimuat') && (await btn(/Coba lagi/).count()) > 0); });
-  if (mode === 'onboarding') await step('onboarding', async () => { await go('/'); check('Onboarding: profil belum lengkap diarahkan ke pengaturan awal', (await txt()).includes('Mulai pakai aplikasi')); });
+  if (mode === 'onboarding') await step('onboarding', async () => {
+    await go('/');
+    check('Onboarding: profil belum lengkap diarahkan ke Lengkapi profil', (await txt()).includes('Kenalan dulu, yuk'));
+    await shot('o1-profil');
+    await tap(/^Lanjut$/, 500);
+    check('Onboarding: langkah 2 Level mitra', (await txt()).includes('Kamu mitra level apa?'));
+    await page.getByRole('radio', { name: /^Level kustom/ }).click(); await page.waitForTimeout(300);
+    check('Onboarding: level kustom perlu nama dan modal', await page.getByRole('button', { name: 'Isi nama level dan modal' }).isDisabled());
+    await page.getByLabel('Nama level', { exact: true }).fill('Distributor'); await page.getByLabel('Modal/botol', { exact: true }).fill('200000'); await page.waitForTimeout(300);
+    check('Onboarding: contoh untung ikut modal kustom', (await txt()).includes('untung Rp65.000'));
+    await shot('o2-level');
+    await tap(/^Lanjut$/, 500);
+    await page.getByRole('radio', { name: '10 botol' }).click(); await page.waitForTimeout(200);
+    await shot('o3-stok');
+    await tap('Simpan dan selesai', 1500);
+    const prof = sent('profiles', 'PATCH').slice(-1)[0]?.body;
+    check('Onboarding: profil tersimpan dengan level kustom', prof && prof.onboarding_completed === true && prof.mitra_level === 'custom' && prof.custom_buy_price === 200000, JSON.stringify(prof).slice(0, 160));
+    check('Onboarding: stok awal 10 botol tercatat', sent('stock_entries', 'POST').some(p => (Array.isArray(p.body) ? p.body[0] : p.body)?.quantity === 10));
+    check('Onboarding: layar Selesai tampil', (await txt()).includes('Akunmu siap') && (await txt()).includes('Mulai dari sini'));
+    await shot('o4-selesai');
+    await tap('Ke Beranda', 2500);
+    check('Onboarding: Ke Beranda membuka Beranda', path() === '/' && /Catat order pertamamu|Omset/.test(await txt()), path());
+  });
 
   const consoleErrors = errors.filter(e => !(mode === 'error' && /ERR_INTERNET_DISCONNECTED/.test(e))).filter(e => !/favicon|Unexpected text node|shadow\*|pointerEvents|useNativeDriver|props.pointerEvents|deprecated/i.test(e));
   check(`Tidak ada error JavaScript (${mode})`, consoleErrors.length === 0, consoleErrors.slice(0, 3).join(' | '));
