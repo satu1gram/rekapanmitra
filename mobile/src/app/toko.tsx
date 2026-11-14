@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Share, StyleSheet, Switch, View } from 'react-native';
+import { Pressable, ScrollView, Share, StyleSheet, Switch, View } from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
 
 import { saveStoreSettings, slugify, type PaymentInfo, type StoreSettings } from '~/data/store';
@@ -14,6 +14,7 @@ import { CapsuleButton, StickyFooter } from '~/ui/sheet';
 import { Chips } from '~/ui/Chips';
 import { HeroDecor } from '~/ui/brand';
 import { colors, space } from '~/ui/theme';
+import { KeyboardSafeView } from '~/ui/KeyboardSafeView';
 
 const PAYMENT_TYPES = [
   { value: 'bank', label: 'Bank' },
@@ -53,7 +54,7 @@ function StoreForm({ initial, exists }: { initial: StoreSettings; exists: boolea
   };
 
   return (
-    <KeyboardAvoidingView style={kitStyles.page} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <KeyboardSafeView style={kitStyles.page}>
       <PageHeader title="Toko online" />
       <ScrollView contentContainerStyle={[kitStyles.content, { paddingBottom: space.xxl }]} keyboardShouldPersistTaps="handled">
         {message ? <Notice tone={message.tone}>{message.text}</Notice> : null}
@@ -121,7 +122,7 @@ function StoreForm({ initial, exists }: { initial: StoreSettings; exists: boolea
       <StickyFooter>
         <CapsuleButton label="Simpan pengaturan toko" onPress={submit} loading={save.isPending} />
       </StickyFooter>
-    </KeyboardAvoidingView>
+    </KeyboardSafeView>
   );
 }
 

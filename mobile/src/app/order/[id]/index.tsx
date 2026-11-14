@@ -23,8 +23,7 @@ import { colors, radius, space } from '~/ui/theme';
 import { showDialog } from '~/ui/dialog';
 
 const STAGES: { status: OrderStatus; title: string; headline: string; hint: string }[] = [
-  { status: 'pending', title: 'Order dicatat', headline: 'Siap dikirim', hint: 'Tandai terkirim setelah barang diserahkan ke kurir atau pelanggan.' },
-  { status: 'terkirim', title: 'Terkirim', headline: 'Dalam pengiriman', hint: 'Tandai selesai setelah pelanggan menerima barang.' },
+  { status: 'pending', title: 'Order dicatat', headline: 'Order belum selesai', hint: 'Tandai selesai setelah barang diterima pelanggan dan pembayarannya beres.' },
   { status: 'selesai', title: 'Selesai', headline: 'Order selesai', hint: 'Semua langkah sudah beres. Ketuk tahap untuk mengubah status.' },
 ];
 
@@ -168,7 +167,7 @@ export default function OrderStatusScreen() {
 
       {next ? (
         <StickyFooter>
-          <CapsuleButton label={next.status === 'terkirim' ? 'Tandai terkirim' : 'Tandai selesai'} onPress={() => changeStatus(next.status)} loading={setStatus.isPending} />
+          <CapsuleButton label="Tandai selesai" onPress={() => changeStatus(next.status)} loading={setStatus.isPending} />
         </StickyFooter>
       ) : null}
     </View>

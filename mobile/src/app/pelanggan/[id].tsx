@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { KeyboardAvoidingView, Linking, Platform, ScrollView, StyleSheet, View } from 'react-native';
+import { Linking, ScrollView, StyleSheet, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import type { TierType } from '@/types';
 
@@ -19,6 +19,7 @@ import { ChatIcon, PencilIcon, TrashIcon } from '~/ui/icons';
 import { Avatar, FieldRow, Group, kitStyles, PageHeader, PillButton, SectionLabel } from '~/ui/kit';
 import { CapsuleButton, StickyFooter } from '~/ui/sheet';
 import { colors, space } from '~/ui/theme';
+import { KeyboardSafeView } from '~/ui/KeyboardSafeView';
 
 export default function CustomerDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -52,7 +53,7 @@ function CustomerDetail({ customer, history, ordersLoading }: { customer: Custom
   const newOrder = () => router.push({ pathname: '/order/new', params: { draft: JSON.stringify({ customerName: customer.name, customerPhone: customer.phone ?? '', customerId: customer.id, tier: customer.tier }) } });
 
   return (
-    <KeyboardAvoidingView style={kitStyles.page} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <KeyboardSafeView style={kitStyles.page}>
       <PageHeader title={customer.name} />
       <ScrollView contentContainerStyle={[kitStyles.content, { paddingBottom: space.xxl }]} keyboardShouldPersistTaps="handled">
         {error ? <Notice tone="danger">{error}</Notice> : null}
@@ -120,7 +121,7 @@ function CustomerDetail({ customer, history, ordersLoading }: { customer: Custom
           <CapsuleButton label="Tambah order untuk pelanggan ini" onPress={newOrder} />
         </StickyFooter>
       ) : null}
-    </KeyboardAvoidingView>
+    </KeyboardSafeView>
   );
 }
 

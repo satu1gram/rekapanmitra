@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react';
-import { Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { Image, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { router, type Href } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -18,6 +18,7 @@ import { productImage } from '~/ui/productMedia';
 import { CapsuleButton, StickyFooter } from '~/ui/sheet';
 import { StageSteps } from '~/ui/StageSteps';
 import { accents, colors, space, type Accent } from '~/ui/theme';
+import { KeyboardSafeView } from '~/ui/KeyboardSafeView';
 
 const STEPS = ['Profil', 'Level', 'Stok'];
 const LEVELS: { level: MitraLevel; min: string }[] = [
@@ -118,7 +119,7 @@ export default function OnboardingScreen() {
   }
 
   return (
-    <KeyboardAvoidingView style={kitStyles.page} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <KeyboardSafeView style={kitStyles.page}>
       <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
           {step > 0 ? (
@@ -246,7 +247,7 @@ export default function OnboardingScreen() {
           disabled={!canNext}
         />
       </StickyFooter>
-    </KeyboardAvoidingView>
+    </KeyboardSafeView>
   );
 }
 

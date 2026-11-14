@@ -85,8 +85,9 @@ export function IconButton({ label, onPress, children, tone = 'neutral' }: { lab
   );
 }
 
-const STATUS_NOTE: Record<string, string> = { pending: 'Belum dikirim', terkirim: 'Dikirim' };
-const STATUS_ACCENT: Record<string, Accent> = { pending: 'amber', terkirim: 'blue' };
+// 'terkirim' hanya ada pada order lama dari web; tampil sama dengan order yang belum selesai.
+const STATUS_NOTE: Record<string, string> = { pending: 'Belum selesai', terkirim: 'Belum selesai' };
+const STATUS_ACCENT: Record<string, Accent> = { pending: 'amber', terkirim: 'amber' };
 
 /** One order: initial avatar, name with bottles · time (and a status pill while it is open), total and profit. */
 export function OrderListRow({ order, first, showTime = true, showDate = false }: { order: OrderRow; first: boolean; showTime?: boolean; showDate?: boolean }) {

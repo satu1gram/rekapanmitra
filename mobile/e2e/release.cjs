@@ -197,8 +197,14 @@ if (mode === 'store') {
       check('Order: ulangi order terakhir pelanggan', /Ringkas · 3 botol/.test(await txt()));
     });
     await step('order-status', async () => {
-      await go('/order/o2'); await tap('Tandai terkirim', 900);
-      check('Detail order: tandai terkirim mengirim status', sent('orders', 'PATCH').some(p => p.body?.status === 'terkirim'));
+      await go('/order/o2');
+      const t = await txt();
+      check('Detail order: hanya dua tahap, tanpa Terkirim', t.includes('Order dicatat') && t.includes('Selesai') && !/Terkirim|terkirim|dikirim/.test(t));
+      await tap('Tandai selesai', 900);
+      check('Detail order: tandai selesai langsung dari dicatat', sent('orders', 'PATCH').some(p => p.body?.status === 'selesai'));
+      data.orders.push({ ...data.orders[0], id: 'o4', customer_name: 'Pak Lama', status: 'terkirim', created_at: d(400), updated_at: d(400) });
+      await go('/order/o4');
+      check('Detail order: order lama berstatus terkirim tampil sebagai belum selesai', (await txt()).includes('Order belum selesai') && (await btn('Tandai selesai').count()) > 0);
     });
     await step('order-hapus', async () => {
       await go('/order/o3'); await btn('Hapus').first().click(); await page.waitForTimeout(400);

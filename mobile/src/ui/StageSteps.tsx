@@ -5,7 +5,7 @@ import { CheckIcon } from './icons';
 import { colors } from './theme';
 
 /**
- * Connected dots with labels: the same motif as the order stages on Beranda (Dicatat, Terkirim,
+ * Connected dots with labels: the same motif as the order stages on Beranda (Dicatat,
  * Selesai), reused for every multi-step flow (sign-up, first-time setup).
  */
 export function StageSteps({ labels, current }: { labels: string[]; current: number }) {

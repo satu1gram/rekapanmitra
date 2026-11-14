@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import { useQueryClient } from '@tanstack/react-query';
 
 import { DELETE_CONFIRM_TEXT, deleteMyAccount } from '~/data/account';
@@ -10,6 +10,7 @@ import { FieldRow, Group, kitStyles, PageHeader, SectionLabel } from '~/ui/kit';
 import { CapsuleButton, StickyFooter } from '~/ui/sheet';
 import { colors, space } from '~/ui/theme';
 import { showDialog } from '~/ui/dialog';
+import { KeyboardSafeView } from '~/ui/KeyboardSafeView';
 
 const DELETED = [
   'Profil dan akun login',
@@ -46,7 +47,7 @@ export default function DeleteAccountScreen() {
   };
 
   return (
-    <KeyboardAvoidingView style={kitStyles.page} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <KeyboardSafeView style={kitStyles.page}>
       <PageHeader title="Hapus akun" />
       <ScrollView contentContainerStyle={[kitStyles.content, { paddingBottom: space.xxl }]} keyboardShouldPersistTaps="handled">
         <View style={styles.warn}>
@@ -84,7 +85,7 @@ export default function DeleteAccountScreen() {
       <StickyFooter>
         <CapsuleButton label="Hapus akun permanen" tone="danger" onPress={run} loading={busy} disabled={!ready} />
       </StickyFooter>
-    </KeyboardAvoidingView>
+    </KeyboardSafeView>
   );
 }
 

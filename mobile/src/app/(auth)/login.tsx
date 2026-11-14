@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Image, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -13,6 +13,7 @@ import { FieldRow, Group, PillButton } from '~/ui/kit';
 import { PasswordToggle } from '~/ui/PasswordToggle';
 import { CapsuleButton, StickyFooter } from '~/ui/sheet';
 import { accents, colors, space } from '~/ui/theme';
+import { KeyboardSafeView } from '~/ui/KeyboardSafeView';
 
 export default function LoginScreen() {
   const { signIn } = useAuth();
@@ -40,7 +41,7 @@ export default function LoginScreen() {
   };
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: colors.bg }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <KeyboardSafeView style={{ flex: 1, backgroundColor: colors.bg }}>
       <ScrollView contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets bounces={false}>
         <View style={[styles.hero, { paddingTop: insets.top + 12 }]}>
           <HeroDecor />
@@ -102,7 +103,7 @@ export default function LoginScreen() {
       <StickyFooter>
         <CapsuleButton label="Masuk" onPress={submit} loading={busy} />
       </StickyFooter>
-    </KeyboardAvoidingView>
+    </KeyboardSafeView>
   );
 }
 

@@ -11,6 +11,7 @@ import { useGeneralExpenses, useGeneralIncome, useOrders, useProfile, useRefresh
 import { summarizeMonth, targetProgress } from '~/lib/dashboard';
 import { currentMonth, formatTime, greeting, isInMonth, MONTH_NAMES, type MonthRef } from '~/lib/dates';
 import { formatRupiah, formatRupiahShort } from '~/lib/money';
+import { isOpenStatus } from '~/lib/orderStatus';
 import { errorMessage } from '~/lib/supabase';
 import { AppText, Row } from '~/ui/components';
 import { ErrorPanel, MonthCard, ON_BRAND_MUTED, OrderListRow } from '~/ui/brand';
@@ -20,8 +21,9 @@ import { colors, radius, space, TAB_BAR_SPACE, accents, featureAccent, type Acce
 
 
 const NEXT_STATUS: Record<string, { status: OrderStatus; label: string; stage: number }> = {
-  pending: { status: 'terkirim', label: 'Tandai terkirim', stage: 0 },
-  terkirim: { status: 'selesai', label: 'Tandai selesai', stage: 1 },
+  pending: { status: 'selesai', label: 'Tandai selesai', stage: 0 },
+  // Status lama dari web; diperlakukan sama dengan pending.
+  terkirim: { status: 'selesai', label: 'Tandai selesai', stage: 0 },
 };
 
 export default function HomeScreen() {
@@ -55,7 +57,7 @@ export default function HomeScreen() {
 
     const monthName = MONTH_NAMES[month.month];
   const financeMissing = expenses.isError || income.isError;
-  const open = orders.data.filter(o => o.status === 'pending' || o.status === 'terkirim').slice(0, 3);
+  const open = orders.data.filter(o => isOpenStatus(o.status)).slice(0, 3);
   const lowStock = stock.data.currentStock <= LOW_STOCK_THRESHOLD;
   const recent = orders.data.filter(o => isInMonth(o.created_at, month)).slice(0, 3);
   const target = targets.data?.find(t => t.year === month.year && t.month === month.month) ?? null;
@@ -218,15 +220,15 @@ function MoreFeature({ label, href, Icon, navigate, accent }: { label: string; h
   );
 }
 
-/** Identity motif: the three order stages (dicatat, terkirim, selesai) as dots, same as the order status screen. */
-const STAGE_LABELS = ['Dicatat', 'Terkirim', 'Selesai'];
+/** Identity motif: the two order stages (dicatat, selesai) as dots, same as the order status screen. */
+const STAGE_LABELS = ['Dicatat', 'Selesai'];
 
-/** Three connected steps: done steps and the line up to them are filled, the next step is a ring. */
+/** Connected steps: done steps and the line up to them are filled, the next step is a ring. */
 function StageDots({ stage }: { stage: number }) {
   return (
-    <View style={{ width: 156, gap: 4 }} accessibilityLabel={`Tahap ${stage + 1} dari 3: ${STAGE_LABELS[stage]}`}>
+    <View style={{ width: 120, gap: 4 }} accessibilityLabel={`Tahap ${stage + 1} dari ${STAGE_LABELS.length}: ${STAGE_LABELS[stage]}`}>
       <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20 }}>
-        {[0, 1, 2].map(i => (
+        {STAGE_LABELS.map((_, i) => (
           <View key={i} style={{ flexDirection: 'row', alignItems: 'center', flex: i > 0 ? 1 : 0 }}>
             {i > 0 ? <View style={{ flex: 1, height: 3, backgroundColor: i <= stage ? colors.warning : colors.border }} /> : null}
             <View
@@ -255,7 +257,7 @@ function TaskCard({ order, onAdvance, busy }: { order: OrderRow; onAdvance: () =
         <View style={styles.taskAvatar}><AppText variant="bodyStrong" color={colors.warning} style={{ fontWeight: '800' }}>{(order.customer_name || '?').slice(0, 1).toUpperCase()}</AppText></View>
         <View style={{ flex: 1, gap: 2 }}>
           <AppText variant="bodyStrong" numberOfLines={1}>{order.customer_name} · {order.quantity} botol</AppText>
-          <AppText variant="small" color={colors.textMuted}>{order.status === 'pending' ? 'Belum dikirim' : 'Sedang dikirim'} sejak {formatTime(order.created_at)}</AppText>
+          <AppText variant="small" color={colors.textMuted}>Belum selesai sejak {formatTime(order.created_at)}</AppText>
         </View>
         <AppText variant="bodyStrong">{formatRupiah(Number(order.total_price))}</AppText>
       </Pressable>

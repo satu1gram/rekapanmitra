@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 
 import { saveTarget, type MonthTarget } from '~/data/finance';
 import { useGeneralExpenses, useGeneralIncome, useOrders, useRefreshingMutation, useStock, useTargets } from '~/hooks/queries';
@@ -13,6 +13,7 @@ import { FieldRow, Group, kitStyles, PageHeader, SectionLabel } from '~/ui/kit';
 import { MonthSwitcher } from '~/ui/MonthSwitcher';
 import { CapsuleButton, StickyFooter } from '~/ui/sheet';
 import { colors, space, accents, type Accent } from '~/ui/theme';
+import { KeyboardSafeView } from '~/ui/KeyboardSafeView';
 
 export default function TargetScreen() {
   const targets = useTargets();
@@ -47,7 +48,7 @@ function TargetForm({ month, onMonthChange, existing }: { month: MonthRef; onMon
   };
 
   return (
-    <KeyboardAvoidingView style={kitStyles.page} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <KeyboardSafeView style={kitStyles.page}>
       <PageHeader title="Target bulanan" />
       <ScrollView contentContainerStyle={[kitStyles.content, { paddingBottom: space.xxl }]} keyboardShouldPersistTaps="handled">
         <MonthSwitcher value={month} onChange={onMonthChange} />
@@ -79,7 +80,7 @@ function TargetForm({ month, onMonthChange, existing }: { month: MonthRef; onMon
       <StickyFooter>
         <CapsuleButton label={existing ? 'Simpan perubahan target' : 'Simpan target'} onPress={submit} loading={save.isPending} />
       </StickyFooter>
-    </KeyboardAvoidingView>
+    </KeyboardSafeView>
   );
 }
 

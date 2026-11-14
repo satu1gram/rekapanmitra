@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { router } from 'expo-router';
 
 import { parseChatText } from '~/data/assistant';
@@ -12,6 +12,7 @@ import { ChatIcon } from '~/ui/icons';
 import type { OrderFormInitial } from '~/ui/OrderForm';
 import { CapsuleButton, SheetHeader, StickyFooter } from '~/ui/sheet';
 import { colors, space, accents } from '~/ui/theme';
+import { KeyboardSafeView } from '~/ui/KeyboardSafeView';
 
 export default function AssistantScreen() {
   const catalog = useCatalog();
@@ -69,7 +70,7 @@ export default function AssistantScreen() {
   ];
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: colors.bg }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <KeyboardSafeView style={{ flex: 1, backgroundColor: colors.bg }}>
       <SheetHeader title="Isi dari chat" onClose={() => router.back()} />
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <View style={styles.steps}>
@@ -130,7 +131,7 @@ export default function AssistantScreen() {
           <AppText variant="small" color={colors.brand} style={{ fontWeight: '700' }}>Isi order manual saja</AppText>
         </Pressable>
       </StickyFooter>
-    </KeyboardAvoidingView>
+    </KeyboardSafeView>
   );
 }
 

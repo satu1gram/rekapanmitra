@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { router, Stack } from 'expo-router';
 import type { TierType } from '@/types';
 
@@ -19,6 +19,7 @@ import { FieldRow } from './kit';
 import { CapsuleButton, SheetHeader, StickyFooter } from './sheet';
 import { colors, radius, space } from './theme';
 import { DialogHost, showDialog } from './dialog';
+import { KeyboardSafeView } from './KeyboardSafeView';
 
 /** A row that opens something when tapped: small label on top, value below, green action word on the right. */
 function TapRow({ label, value, action, onPress, first, muted }: { label: string; value: string; action: string; onPress: () => void; first?: boolean; muted?: boolean }) {
@@ -82,7 +83,7 @@ export function RestockForm({ entry, initialQuantity }: { entry?: StockEntryRow;
   const total = (price ?? 0) * quantity;
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: colors.bg }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <KeyboardSafeView style={{ flex: 1, backgroundColor: colors.bg }}>
       <Stack.Screen options={{ headerShown: false }} />
       <SheetHeader title={entry ? 'Ubah restok' : 'Catat restok'} onClose={close} />
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
@@ -166,7 +167,7 @@ export function RestockForm({ entry, initialQuantity }: { entry?: StockEntryRow;
         <CapsuleButton label={entry ? 'Simpan perubahan' : 'Simpan restok'} value={`+${quantity} botol`} onPress={submit} loading={save.isPending} />
       </StickyFooter>
       <DialogHost />
-    </KeyboardAvoidingView>
+    </KeyboardSafeView>
   );
 }
 

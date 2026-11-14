@@ -1,7 +1,7 @@
 import * as WebBrowser from 'expo-web-browser';
 import { publicWebUrl } from '~/lib/config';
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
 
 import { errorMessage } from '~/lib/supabase';
@@ -13,6 +13,7 @@ import { CapsuleButton, StickyFooter } from '~/ui/sheet';
 import { useKeyboardVisible } from '~/ui/useKeyboard';
 import { StageSteps } from '~/ui/StageSteps';
 import { accents, colors, space } from '~/ui/theme';
+import { KeyboardSafeView } from '~/ui/KeyboardSafeView';
 
 const STRENGTH = [
   { color: '#DADAE0', text: 'Ketik kata sandi untuk melihat kekuatannya' },
@@ -57,7 +58,7 @@ export default function RegisterScreen() {
   };
 
   return (
-    <KeyboardAvoidingView style={kitStyles.page} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <KeyboardSafeView style={kitStyles.page}>
       <PageHeader title="Buat akun" />
       <ScrollView contentContainerStyle={[kitStyles.content, { paddingBottom: space.xxl }]} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets>
         <StageSteps labels={['Akun', 'Verifikasi']} current={0} />
@@ -99,7 +100,7 @@ export default function RegisterScreen() {
         </Pressable>
         )}
       </StickyFooter>
-    </KeyboardAvoidingView>
+    </KeyboardSafeView>
   );
 }
 

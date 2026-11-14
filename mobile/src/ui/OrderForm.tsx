@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from 'react';
-import { Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, TextInput, View, type ScrollViewInstance } from 'react-native';
+import { Image, Pressable, ScrollView, StyleSheet, TextInput, View, type ScrollViewInstance } from 'react-native';
 import { router, Stack } from 'expo-router';
 import { MITRA_LEVELS, type TierType } from '@/types';
 import { getFallbackUnitPrice } from '@/lib/catalogPricing';
@@ -23,6 +23,7 @@ import { ProofPicker } from './ProofPicker';
 import { CapsuleButton, RouteCard, SheetHeader, SheetRow, StickyFooter } from './sheet';
 import { colors, radius, space } from './theme';
 import { DialogHost, showDialog } from './dialog';
+import { KeyboardSafeView } from './KeyboardSafeView';
 
 const TIERS: TierType[] = ['satuan', 'reseller', 'agen', 'agen_plus', 'sap', 'se'];
 /** How a customer's level reads in the form; 'satuan' is an end consumer. */
@@ -262,7 +263,7 @@ export function OrderForm({ initial = {}, orderId }: { initial?: OrderFormInitia
   const today = sameDay(date, new Date());
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: colors.bg }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <KeyboardSafeView style={{ flex: 1, backgroundColor: colors.bg }}>
       <Stack.Screen options={{ headerShown: false, gestureEnabled: !dirty }} />
       <SheetHeader title={isEdit ? 'Ubah order' : 'Order baru'} onClose={confirmLeave} />
 
@@ -507,7 +508,7 @@ export function OrderForm({ initial = {}, orderId }: { initial?: OrderFormInitia
         />
       ) : null}
       <DialogHost />
-    </KeyboardAvoidingView>
+    </KeyboardSafeView>
   );
 }
 

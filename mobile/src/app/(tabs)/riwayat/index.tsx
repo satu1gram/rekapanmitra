@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { isOpenStatus } from '~/lib/orderStatus';
 import { Pressable, RefreshControl, SectionList, StyleSheet, TextInput, View } from 'react-native';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -21,7 +22,7 @@ const FILTERS: { key: Filter; label: string }[] = [
   { key: 'open', label: 'Belum selesai' },
   { key: 'selesai', label: 'Selesai' },
 ];
-const isOpen = (o: Order) => o.status === 'pending' || o.status === 'terkirim';
+const isOpen = (o: Order) => isOpenStatus(o.status);
 
 interface DaySection {
   key: string;

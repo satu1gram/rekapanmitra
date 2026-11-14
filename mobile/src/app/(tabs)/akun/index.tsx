@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import Constants from 'expo-constants';
 import { router, type Href } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
@@ -21,6 +21,7 @@ import { LevelPicker } from '~/ui/LevelPicker';
 import { HeroDecor } from '~/ui/brand';
 import { colors, space, TAB_BAR_SPACE, featureAccent, type Accent } from '~/ui/theme';
 import { usePullRefresh } from '~/ui/usePullRefresh';
+import { KeyboardSafeView } from '~/ui/KeyboardSafeView';
 
 const FEATURES: { title: string; subtitle: string; Icon: (p: IconProps) => React.ReactNode; href: Href; accent: Accent }[] = [
   { title: 'Pelanggan', subtitle: 'Data dan riwayat belanja pelanggan', Icon: PeopleIcon, href: '/pelanggan', accent: featureAccent.customers },
@@ -84,7 +85,7 @@ export default function AccountScreen() {
     ]);
 
   return (
-    <KeyboardAvoidingView style={kitStyles.page} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <KeyboardSafeView style={kitStyles.page}>
       <PageHeader title="Akun" back={false} />
       <ScrollView
         contentContainerStyle={[kitStyles.content, { paddingBottom: TAB_BAR_SPACE }]}
@@ -165,7 +166,7 @@ export default function AccountScreen() {
 
         <AppText variant="small" color={colors.textMuted} style={{ textAlign: 'center' }}>Rekapan Mitra {Constants.expoConfig?.version ?? ''}</AppText>
       </ScrollView>
-    </KeyboardAvoidingView>
+    </KeyboardSafeView>
   );
 }
 

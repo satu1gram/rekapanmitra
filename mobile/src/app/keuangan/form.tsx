@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES, deleteMoneyEntry, saveMoneyEntry, type MoneyInput, type MoneyKind } from '~/data/finance';
@@ -16,6 +16,7 @@ import { FieldRow, Group } from '~/ui/kit';
 import { CapsuleButton, SheetHeader, SheetRow, StickyFooter } from '~/ui/sheet';
 import { colors, space, accents, featureAccent } from '~/ui/theme';
 import { DialogHost, showDialog } from '~/ui/dialog';
+import { KeyboardSafeView } from '~/ui/KeyboardSafeView';
 
 export default function MoneyFormScreen() {
   const params = useLocalSearchParams<{ kind?: string; id?: string }>();
@@ -67,7 +68,7 @@ function MoneyForm({ kind, entry }: { kind: MoneyKind; entry?: { id: string; nam
   const today = sameDay(date, new Date());
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: colors.bg }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <KeyboardSafeView style={{ flex: 1, backgroundColor: colors.bg }}>
       <SheetHeader title={title} onClose={() => router.back()} />
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         {error ? <Notice tone="danger">{error}</Notice> : null}
@@ -111,7 +112,7 @@ function MoneyForm({ kind, entry }: { kind: MoneyKind; entry?: { id: string; nam
         <CapsuleButton label={entry ? 'Simpan perubahan' : 'Simpan'} value={amount ? formatRupiah(amount) : undefined} onPress={submit} loading={save.isPending} />
       </StickyFooter>
       <DialogHost />
-    </KeyboardAvoidingView>
+    </KeyboardSafeView>
   );
 }
 

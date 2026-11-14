@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
 import Svg, { Path, Rect } from 'react-native-svg';
 
@@ -11,6 +11,7 @@ import { FieldRow, Group, kitStyles, PageHeader } from '~/ui/kit';
 import { CapsuleButton, StickyFooter } from '~/ui/sheet';
 import { useKeyboardVisible } from '~/ui/useKeyboard';
 import { accents, colors, space } from '~/ui/theme';
+import { KeyboardSafeView } from '~/ui/KeyboardSafeView';
 
 export default function ForgotScreen() {
   const keyboard = useKeyboardVisible();
@@ -35,7 +36,7 @@ export default function ForgotScreen() {
   };
 
   return (
-    <KeyboardAvoidingView style={kitStyles.page} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <KeyboardSafeView style={kitStyles.page}>
       <PageHeader title="Lupa kata sandi" />
       <ScrollView contentContainerStyle={[kitStyles.content, { paddingBottom: space.xxl }]} keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets>
         <View style={styles.lock}>
@@ -70,7 +71,7 @@ export default function ForgotScreen() {
         </Pressable>
         )}
       </StickyFooter>
-    </KeyboardAvoidingView>
+    </KeyboardSafeView>
   );
 }
 

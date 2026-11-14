@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 
 import { buildCandidates, filterCandidates, type Candidate, type CustomerLike, type OrderLike } from '~/lib/customerCandidates';
 import { AppText, Notice, TextField } from './components';
@@ -8,6 +8,7 @@ import { Avatar } from './kit';
 import { RowsSkeleton } from './skeleton';
 import { CapsuleButton, SheetHeader, StickyFooter } from './sheet';
 import { colors, radius, space } from './theme';
+import { KeyboardSafeView } from './KeyboardSafeView';
 
 interface Props<TC extends CustomerLike> {
   name: string;
@@ -41,7 +42,7 @@ export function CustomerPicker<TC extends CustomerLike>(p: Props<TC>) {
   const total = list.length;
 
   return (
-    <KeyboardAvoidingView style={styles.root} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <KeyboardSafeView style={styles.root}>
       <SheetHeader title="Pelanggan" onClose={p.onClose} grabber={false} />
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <View style={{ gap: 6 }}>
@@ -137,7 +138,7 @@ export function CustomerPicker<TC extends CustomerLike>(p: Props<TC>) {
         {!query ? <AppText variant="small" color={colors.textMuted} style={{ textAlign: 'center' }}>Pilih dari daftar, atau ketik nama pelanggan.</AppText> : null}
         <CapsuleButton label="Pakai pelanggan ini" onPress={p.onClose} disabled={!query} />
       </StickyFooter>
-    </KeyboardAvoidingView>
+    </KeyboardSafeView>
   );
 }
 
